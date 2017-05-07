@@ -2,6 +2,7 @@
 #include "cs488-framework/GlErrorCheck.hpp"
 
 #include <iostream>
+#include <cmath>
 
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
@@ -197,18 +198,28 @@ void A0::guiLogic()
 
 	ImGui::Begin("Shape Properties", &showDebugWindow, ImVec2(100,100), opacity,
 			windowFlags);
+
+    // Create Button, and check if it was clicked:
+    if( ImGui::Button( "Quit Application" ) ) {
+      glfwSetWindowShouldClose(m_window, GL_TRUE);
+    }
+
 		// Retrieve red color component from slider and store in the first element of
 		// m_shape_color.
 		ImGui::SliderFloat("Red Channel", &m_shape_color.r, 0.0f, 1.0f);
+    ImGui::SliderFloat("Green Channel", &m_shape_color.g, 0.0f, 1.0f);
+    ImGui::SliderFloat("Blue Channel", &m_shape_color.b, 0.0f, 1.0f);
+    ImGui::SliderFloat("Rotate", &m_shape_rotation, 0.0f, 2 * M_PI);
 
 
-		// Add more gui elements here here ...
-
-
-		// Create Button, and check if it was clicked:
-		if( ImGui::Button( "Quit Application" ) ) {
-			glfwSetWindowShouldClose(m_window, GL_TRUE);
-		}
+    // Create Button, and check if it was clicked:
+    if( ImGui::Button( "Reset" ) ) {
+      m_shape_size = 1.0f;
+      m_shape_rotation = 0.0f;
+      m_shape_color.r = 1.0f;
+      m_shape_color.b = 1.0f;
+      m_shape_color.g = 1.0f;
+    }
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
@@ -331,25 +342,33 @@ bool A0::windowResizeEvent(int width, int height) {
  * Event handler.  Handles key input events.
  */
 bool A0::keyInputEvent(int key, int action, int mods) {
-	bool eventHandled(false);
 
 	if (action == GLFW_PRESS) {
+    if (key == GLFW_KEY_Q) {
+      glfwSetWindowShouldClose(m_window, GL_TRUE);
+      return true;
+    }
+
+    if (key == GLFW_KEY_R) {
+      m_shape_size = 1.0f;
+      m_shape_rotation = 0.0f;
+      m_shape_color.r = 1.0f;
+      m_shape_color.b = 1.0f;
+      m_shape_color.g = 1.0f;
+      return true;
+    }
+
 		if (key == GLFW_KEY_EQUAL) {
-			cout << "+ key pressed" << endl;
-
-			// TODO - increase shape size.
-
-			eventHandled = true;
+			m_shape_size += 0.25f;
+      return true;
 		}
+
 		if (key == GLFW_KEY_MINUS) {
-			cout << "- key pressed" << endl;
-
-			// TODO - decrease shape size.
-
-			eventHandled = true;
+			m_shape_size -= 0.25f;
+      return true;
 		}
-	}
+  }
 
 
-	return eventHandled;
+	return false;
 }
