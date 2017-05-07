@@ -218,3 +218,5 @@ luac.out
 obj/
 
 # End of https://www.gitignore.io/api/lua,c++,cmake,clion,emacs,intellij,premake-gmake
+
+shared/glfw-3.1.1/build/
