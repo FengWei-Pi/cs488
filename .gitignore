@@ -220,3 +220,10 @@ obj/
 # End of https://www.gitignore.io/api/lua,c++,cmake,clion,emacs,intellij,premake-gmake
 
 shared/glfw-3.1.1/build/
+A0/A0
+A1/A1
+A2/A2
+A3/A3
+A4/A4
+
+imgui.ini
