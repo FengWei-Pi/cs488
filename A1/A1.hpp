@@ -47,4 +47,7 @@ private:
 
 	float colour[3];
 	int current_col;
+
+  bool isMouseButtonLeftPressed;
+  int previousMouseX;
 };
