@@ -300,12 +300,17 @@ bool A1::windowResizeEvent(int width, int height) {
  * Event handler.  Handles key input events.
  */
 bool A1::keyInputEvent(int key, int action, int mods) {
-	bool eventHandled(false);
-
 	// Fill in with event handling code...
-	if( action == GLFW_PRESS ) {
-		// Respond to some key events.
+	if( action == GLFW_PRESS || action == GLFW_REPEAT ) {
+		switch (key) {
+      case GLFW_KEY_LEFT:
+        view = glm::rotate(view, 0.05f, glm::vec3(0.0f, 1.0f, 0.0f));
+        return true;
+      case GLFW_KEY_RIGHT:
+        view = glm::rotate(view, -0.05f, glm::vec3(0.0f, 1.0f, 0.0f));
+        return true;
+    }
 	}
 
-	return eventHandled;
+	return false;
 }
