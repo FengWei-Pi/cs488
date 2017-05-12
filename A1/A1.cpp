@@ -55,15 +55,18 @@ void A1::init()
 
 	// Set up initial view and projection matrices (need to do this here,
 	// since it depends on the GLFW window being set up correctly).
-	view = glm::lookAt( 
+	view = glm::lookAt(
 		glm::vec3( 0.0f, float(DIM)*2.0*M_SQRT1_2, float(DIM)*2.0*M_SQRT1_2 ),
 		glm::vec3( 0.0f, 0.0f, 0.0f ),
-		glm::vec3( 0.0f, 1.0f, 0.0f ) );
+		glm::vec3( 0.0f, 1.0f, 0.0f )
+  );
 
-	proj = glm::perspective( 
+	proj = glm::perspective(
 		glm::radians( 45.0f ),
 		float( m_framebufferWidth ) / float( m_framebufferHeight ),
-		1.0f, 1000.0f );
+		1.0f,
+    1000.0f
+  );
 }
 
 void A1::initGrid()
@@ -72,22 +75,23 @@ void A1::initGrid()
 
 	float *verts = new float[ sz ];
 	size_t ct = 0;
-	for( int idx = 0; idx < DIM+3; ++idx ) {
-		verts[ ct ] = -1;
-		verts[ ct+1 ] = 0;
-		verts[ ct+2 ] = idx-1;
-		verts[ ct+3 ] = DIM+1;
-		verts[ ct+4 ] = 0;
-		verts[ ct+5 ] = idx-1;
-		ct += 6;
+  // TODO: Why doesn't int idx = -1 work?
+	for( float idx = -1; idx < DIM+2; ++idx ) {
+		verts[ ct++ ] = -1;
+		verts[ ct++ ] = 0;
+		verts[ ct++ ] = idx;
 
-		verts[ ct ] = idx-1;
-		verts[ ct+1 ] = 0;
-		verts[ ct+2 ] = -1;
-		verts[ ct+3 ] = idx-1;
-		verts[ ct+4 ] = 0;
-		verts[ ct+5 ] = DIM+1;
-		ct += 6;
+		verts[ ct++ ] = DIM+1;
+		verts[ ct++ ] = 0;
+		verts[ ct++ ] = idx;
+
+		verts[ ct++ ] = idx;
+		verts[ ct++ ] = 0;
+		verts[ ct++ ] = -1;
+
+		verts[ ct++ ] = idx;
+		verts[ ct++ ] = 0;
+		verts[ ct++ ] = DIM+1;
 	}
 
 	// Create the vertex array to record buffer assignments.
@@ -97,15 +101,14 @@ void A1::initGrid()
 	// Create the cube vertex buffer
 	glGenBuffers( 1, &m_grid_vbo );
 	glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
-	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
-		verts, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float), verts, GL_STATIC_DRAW );
 
 	// Specify the means of extracting the position values properly.
 	GLint posAttrib = m_shader.getAttribLocation( "position" );
 	glEnableVertexAttribArray( posAttrib );
 	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
 
-	// Reset state to prevent rogue code from messing with *my* 
+	// Reset state to prevent rogue code from messing with *my*
 	// stuff!
 	glBindVertexArray( 0 );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
@@ -132,7 +135,7 @@ void A1::appLogic()
  */
 void A1::guiLogic()
 {
-	// We already know there's only going to be one window, so for 
+	// We already know there's only going to be one window, so for
 	// simplicity we'll store button states in static local variables.
 	// If there was ever a possibility of having multiple instances of
 	// A1 running simultaneously, this would break; you'd want to make
@@ -168,7 +171,7 @@ void A1::guiLogic()
 /*
 		// For convenience, you can uncomment this to show ImGui's massive
 		// demonstration window right in your application.  Very handy for
-		// browsing around to get the widget you want.  Then look in 
+		// browsing around to get the widget you want.  Then look in
 		// shared/imgui/imgui_demo.cpp to see how it's done.
 		if( ImGui::Button( "Test Window" ) ) {
 			showTestWindow = !showTestWindow;
@@ -220,15 +223,16 @@ void A1::draw()
 /*
  * Called once, after program is signaled to terminate.
  */
-void A1::cleanup()
-{}
+void A1::cleanup() {
+
+}
 
 //----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles cursor entering the window area events.
  */
 bool A1::cursorEnterWindowEvent (
-		int entered
+	int entered
 ) {
 	bool eventHandled(false);
 
@@ -241,7 +245,7 @@ bool A1::cursorEnterWindowEvent (
 /*
  * Event handler.  Handles mouse cursor movement events.
  */
-bool A1::mouseMoveEvent(double xPos, double yPos) 
+bool A1::mouseMoveEvent(double xPos, double yPos)
 {
 	bool eventHandled(false);
 
@@ -249,7 +253,7 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 		// Put some code here to handle rotations.  Probably need to
 		// check whether we're *dragging*, not just moving the mouse.
 		// Probably need some instance variables to track the current
-		// rotation amount, and maybe the previous X position (so 
+		// rotation amount, and maybe the previous X position (so
 		// that you can rotate relative to the *change* in X.
 	}
 
