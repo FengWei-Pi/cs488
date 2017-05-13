@@ -35,11 +35,11 @@ private:
 	GLint P_uni; // Uniform location for Projection matrix.
 	GLint V_uni; // Uniform location for View matrix.
 	GLint M_uni; // Uniform location for Model matrix.
-	GLint col_uni;   // Uniform location for cube colour.
 
 	// Fields related to grid geometry.
 	GLuint m_grid_vao; // Vertex Array Object
 	GLuint m_grid_vbo; // Vertex Buffer Object
+  GLuint m_grid_color_vbo;
 
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;

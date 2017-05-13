@@ -53,7 +53,6 @@ void A1::init()
   P_uni = m_shader.getUniformLocation( "P" );
   V_uni = m_shader.getUniformLocation( "V" );
   M_uni = m_shader.getUniformLocation( "M" );
-  col_uni = m_shader.getUniformLocation( "colour" );
 
   initGrid();
 
@@ -76,8 +75,9 @@ void A1::init()
 void A1::initGrid() {
   size_t sz = 36 * DIM * DIM;
   glm::vec3* verts = new glm::vec3[sz];
+  glm::vec3* colors = new glm::vec3[sz];
   size_t ct = 0;
-  float initialHeight = 1;
+  float initialHeight = 0;
 
   for (float z = 0; z < DIM; z += 1) {
     for (float x = 0; x < DIM; x += 1, ct += 36) {
@@ -148,12 +148,23 @@ void A1::initGrid() {
       verts[ct + 33] = glm::vec3(x + 1, initialHeight, z + 1);
       verts[ct + 34] = glm::vec3(x, initialHeight, z + 1);
       verts[ct + 35] = glm::vec3(x + 1, 0, z + 1);
+
+      /**
+       * Assign colors
+       */
+      for (int i = 0; i < 36; i++) {
+        colors[ct + i] = glm::vec3(1, 1, 1);
+      }
     }
   }
 
   // Create the vertex array to record buffer assignments.
   glGenVertexArrays( 1, &m_grid_vao );
   glBindVertexArray( m_grid_vao );
+
+  /**
+   * Pass Vertices to OpenGL
+   */
 
   // Create the cube vertex buffer
   glGenBuffers( 1, &m_grid_vbo );
@@ -165,6 +176,20 @@ void A1::initGrid() {
   glEnableVertexAttribArray( posAttrib );
   glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
 
+  /**
+   * Pass colors to OpenGL
+   */
+
+  // Create the cube vertex buffer for colors
+  glGenBuffers( 1, &m_grid_color_vbo );
+  glBindBuffer( GL_ARRAY_BUFFER, m_grid_color_vbo );
+  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec3), colors, GL_DYNAMIC_DRAW );
+
+  // Specify the means of extracting the position values properly.
+  GLint vertexColorAttrib = m_shader.getAttribLocation( "vertexColor" );
+  glEnableVertexAttribArray( vertexColorAttrib );
+  glVertexAttribPointer( vertexColorAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
   // Reset state to prevent rogue code from messing with *my*
   // stuff!
   glBindVertexArray( 0 );
@@ -173,6 +198,7 @@ void A1::initGrid() {
 
   // OpenGL has the buffer now, there's no need for us to keep a copy.
   delete [] verts;
+  delete [] colors;
 
   CHECK_GL_ERRORS;
 }
@@ -263,7 +289,7 @@ void A1::draw()
 
     // Just draw the grid for now.
     glBindVertexArray( m_grid_vao );
-    glUniform3f( col_uni, 1, 1, 1 );
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glDrawArrays( GL_TRIANGLES, 0, 36 * DIM * DIM );
 
     // Draw the cubes
