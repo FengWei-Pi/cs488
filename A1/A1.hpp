@@ -51,5 +51,7 @@ private:
   bool isMouseButtonLeftPressed;
   int previousMouseX;
   int activeX;
-  int activeY;
+  int activeZ;
+
+  void changeActiveBarHeight(float diff);
 };

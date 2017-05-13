@@ -20,7 +20,7 @@ A1::A1() :
   current_col( 0 ),
   previousMouseX(0),
   activeX(0),
-  activeY(0),
+  activeZ(0),
   isMouseButtonLeftPressed(false)
 {
   colour[0] = 0.0f;
@@ -149,7 +149,7 @@ void A1::initGrid() {
   // Create the cube vertex buffer
   glGenBuffers( 1, &m_grid_vbo );
   glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
-  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec3), verts, GL_STATIC_DRAW );
+  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec3), verts, GL_DYNAMIC_DRAW );
 
   // Specify the means of extracting the position values properly.
   GLint posAttrib = m_shader.getAttribLocation( "position" );
@@ -371,22 +371,74 @@ bool A1::windowResizeEvent(int width, int height) {
  */
 bool A1::keyInputEvent(int key, int action, int mods) {
   // Fill in with event handling code...
+  //
   if( action == GLFW_PRESS ) {
     switch (key) {
       case GLFW_KEY_LEFT:
         activeX = std::max(0, activeX - 1);
         return true;
       case GLFW_KEY_UP:
-        activeY = std::max(0, activeY - 1);
+        activeZ = std::max(0, activeZ - 1);
         return true;
       case GLFW_KEY_RIGHT:
         activeX = std::min((int)DIM, activeX + 1);
         return true;
       case GLFW_KEY_DOWN:
-        activeY = std::min((int)DIM, activeY + 1);
+        activeZ = std::min((int)DIM, activeZ + 1);
+        return true;
+      case GLFW_KEY_SPACE:
+        changeActiveBarHeight(+1);
+        return true;
+      case GLFW_KEY_BACKSPACE:
+        changeActiveBarHeight(-1);
         return true;
     }
   }
 
   return true;
+}
+
+void A1::changeActiveBarHeight(float diff) {
+  // std::cout << "Tried to change bar height by " << diff << std::endl;
+
+  glBindVertexArray( m_grid_vao );
+  glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
+
+  int cubeSize = sizeof(glm::vec3) * 24;
+  GLintptr offset = (DIM * activeZ + activeX) * cubeSize;
+  GLsizeiptr length = cubeSize;
+
+  glm::vec3* verts = (glm::vec3*)glMapBufferRange(
+    GL_ARRAY_BUFFER,
+    offset,
+    length,
+    GL_MAP_READ_BIT | GL_MAP_WRITE_BIT
+  );
+
+  float minHeight = 0;
+  float maxHeight = 8;
+
+  /**
+   * Top square
+   */
+  verts[8].y = glm::clamp(verts[8].y + diff, minHeight, maxHeight);
+  verts[9].y = glm::clamp(verts[9].y + diff, minHeight, maxHeight);
+  verts[10].y = glm::clamp(verts[10].y + diff, minHeight, maxHeight);
+  verts[11].y = glm::clamp(verts[11].y + diff, minHeight, maxHeight);
+  verts[12].y = glm::clamp(verts[12].y + diff, minHeight, maxHeight);
+  verts[13].y = glm::clamp(verts[13].y + diff, minHeight, maxHeight);
+  verts[14].y = glm::clamp(verts[14].y + diff, minHeight, maxHeight);
+  verts[15].y = glm::clamp(verts[15].y + diff, minHeight, maxHeight);
+
+  /**
+   * Pillar Up vertices
+   */
+  verts[17].y = glm::clamp(verts[17].y + diff, minHeight, maxHeight);
+  verts[19].y = glm::clamp(verts[19].y + diff, minHeight, maxHeight);
+  verts[21].y = glm::clamp(verts[21].y + diff, minHeight, maxHeight);
+  verts[23].y = glm::clamp(verts[23].y + diff, minHeight, maxHeight);
+
+  glUnmapBuffer(GL_ARRAY_BUFFER);
+  glBindBuffer( GL_ARRAY_BUFFER, 0 );
+  glBindVertexArray( 0 );
 }
