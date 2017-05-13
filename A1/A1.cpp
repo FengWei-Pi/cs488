@@ -17,15 +17,26 @@ static const size_t DIM = 16;
 //----------------------------------------------------------------------------------------
 // Constructor
 A1::A1() :
-  current_col( 0 ),
+  selected_color( 0 ),
   previousMouseX(0),
   activeX(0),
   activeZ(0),
   isMouseButtonLeftPressed(false)
 {
-  colour[0] = 0.0f;
-  colour[1] = 0.0f;
-  colour[2] = 0.0f;
+  colors[0] = glm::vec3(228, 87, 46);
+  colors[1] = glm::vec3(23, 190, 187);
+  colors[2] = glm::vec3(255, 201, 20);
+  colors[3] = glm::vec3(46, 40, 42);
+  colors[4] = glm::vec3(118, 176, 65);
+  colors[5] = glm::vec3(0, 21, 20);
+  colors[6] = glm::vec3(251, 255, 254);
+  colors[7] = glm::vec3(163, 0, 0);
+
+  for (glm::vec3& color : colors) {
+    color.y = color.y / 255.0;
+    color.x = color.x / 255.0;
+    color.z = color.z / 255.0;
+  }
 }
 
 //----------------------------------------------------------------------------------------
@@ -38,7 +49,7 @@ A1::~A1() {}
  */
 void A1::init()
 {
-  // Set the background colour.
+  // Set the background color.
   glClearColor( 0.3, 0.5, 0.7, 1.0 );
 
   // Build the shader
@@ -243,23 +254,27 @@ void A1::guiLogic()
     // Prefixing a widget name with "##" keeps it from being
     // displayed.
 
-    ImGui::PushID( 0 );
-    ImGui::ColorEdit3( "##Colour", colour );
-    ImGui::SameLine();
-    if( ImGui::RadioButton( "##Col", &current_col, 0 ) ) {
-      // Select this colour.
-    }
-    ImGui::PopID();
+    int id = 0;
+    for (glm::vec3 &color : colors) {
+      ImGui::PushID( id );
+      ImGui::ColorEdit3( "##Color", glm::value_ptr(color) );
+      ImGui::SameLine();
+      if( ImGui::RadioButton( "##Col", &selected_color, id ) ) {
+        // Select this colour.
+        std::cout << "Selected color " << selected_color << std::endl;
+      }
+      ImGui::PopID();
 
-/*
+      id += 1;
+    }
+
     // For convenience, you can uncomment this to show ImGui's massive
     // demonstration window right in your application.  Very handy for
     // browsing around to get the widget you want.  Then look in
     // shared/imgui/imgui_demo.cpp to see how it's done.
-    if( ImGui::Button( "Test Window" ) ) {
-      showTestWindow = !showTestWindow;
-    }
-*/
+    // if( ImGui::Button( "Test Window" ) ) {
+    //   showTestWindow = !showTestWindow;
+    // }
 
     ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
@@ -289,7 +304,7 @@ void A1::draw()
 
     // Just draw the grid for now.
     glBindVertexArray( m_grid_vao );
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glDrawArrays( GL_TRIANGLES, 0, 36 * DIM * DIM );
 
     // Draw the cubes

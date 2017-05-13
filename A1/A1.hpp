@@ -45,8 +45,8 @@ private:
 	glm::mat4 proj;
 	glm::mat4 view;
 
-	float colour[3];
-	int current_col;
+	int selected_color;
+  glm::vec3 colors[8];
 
   bool isMouseButtonLeftPressed;
   int previousMouseX;
