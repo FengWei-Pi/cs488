@@ -21,7 +21,8 @@ A1::A1() :
   previousMouseX(0),
   activeX(0),
   activeZ(0),
-  isMouseButtonLeftPressed(false)
+  isMouseButtonLeftPressed(false),
+  colorAssignment(new int*[DIM])
 {
   colors[0] = glm::vec3(228, 87, 46);
   colors[1] = glm::vec3(23, 190, 187);
@@ -37,18 +38,30 @@ A1::A1() :
     color.x = color.x / 255.0;
     color.z = color.z / 255.0;
   }
+
+  for (int z = 0; z < DIM; z += 1) {
+    colorAssignment[z] = new int[DIM];
+    for (int x = 0; x < DIM; x += 1) {
+      colorAssignment[z][x] = selected_color;
+    }
+  }
 }
 
 //----------------------------------------------------------------------------------------
 // Destructor
-A1::~A1() {}
+A1::~A1() {
+  for (int z = 0; z < DIM; z += 1) {
+    delete [] colorAssignment[z];
+  }
+
+  delete [] colorAssignment;
+}
 
 //----------------------------------------------------------------------------------------
 /*
  * Called once, at program start.
  */
-void A1::init()
-{
+void A1::init() {
   // Set the background color.
   glClearColor( 0.3, 0.5, 0.7, 1.0 );
 
@@ -86,12 +99,12 @@ void A1::init()
 void A1::initGrid() {
   size_t sz = 36 * DIM * DIM;
   glm::vec3* verts = new glm::vec3[sz];
-  glm::vec3* colors = new glm::vec3[sz];
+  glm::vec3* vertexColors = new glm::vec3[sz];
   size_t ct = 0;
   float initialHeight = 0;
 
-  for (float z = 0; z < DIM; z += 1) {
-    for (float x = 0; x < DIM; x += 1, ct += 36) {
+  for (int z = 0; z < DIM; z += 1) {
+    for (int x = 0; x < DIM; x += 1, ct += 36) {
       /**
        * Bottom Square
        */
@@ -164,7 +177,7 @@ void A1::initGrid() {
        * Assign colors
        */
       for (int i = 0; i < 36; i++) {
-        colors[ct + i] = glm::vec3(1, 1, 1);
+        vertexColors[ct + i] = colors[colorAssignment[z][x]];
       }
     }
   }
@@ -194,7 +207,7 @@ void A1::initGrid() {
   // Create the cube vertex buffer for colors
   glGenBuffers( 1, &m_grid_color_vbo );
   glBindBuffer( GL_ARRAY_BUFFER, m_grid_color_vbo );
-  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec3), colors, GL_DYNAMIC_DRAW );
+  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec3), vertexColors, GL_DYNAMIC_DRAW );
 
   // Specify the means of extracting the position values properly.
   GLint vertexColorAttrib = m_shader.getAttribLocation( "vertexColor" );
@@ -209,7 +222,7 @@ void A1::initGrid() {
 
   // OpenGL has the buffer now, there's no need for us to keep a copy.
   delete [] verts;
-  delete [] colors;
+  delete [] vertexColors;
 
   CHECK_GL_ERRORS;
 }
@@ -257,11 +270,18 @@ void A1::guiLogic()
     int id = 0;
     for (glm::vec3 &color : colors) {
       ImGui::PushID( id );
-      ImGui::ColorEdit3( "##Color", glm::value_ptr(color) );
+      if ( ImGui::ColorEdit3( "##Color", glm::value_ptr(color) ) ) {
+        for (int z = 0; z < DIM; z += 1) {
+          for (int x = 0; x < DIM; x += 1) {
+            if (colorAssignment[z][x] == id) {
+              changeBarColor(z, x, colors[id]);
+            }
+          }
+        }
+      };
       ImGui::SameLine();
       if( ImGui::RadioButton( "##Col", &selected_color, id ) ) {
-        // Select this colour.
-        std::cout << "Selected color " << selected_color << std::endl;
+        updateActiveBarToSelectedColor();
       }
       ImGui::PopID();
 
@@ -426,15 +446,19 @@ bool A1::keyInputEvent(int key, int action, int mods) {
     switch (key) {
       case GLFW_KEY_LEFT:
         activeX = std::max(0, activeX - 1);
+        updateActiveBarToSelectedColor();
         return true;
       case GLFW_KEY_UP:
         activeZ = std::max(0, activeZ - 1);
+        updateActiveBarToSelectedColor();
         return true;
       case GLFW_KEY_RIGHT:
         activeX = std::min((int)DIM, activeX + 1);
+        updateActiveBarToSelectedColor();
         return true;
       case GLFW_KEY_DOWN:
         activeZ = std::min((int)DIM, activeZ + 1);
+        updateActiveBarToSelectedColor();
         return true;
       case GLFW_KEY_SPACE:
         changeActiveBarHeight(+1);
@@ -479,4 +503,33 @@ void A1::changeActiveBarHeight(float diff) {
   glUnmapBuffer(GL_ARRAY_BUFFER);
   glBindBuffer( GL_ARRAY_BUFFER, 0 );
   glBindVertexArray( 0 );
+}
+
+void A1::changeBarColor(int z, int x, const glm::vec3& color) {
+  glBindVertexArray( m_grid_vao );
+  glBindBuffer( GL_ARRAY_BUFFER, m_grid_color_vbo );
+
+  int cubeSize = sizeof(glm::vec3) * 36;
+  GLintptr offset = (DIM * z + x) * cubeSize;
+  GLsizeiptr length = cubeSize;
+
+  glm::vec3* colors = (glm::vec3*)glMapBufferRange(
+    GL_ARRAY_BUFFER,
+    offset,
+    length,
+    GL_MAP_READ_BIT | GL_MAP_WRITE_BIT
+  );
+
+  for (int i = 0; i < 36; i++) {
+    colors[i] = color;
+  }
+
+  glUnmapBuffer(GL_ARRAY_BUFFER);
+  glBindBuffer( GL_ARRAY_BUFFER, 0 );
+  glBindVertexArray( 0 );
+}
+
+void A1::updateActiveBarToSelectedColor() {
+  colorAssignment[activeZ][activeX] = selected_color;
+  changeBarColor(activeZ, activeX, colors[selected_color]);
 }

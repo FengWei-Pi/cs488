@@ -47,6 +47,7 @@ private:
 
 	int selected_color;
   glm::vec3 colors[8];
+  int ** colorAssignment;
 
   bool isMouseButtonLeftPressed;
   int previousMouseX;
@@ -54,4 +55,6 @@ private:
   int activeZ;
 
   void changeActiveBarHeight(float diff);
+  void changeBarColor(int x, int z, const glm::vec3& color);
+  void updateActiveBarToSelectedColor();
 };
