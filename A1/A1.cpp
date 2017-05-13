@@ -73,35 +73,7 @@ void A1::init()
   );
 }
 
-void A1::initGrid()
-{
-  // size_t sz = 3 * 2 * 2 * (DIM+3);
-  //
-  // float *verts = new float[ sz ];
-  // size_t ct = 0;
-  // // TODO: Why doesn't int idx = -1 work?
-  // for( float idx = -1; idx < DIM+2; ++idx ) {
-  //   // Left
-  //   verts[ ct++ ] = -1;
-  //   verts[ ct++ ] = 0;
-  //   verts[ ct++ ] = idx;
-  //
-  //   // Right
-  //   verts[ ct++ ] = DIM+1;
-  //   verts[ ct++ ] = 0;
-  //   verts[ ct++ ] = idx;
-  //
-  //   // Top
-  //   verts[ ct++ ] = idx;
-  //   verts[ ct++ ] = 0;
-  //   verts[ ct++ ] = -1;
-  //
-  //   // Bottom
-  //   verts[ ct++ ] = idx;
-  //   verts[ ct++ ] = 0;
-  //   verts[ ct++ ] = DIM+1;
-  // }
-
+void A1::initGrid() {
   size_t sz = 24 * DIM * DIM;
   glm::vec3* verts = new glm::vec3[sz];
   size_t ct = 0;
@@ -368,10 +340,15 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
 /*
  * Event handler.  Handles mouse scroll wheel events.
  */
-bool A1::mouseScrollEvent(double xOffSet, double yOffSet) {
+bool A1::mouseScrollEvent(double xOffset, double yOffset) {
   bool eventHandled(false);
+  float factor = 1.05f;
 
-  // Zoom in or out.
+  if (yOffset < 0) {
+    view = glm::scale(view, glm::vec3(factor, factor, factor));
+  } else {
+    view = glm::scale(view, glm::vec3(1/factor, 1/factor, 1/factor));
+  }
 
   return eventHandled;
 }
