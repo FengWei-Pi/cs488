@@ -2,6 +2,7 @@
 #include "cs488-framework/GlErrorCheck.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
@@ -15,7 +16,13 @@ static const size_t DIM = 16;
 
 //----------------------------------------------------------------------------------------
 // Constructor
-A1::A1() : current_col( 0 ) {
+A1::A1() :
+  current_col( 0 ),
+  previousMouseX(0),
+  activeX(0),
+  activeY(0),
+  isMouseButtonLeftPressed(false)
+{
   colour[0] = 0.0f;
   colour[1] = 0.0f;
   colour[2] = 0.0f;
@@ -68,31 +75,99 @@ void A1::init()
 
 void A1::initGrid()
 {
-  size_t sz = 3 * 2 * 2 * (DIM+3);
+  // size_t sz = 3 * 2 * 2 * (DIM+3);
+  //
+  // float *verts = new float[ sz ];
+  // size_t ct = 0;
+  // // TODO: Why doesn't int idx = -1 work?
+  // for( float idx = -1; idx < DIM+2; ++idx ) {
+  //   // Left
+  //   verts[ ct++ ] = -1;
+  //   verts[ ct++ ] = 0;
+  //   verts[ ct++ ] = idx;
+  //
+  //   // Right
+  //   verts[ ct++ ] = DIM+1;
+  //   verts[ ct++ ] = 0;
+  //   verts[ ct++ ] = idx;
+  //
+  //   // Top
+  //   verts[ ct++ ] = idx;
+  //   verts[ ct++ ] = 0;
+  //   verts[ ct++ ] = -1;
+  //
+  //   // Bottom
+  //   verts[ ct++ ] = idx;
+  //   verts[ ct++ ] = 0;
+  //   verts[ ct++ ] = DIM+1;
+  // }
 
-  float *verts = new float[ sz ];
+  size_t sz = 24 * DIM * DIM;
+  glm::vec3* verts = new glm::vec3[sz];
   size_t ct = 0;
-  // TODO: Why doesn't int idx = -1 work?
-  for( float idx = -1; idx < DIM+2; ++idx ) {
-    // Left
-    verts[ ct++ ] = -1;
-    verts[ ct++ ] = 0;
-    verts[ ct++ ] = idx;
 
-    // Right
-    verts[ ct++ ] = DIM+1;
-    verts[ ct++ ] = 0;
-    verts[ ct++ ] = idx;
+  for (float z = 0; z < DIM; z += 1) {
+    for (float x = 0; x < DIM; x += 1) {
+      /**
+       * Bottom Square
+       */
 
-    // Top
-    verts[ ct++ ] = idx;
-    verts[ ct++ ] = 0;
-    verts[ ct++ ] = -1;
+      // Top Line
+      verts[ct++] = glm::vec3(x, 0, z);
+      verts[ct++] = glm::vec3(x, 0, z + 1);
 
-    // Bottom
-    verts[ ct++ ] = idx;
-    verts[ ct++ ] = 0;
-    verts[ ct++ ] = DIM+1;
+      // Left Line
+      verts[ct++] = glm::vec3(x, 0, z);
+      verts[ct++] = glm::vec3(x + 1, 0, z);
+
+      // Bottom Line
+      verts[ct++] = glm::vec3(x + 1, 0, z);
+      verts[ct++] = glm::vec3(x + 1, 0, z + 1);
+
+      // Right Line
+      verts[ct++] = glm::vec3(x, 0, z + 1);
+      verts[ct++] = glm::vec3(x + 1, 0, z + 1);
+
+      /**
+       * Top Square
+       */
+
+      // Top Line
+      verts[ct++] = glm::vec3(x, 1, z);
+      verts[ct++] = glm::vec3(x, 1, z + 1);
+
+      // Left Line
+      verts[ct++] = glm::vec3(x, 1, z);
+      verts[ct++] = glm::vec3(x + 1, 1, z);
+
+      // Bottom Line
+      verts[ct++] = glm::vec3(x + 1, 1, z);
+      verts[ct++] = glm::vec3(x + 1, 1, z + 1);
+
+      // Right Line
+      verts[ct++] = glm::vec3(x, 1, z + 1);
+      verts[ct++] = glm::vec3(x + 1, 1, z + 1);
+
+      /**
+       * Pillars
+       */
+
+      // Top-Left
+      verts[ct++] = glm::vec3(x, 0, z);
+      verts[ct++] = glm::vec3(x, 1, z);
+
+      // Top-Right
+      verts[ct++] = glm::vec3(x + 1, 0, z);
+      verts[ct++] = glm::vec3(x + 1, 1, z);
+
+      // Bottom-Left
+      verts[ct++] = glm::vec3(x, 0, z + 1);
+      verts[ct++] = glm::vec3(x, 1, z + 1);
+
+      // Bottom-Right
+      verts[ct++] = glm::vec3(x + 1, 0, z + 1);
+      verts[ct++] = glm::vec3(x + 1, 1, z + 1);
+    }
   }
 
   // Create the vertex array to record buffer assignments.
@@ -102,7 +177,7 @@ void A1::initGrid()
   // Create the cube vertex buffer
   glGenBuffers( 1, &m_grid_vbo );
   glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
-  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float), verts, GL_STATIC_DRAW );
+  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec3), verts, GL_STATIC_DRAW );
 
   // Specify the means of extracting the position values properly.
   GLint posAttrib = m_shader.getAttribLocation( "position" );
@@ -208,7 +283,7 @@ void A1::draw()
     // Just draw the grid for now.
     glBindVertexArray( m_grid_vao );
     glUniform3f( col_uni, 1, 1, 1 );
-    glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
+    glDrawArrays( GL_LINES, 0, 24 * DIM * DIM );
 
     // Draw the cubes
     // Highlight the active square.
@@ -246,9 +321,7 @@ bool A1::cursorEnterWindowEvent (
 /*
  * Event handler.  Handles mouse cursor movement events.
  */
-bool A1::mouseMoveEvent(double xPos, double yPos)
-{
-  bool eventHandled(false);
+bool A1::mouseMoveEvent(double xPos, double yPos) {
 
   if (!ImGui::IsMouseHoveringAnyWindow()) {
     // Put some code here to handle rotations.  Probably need to
@@ -264,7 +337,7 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
   }
 
   previousMouseX = xPos;
-  return eventHandled;
+  return true;
 }
 
 //----------------------------------------------------------------------------------------
@@ -321,8 +394,22 @@ bool A1::windowResizeEvent(int width, int height) {
  */
 bool A1::keyInputEvent(int key, int action, int mods) {
   // Fill in with event handling code...
-  if( action == GLFW_PRESS || action == GLFW_REPEAT ) {
+  if( action == GLFW_PRESS ) {
+    switch (key) {
+      case GLFW_KEY_LEFT:
+        activeX = std::max(0, activeX - 1);
+        return true;
+      case GLFW_KEY_UP:
+        activeY = std::max(0, activeY - 1);
+        return true;
+      case GLFW_KEY_RIGHT:
+        activeX = std::min((int)DIM, activeX + 1);
+        return true;
+      case GLFW_KEY_DOWN:
+        activeY = std::min((int)DIM, activeY + 1);
+        return true;
+    }
   }
 
-  return false;
+  return true;
 }

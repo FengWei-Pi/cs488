@@ -50,4 +50,6 @@ private:
 
   bool isMouseButtonLeftPressed;
   int previousMouseX;
+  int activeX;
+  int activeY;
 };
