@@ -74,71 +74,80 @@ void A1::init()
 }
 
 void A1::initGrid() {
-  size_t sz = 24 * DIM * DIM;
+  size_t sz = 36 * DIM * DIM;
   glm::vec3* verts = new glm::vec3[sz];
   size_t ct = 0;
+  float initialHeight = 1;
 
   for (float z = 0; z < DIM; z += 1) {
-    for (float x = 0; x < DIM; x += 1) {
+    for (float x = 0; x < DIM; x += 1, ct += 36) {
       /**
        * Bottom Square
        */
 
-      // Top Line
-      verts[ct++] = glm::vec3(x, 0, z);
-      verts[ct++] = glm::vec3(x, 0, z + 1);
+      verts[ct + 0] = glm::vec3(x, 0, z);
+      verts[ct + 1] = glm::vec3(x + 1, 0, z);
+      verts[ct + 2] = glm::vec3(x, 0, z + 1);
 
-      // Left Line
-      verts[ct++] = glm::vec3(x, 0, z);
-      verts[ct++] = glm::vec3(x + 1, 0, z);
-
-      // Bottom Line
-      verts[ct++] = glm::vec3(x + 1, 0, z);
-      verts[ct++] = glm::vec3(x + 1, 0, z + 1);
-
-      // Right Line
-      verts[ct++] = glm::vec3(x, 0, z + 1);
-      verts[ct++] = glm::vec3(x + 1, 0, z + 1);
+      verts[ct + 3] = glm::vec3(x + 1, 0, z + 1);
+      verts[ct + 4] = glm::vec3(x + 1, 0, z);
+      verts[ct + 5] = glm::vec3(x, 0, z + 1);
 
       /**
        * Top Square
        */
 
-      // Top Line
-      verts[ct++] = glm::vec3(x, 1, z);
-      verts[ct++] = glm::vec3(x, 1, z + 1);
+      verts[ct + 6] = glm::vec3(x, initialHeight, z);
+      verts[ct + 7] = glm::vec3(x + 1, initialHeight, z);
+      verts[ct + 8] = glm::vec3(x, initialHeight, z + 1);
 
-      // Left Line
-      verts[ct++] = glm::vec3(x, 1, z);
-      verts[ct++] = glm::vec3(x + 1, 1, z);
-
-      // Bottom Line
-      verts[ct++] = glm::vec3(x + 1, 1, z);
-      verts[ct++] = glm::vec3(x + 1, 1, z + 1);
-
-      // Right Line
-      verts[ct++] = glm::vec3(x, 1, z + 1);
-      verts[ct++] = glm::vec3(x + 1, 1, z + 1);
+      verts[ct + 9] = glm::vec3(x + 1, initialHeight, z + 1);
+      verts[ct + 10] = glm::vec3(x + 1, initialHeight, z);
+      verts[ct + 11] = glm::vec3(x, initialHeight, z + 1);
 
       /**
-       * Pillars
+       * Left Square
        */
+      verts[ct + 12] = glm::vec3(x, 0, z + 1);
+      verts[ct + 13] = glm::vec3(x, 0, z);
+      verts[ct + 14] = glm::vec3(x, initialHeight, z + 1);
 
-      // Top-Left
-      verts[ct++] = glm::vec3(x, 0, z);
-      verts[ct++] = glm::vec3(x, 1, z);
+      verts[ct + 15] = glm::vec3(x, initialHeight, z);
+      verts[ct + 16] = glm::vec3(x, 0, z);
+      verts[ct + 17] = glm::vec3(x, initialHeight, z + 1);
 
-      // Top-Right
-      verts[ct++] = glm::vec3(x + 1, 0, z);
-      verts[ct++] = glm::vec3(x + 1, 1, z);
+      /**
+       * Right Square
+       */
+      verts[ct + 18] = glm::vec3(x + 1, 0, z + 1);
+      verts[ct + 19] = glm::vec3(x + 1, 0, z);
+      verts[ct + 20] = glm::vec3(x + 1, initialHeight, z + 1);
 
-      // Bottom-Left
-      verts[ct++] = glm::vec3(x, 0, z + 1);
-      verts[ct++] = glm::vec3(x, 1, z + 1);
+      verts[ct + 21] = glm::vec3(x + 1, initialHeight, z);
+      verts[ct + 22] = glm::vec3(x + 1, 0, z);
+      verts[ct + 23] = glm::vec3(x + 1, initialHeight, z + 1);
 
-      // Bottom-Right
-      verts[ct++] = glm::vec3(x + 1, 0, z + 1);
-      verts[ct++] = glm::vec3(x + 1, 1, z + 1);
+      /**
+       * Back Square
+       */
+      verts[ct + 24] = glm::vec3(x, 0, z);
+      verts[ct + 25] = glm::vec3(x, initialHeight, z);
+      verts[ct + 26] = glm::vec3(x + 1, 0, z);
+
+      verts[ct + 27] = glm::vec3(x + 1, initialHeight, z);
+      verts[ct + 28] = glm::vec3(x, initialHeight, z);
+      verts[ct + 29] = glm::vec3(x + 1, 0, z);
+
+      /**
+       * Front Square
+       */
+      verts[ct + 30] = glm::vec3(x, 0, z + 1);
+      verts[ct + 31] = glm::vec3(x, initialHeight, z + 1);
+      verts[ct + 32] = glm::vec3(x + 1, 0, z + 1);
+
+      verts[ct + 33] = glm::vec3(x + 1, initialHeight, z + 1);
+      verts[ct + 34] = glm::vec3(x, initialHeight, z + 1);
+      verts[ct + 35] = glm::vec3(x + 1, 0, z + 1);
     }
   }
 
@@ -255,7 +264,7 @@ void A1::draw()
     // Just draw the grid for now.
     glBindVertexArray( m_grid_vao );
     glUniform3f( col_uni, 1, 1, 1 );
-    glDrawArrays( GL_LINES, 0, 24 * DIM * DIM );
+    glDrawArrays( GL_TRIANGLES, 0, 36 * DIM * DIM );
 
     // Draw the cubes
     // Highlight the active square.
@@ -404,7 +413,7 @@ void A1::changeActiveBarHeight(float diff) {
   glBindVertexArray( m_grid_vao );
   glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
 
-  int cubeSize = sizeof(glm::vec3) * 24;
+  int cubeSize = sizeof(glm::vec3) * 36;
   GLintptr offset = (DIM * activeZ + activeX) * cubeSize;
   GLsizeiptr length = cubeSize;
 
@@ -418,25 +427,13 @@ void A1::changeActiveBarHeight(float diff) {
   float minHeight = 0;
   float maxHeight = 8;
 
-  /**
-   * Top square
-   */
-  verts[8].y = glm::clamp(verts[8].y + diff, minHeight, maxHeight);
-  verts[9].y = glm::clamp(verts[9].y + diff, minHeight, maxHeight);
-  verts[10].y = glm::clamp(verts[10].y + diff, minHeight, maxHeight);
-  verts[11].y = glm::clamp(verts[11].y + diff, minHeight, maxHeight);
-  verts[12].y = glm::clamp(verts[12].y + diff, minHeight, maxHeight);
-  verts[13].y = glm::clamp(verts[13].y + diff, minHeight, maxHeight);
-  verts[14].y = glm::clamp(verts[14].y + diff, minHeight, maxHeight);
-  verts[15].y = glm::clamp(verts[15].y + diff, minHeight, maxHeight);
+  int elevatedPoints[] = {
+    6, 7, 8, 9, 10, 11, 14, 15, 17, 20, 21, 23, 25, 27, 28, 31, 33, 34
+  };
 
-  /**
-   * Pillar Up vertices
-   */
-  verts[17].y = glm::clamp(verts[17].y + diff, minHeight, maxHeight);
-  verts[19].y = glm::clamp(verts[19].y + diff, minHeight, maxHeight);
-  verts[21].y = glm::clamp(verts[21].y + diff, minHeight, maxHeight);
-  verts[23].y = glm::clamp(verts[23].y + diff, minHeight, maxHeight);
+  for (const int &i : elevatedPoints) {
+    verts[i].y = glm::clamp(verts[i].y + diff, minHeight, maxHeight);
+  }
 
   glUnmapBuffer(GL_ARRAY_BUFFER);
   glBindBuffer( GL_ARRAY_BUFFER, 0 );
