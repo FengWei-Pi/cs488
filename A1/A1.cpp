@@ -311,9 +311,9 @@ void A1::appLogic() {
   float time = getTime();
   const float y = std::sin(time * 4.0);
   const glm::vec3& color = colors[selected_color];
-  const float r = 0.05 * y + color.r;
-  const float g = 0.05 * y + color.g;
-  const float b = 0.05 * y + color.b;
+  const float r = glm::clamp((float)(0.05 * y + color.r), 0.0f, 1.0f);
+  const float g = glm::clamp((float)(0.05 * y + color.g), 0.0f, 1.0f);
+  const float b = glm::clamp((float)(0.05 * y + color.b), 0.0f, 1.0f);
   const float a = 0.05 * y + 0.75f;
 
   updateBarColor(activeZ, activeX, [r, g, b, a](glm::vec4 _) -> glm::vec4 {
