@@ -314,7 +314,7 @@ void A1::appLogic() {
   const float r = 0.05 * y + color.r;
   const float g = 0.05 * y + color.g;
   const float b = 0.05 * y + color.b;
-  const float a = 0.05 * y + 0.5f;
+  const float a = 0.05 * y + 0.75f;
 
   updateBarColor(activeZ, activeX, [r, g, b, a](glm::vec4 _) -> glm::vec4 {
     return glm::vec4(r, g, b, a);
@@ -570,6 +570,9 @@ bool A1::keyInputEvent(int key, int action, int mods) {
         return true;
       case GLFW_KEY_R:
         reset();
+        return true;
+      case GLFW_KEY_Q:
+        glfwSetWindowShouldClose(m_window, GL_TRUE);
         return true;
     }
   }
