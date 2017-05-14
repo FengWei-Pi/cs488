@@ -1,6 +1,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <functional>
+#include <chrono>
 
 #include "cs488-framework/CS488Window.hpp"
 #include "cs488-framework/OpenGLImport.hpp"
@@ -53,8 +55,17 @@ private:
   int previousMouseX;
   int activeX;
   int activeZ;
+  bool shiftPressed;
+  float currentZoom;
+  std::chrono::high_resolution_clock::time_point t_start;
 
-  void changeActiveBarHeight(float diff);
-  void changeBarColor(int x, int z, const glm::vec3& color);
+  glm::mat4 getInitialView();
+  glm::mat4 getInitialPerspective();
+  void initState();
+  void updateActiveBarHeight(std::function<float(float)> fn);
+  void changeActiveBar(int z, int x);
+  void updateBarColor(int z, int x, std::function<glm::vec4(glm::vec4)> fn);
   void updateActiveBarToSelectedColor();
+  float getTime();
+  void reset();
 };

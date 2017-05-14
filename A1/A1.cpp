@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <algorithm>
+#include <chrono>
+#include <functional>
 
 #include <imgui/imgui.h>
 #include <glm/glm.hpp>
@@ -17,18 +19,38 @@ static const size_t DIM = 16;
 //----------------------------------------------------------------------------------------
 // Constructor
 A1::A1() :
-  selected_color( 0 ),
+  selected_color(0),
   previousMouseX(0),
   activeX(0),
   activeZ(0),
   isMouseButtonLeftPressed(false),
-  colorAssignment(new int*[DIM])
-{
-  colors[0] = glm::vec3(228, 87, 46);
+  colorAssignment(new int*[DIM]),
+  t_start(std::chrono::high_resolution_clock::now()),
+  shiftPressed(false),
+  currentZoom(1) {
+  for (int z = 0; z < DIM; z += 1) {
+    colorAssignment[z] = new int[DIM];
+  }
+
+  initState();
+}
+
+//----------------------------------------------------------------------------------------
+// Destructor
+A1::~A1() {
+  for (int z = 0; z < DIM; z += 1) {
+    delete [] colorAssignment[z];
+  }
+
+  delete [] colorAssignment;
+}
+
+void A1::initState() {
+  colors[0] = glm::vec3(118, 176, 65);
   colors[1] = glm::vec3(23, 190, 187);
   colors[2] = glm::vec3(255, 201, 20);
   colors[3] = glm::vec3(46, 40, 42);
-  colors[4] = glm::vec3(118, 176, 65);
+  colors[4] = glm::vec3(228, 87, 46);
   colors[5] = glm::vec3(0, 21, 20);
   colors[6] = glm::vec3(251, 255, 254);
   colors[7] = glm::vec3(163, 0, 0);
@@ -40,21 +62,12 @@ A1::A1() :
   }
 
   for (int z = 0; z < DIM; z += 1) {
-    colorAssignment[z] = new int[DIM];
     for (int x = 0; x < DIM; x += 1) {
-      colorAssignment[z][x] = selected_color;
+      colorAssignment[z][x] = 3;
     }
   }
-}
 
-//----------------------------------------------------------------------------------------
-// Destructor
-A1::~A1() {
-  for (int z = 0; z < DIM; z += 1) {
-    delete [] colorAssignment[z];
-  }
-
-  delete [] colorAssignment;
+  colorAssignment[activeZ][activeX] = selected_color;
 }
 
 //----------------------------------------------------------------------------------------
@@ -82,13 +95,20 @@ void A1::init() {
 
   // Set up initial view and projection matrices (need to do this here,
   // since it depends on the GLFW window being set up correctly).
-  view = glm::lookAt(
+  view = getInitialView();
+  proj = getInitialPerspective();
+}
+
+glm::mat4 A1::getInitialView() {
+  return glm::lookAt(
     glm::vec3( 0.0f, float(DIM)*2.0*M_SQRT1_2, float(DIM)*2.0*M_SQRT1_2 ),
     glm::vec3( 0.0f, 0.0f, 0.0f ),
     glm::vec3( 0.0f, 1.0f, 0.0f )
   );
+}
 
-  proj = glm::perspective(
+glm::mat4 A1::getInitialPerspective() {
+  return glm::perspective(
     glm::radians( 45.0f ),
     float( m_framebufferWidth ) / float( m_framebufferHeight ),
     1.0f,
@@ -97,9 +117,9 @@ void A1::init() {
 }
 
 void A1::initGrid() {
-  size_t sz = 36 * DIM * DIM;
+  size_t sz = 36 * (DIM * DIM) + 24;
   glm::vec3* verts = new glm::vec3[sz];
-  glm::vec3* vertexColors = new glm::vec3[sz];
+  glm::vec4* vertexColors = new glm::vec4[sz];
   size_t ct = 0;
   float initialHeight = 0;
 
@@ -177,9 +197,65 @@ void A1::initGrid() {
        * Assign colors
        */
       for (int i = 0; i < 36; i++) {
-        vertexColors[ct + i] = colors[colorAssignment[z][x]];
+        glm::vec3& assignedColor = colors[colorAssignment[z][x]];
+        vertexColors[ct + i][0] = assignedColor.x;
+        vertexColors[ct + i][1] = assignedColor.y;
+        vertexColors[ct + i][2] = assignedColor.z;
+        vertexColors[ct + i][3] = 1;
       }
     }
+  }
+
+  /**
+   * Left Dead Tile
+   */
+
+  verts[ct + 0] = glm::vec3(-1, 0, -1);
+  verts[ct + 1] = glm::vec3(0, 0, -1);
+  verts[ct + 2] = glm::vec3(-1, 0, DIM + 1);
+
+  verts[ct + 3] = glm::vec3(0, 0, DIM + 1);
+  verts[ct + 4] = glm::vec3(0, 0, -1);
+  verts[ct + 5] = glm::vec3(-1, 0, DIM + 1);
+
+  /**
+   * Right Dead tile
+   */
+
+  verts[ct + 6] = glm::vec3(DIM, 0, -1);
+  verts[ct + 7] = glm::vec3(DIM + 1, 0, -1);
+  verts[ct + 8] = glm::vec3(DIM, 0, DIM + 1);
+
+  verts[ct + 9] = glm::vec3(DIM + 1, 0, DIM + 1);
+  verts[ct + 10] = glm::vec3(DIM + 1, 0, -1);
+  verts[ct + 11] = glm::vec3(DIM, 0, DIM + 1);
+
+  /**
+   * Top Dead Tile
+   */
+
+  verts[ct + 12] = glm::vec3(0, 0, -1);
+  verts[ct + 13] = glm::vec3(DIM, 0, -1);
+  verts[ct + 14] = glm::vec3(0, 0, 0);
+
+  verts[ct + 15] = glm::vec3(DIM, 0, 0);
+  verts[ct + 16] = glm::vec3(DIM, 0, -1);
+  verts[ct + 17] = glm::vec3(0, 0, 0);
+
+  /**
+   * Bottom Dead tile
+   */
+
+  verts[ct + 18] = glm::vec3(0, 0, DIM);
+  verts[ct + 19] = glm::vec3(DIM, 0, DIM);
+  verts[ct + 20] = glm::vec3(0, 0, DIM + 1);
+
+  verts[ct + 21] = glm::vec3(DIM, 0, DIM + 1);
+  verts[ct + 22] = glm::vec3(DIM, 0, DIM);
+  verts[ct + 23] = glm::vec3(0, 0, DIM + 1);
+
+  for (int i = 0; i < 24; i++) {
+    vertexColors[ct + i] = glm::vec4(1, 1, 1, 0.75);
   }
 
   // Create the vertex array to record buffer assignments.
@@ -207,12 +283,12 @@ void A1::initGrid() {
   // Create the cube vertex buffer for colors
   glGenBuffers( 1, &m_grid_color_vbo );
   glBindBuffer( GL_ARRAY_BUFFER, m_grid_color_vbo );
-  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec3), vertexColors, GL_DYNAMIC_DRAW );
+  glBufferData( GL_ARRAY_BUFFER, sz*sizeof(glm::vec4), vertexColors, GL_DYNAMIC_DRAW );
 
   // Specify the means of extracting the position values properly.
   GLint vertexColorAttrib = m_shader.getAttribLocation( "vertexColor" );
   glEnableVertexAttribArray( vertexColorAttrib );
-  glVertexAttribPointer( vertexColorAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+  glVertexAttribPointer( vertexColorAttrib, 4, GL_FLOAT, GL_FALSE, 0, nullptr );
 
   // Reset state to prevent rogue code from messing with *my*
   // stuff!
@@ -231,9 +307,18 @@ void A1::initGrid() {
 /*
  * Called once per frame, before guiLogic().
  */
-void A1::appLogic()
-{
-  // Place per frame, application logic here ...
+void A1::appLogic() {
+  float time = getTime();
+  const float y = std::sin(time * 4.0);
+  const glm::vec3& color = colors[selected_color];
+  const float r = 0.05 * y + color.r;
+  const float g = 0.05 * y + color.g;
+  const float b = 0.05 * y + color.b;
+  const float a = 0.05 * y + 0.5f;
+
+  updateBarColor(activeZ, activeX, [r, g, b, a](glm::vec4 _) -> glm::vec4 {
+    return glm::vec4(r, g, b, a);
+  });
 }
 
 //----------------------------------------------------------------------------------------
@@ -254,6 +339,12 @@ void A1::guiLogic()
   float opacity(0.5f);
 
   ImGui::Begin("Debug Window", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
+    if( ImGui::Button( "Reset" ) ) {
+      reset();
+    }
+
+    ImGui::SameLine();
+
     if( ImGui::Button( "Quit Application" ) ) {
       glfwSetWindowShouldClose(m_window, GL_TRUE);
     }
@@ -274,7 +365,9 @@ void A1::guiLogic()
         for (int z = 0; z < DIM; z += 1) {
           for (int x = 0; x < DIM; x += 1) {
             if (colorAssignment[z][x] == id) {
-              changeBarColor(z, x, colors[id]);
+              updateBarColor(z, x, [this, id](glm::vec4 old) -> glm::vec4 {
+                return glm::vec4(colors[id], old.a);
+              });
             }
           }
         }
@@ -325,7 +418,8 @@ void A1::draw()
     // Just draw the grid for now.
     glBindVertexArray( m_grid_vao );
     // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-    glDrawArrays( GL_TRIANGLES, 0, 36 * DIM * DIM );
+    glDrawArrays( GL_TRIANGLES, 0, 36 * (DIM * DIM) + 24 );
+    glDrawArrays( GL_LINES, 0, 36 * (DIM * DIM) + 24 );
 
     // Draw the cubes
     // Highlight the active square.
@@ -415,8 +509,12 @@ bool A1::mouseScrollEvent(double xOffset, double yOffset) {
   float factor = 1.05f;
 
   if (yOffset < 0) {
-    view = glm::scale(view, glm::vec3(factor, factor, factor));
-  } else {
+    if (currentZoom * factor < 1.5) {
+      currentZoom = currentZoom * factor;
+      view = glm::scale(view, glm::vec3(factor, factor, factor));
+    }
+  } else if (currentZoom / factor > 0.5) {
+    currentZoom = currentZoom / factor;
     view = glm::scale(view, glm::vec3(1/factor, 1/factor, 1/factor));
   }
 
@@ -445,26 +543,42 @@ bool A1::keyInputEvent(int key, int action, int mods) {
   if( action == GLFW_PRESS ) {
     switch (key) {
       case GLFW_KEY_LEFT:
-        activeX = std::max(0, activeX - 1);
-        updateActiveBarToSelectedColor();
+        changeActiveBar(activeZ, activeX - 1);
         return true;
       case GLFW_KEY_UP:
-        activeZ = std::max(0, activeZ - 1);
-        updateActiveBarToSelectedColor();
+        changeActiveBar(activeZ - 1, activeX);
         return true;
       case GLFW_KEY_RIGHT:
-        activeX = std::min((int)DIM, activeX + 1);
-        updateActiveBarToSelectedColor();
+        changeActiveBar(activeZ, activeX + 1);
         return true;
       case GLFW_KEY_DOWN:
-        activeZ = std::min((int)DIM, activeZ + 1);
-        updateActiveBarToSelectedColor();
+        changeActiveBar(activeZ + 1, activeX);
         return true;
       case GLFW_KEY_SPACE:
-        changeActiveBarHeight(+1);
+        updateActiveBarHeight([](float old) -> float {
+          return old + 1;
+        });
         return true;
       case GLFW_KEY_BACKSPACE:
-        changeActiveBarHeight(-1);
+        updateActiveBarHeight([](float old) -> float {
+          return old - 1;
+        });
+        return true;
+      case GLFW_KEY_LEFT_SHIFT:
+      case GLFW_KEY_RIGHT_SHIFT:
+        shiftPressed = true;
+        return true;
+      case GLFW_KEY_R:
+        reset();
+        return true;
+    }
+  }
+
+  if (action == GLFW_RELEASE) {
+    switch (key) {
+      case GLFW_KEY_LEFT_SHIFT:
+      case GLFW_KEY_RIGHT_SHIFT:
+        shiftPressed = false;
         return true;
     }
   }
@@ -472,9 +586,7 @@ bool A1::keyInputEvent(int key, int action, int mods) {
   return true;
 }
 
-void A1::changeActiveBarHeight(float diff) {
-  // std::cout << "Tried to change bar height by " << diff << std::endl;
-
+void A1::updateActiveBarHeight(std::function<float(float)> fn) {
   glBindVertexArray( m_grid_vao );
   glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
 
@@ -497,7 +609,7 @@ void A1::changeActiveBarHeight(float diff) {
   };
 
   for (const int &i : elevatedPoints) {
-    verts[i].y = glm::clamp(verts[i].y + diff, minHeight, maxHeight);
+    verts[i].y = glm::clamp(fn(verts[i].y), minHeight, maxHeight);
   }
 
   glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -505,15 +617,15 @@ void A1::changeActiveBarHeight(float diff) {
   glBindVertexArray( 0 );
 }
 
-void A1::changeBarColor(int z, int x, const glm::vec3& color) {
+void A1::updateBarColor(int z, int x, std::function<glm::vec4(glm::vec4)> fn) {
   glBindVertexArray( m_grid_vao );
   glBindBuffer( GL_ARRAY_BUFFER, m_grid_color_vbo );
 
-  int cubeSize = sizeof(glm::vec3) * 36;
+  int cubeSize = sizeof(glm::vec4) * 36;
   GLintptr offset = (DIM * z + x) * cubeSize;
   GLsizeiptr length = cubeSize;
 
-  glm::vec3* colors = (glm::vec3*)glMapBufferRange(
+  glm::vec4* colors = (glm::vec4*)glMapBufferRange(
     GL_ARRAY_BUFFER,
     offset,
     length,
@@ -521,7 +633,7 @@ void A1::changeBarColor(int z, int x, const glm::vec3& color) {
   );
 
   for (int i = 0; i < 36; i++) {
-    colors[i] = color;
+    colors[i] = fn(colors[i]);
   }
 
   glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -529,7 +641,77 @@ void A1::changeBarColor(int z, int x, const glm::vec3& color) {
   glBindVertexArray( 0 );
 }
 
+void A1::changeActiveBar(int z, int x) {
+  if (z == activeZ && x == activeX) {
+    return;
+  }
+
+  int oldActiveX = activeX;
+  int oldActiveZ = activeZ;
+
+  /**
+   * Restore previously assigned color alpha
+   */
+
+  updateBarColor(activeZ, activeX, [this](glm::vec4 _) -> glm::vec4 {
+    return glm::vec4(colors[colorAssignment[activeZ][activeX]], 1);
+  });
+
+  activeZ = glm::clamp(z, 0, (int) (DIM - 1));
+  activeX = glm::clamp(x, 0, (int) (DIM - 1));
+
+  updateActiveBarToSelectedColor();
+
+  if (shiftPressed) {
+    glBindVertexArray( m_grid_vao );
+    glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
+
+    int cubeSize = sizeof(glm::vec3) * 36;
+
+    glm::vec3* oldActiveBar = (glm::vec3*)glMapBufferRange(
+      GL_ARRAY_BUFFER,
+      (DIM * oldActiveZ + oldActiveX) * cubeSize,
+      cubeSize,
+      GL_MAP_READ_BIT | GL_MAP_WRITE_BIT
+    );
+
+    int oldActiveBarHeight = oldActiveBar[6].y;
+
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    glBindVertexArray( 0 );
+
+    updateActiveBarHeight([oldActiveBarHeight](float _) -> float {
+      return oldActiveBarHeight;
+    });
+  }
+}
+
 void A1::updateActiveBarToSelectedColor() {
   colorAssignment[activeZ][activeX] = selected_color;
-  changeBarColor(activeZ, activeX, colors[selected_color]);
+  updateBarColor(activeZ, activeX, [this](glm::vec4 _) -> glm::vec4 {
+    return glm::vec4(colors[selected_color], 1);
+  });
+}
+
+float A1::getTime() {
+  auto t_now = std::chrono::high_resolution_clock::now();
+  return std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
+}
+
+void A1::reset() {
+  selected_color = 0;
+  previousMouseX = 0;
+  activeX = 0;
+  activeZ = 0;
+  isMouseButtonLeftPressed = false;
+  t_start = std::chrono::high_resolution_clock::now();
+  shiftPressed = false;
+  currentZoom = 1;
+
+  initState();
+  initGrid();
+
+  view = getInitialView();
+  proj = getInitialPerspective();
 }
