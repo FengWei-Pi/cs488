@@ -8,4 +8,7 @@ Standard compilation instructions
 ```
 
 # Manual
-The guidelines were never interpreted as being vague. Therefore, no assuptions were necessary.
+The guidelines were never interpreted as being vague. Therefore, no assumptions were necessary.
+
+## Additional features
+I made the active bar vary its transparency and shade sinusoidally with respect to time.

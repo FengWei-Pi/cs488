@@ -117,7 +117,7 @@ glm::mat4 A1::getInitialPerspective() {
 }
 
 void A1::initGrid() {
-  size_t sz = 36 * (DIM * DIM) + 24;
+  size_t sz = 36 * (DIM * DIM) + 24 + 6;
   glm::vec3* verts = new glm::vec3[sz];
   glm::vec4* vertexColors = new glm::vec4[sz];
   size_t ct = 0;
@@ -256,6 +256,21 @@ void A1::initGrid() {
 
   for (int i = 0; i < 24; i++) {
     vertexColors[ct + i] = glm::vec4(1, 1, 1, 0.75);
+  }
+
+  /**
+   * Active Cell
+   */
+  verts[ct + 24] = glm::vec3(activeX, 0, activeZ);
+  verts[ct + 25] = glm::vec3(activeX, 0, activeZ + 1);
+  verts[ct + 26] = glm::vec3(activeX + 1, 0, activeZ);
+
+  verts[ct + 27] = glm::vec3(activeX + 1, 0, activeZ + 1);
+  verts[ct + 28] = glm::vec3(activeX, 0, activeZ + 1);
+  verts[ct + 29] = glm::vec3(activeX + 1, 0, activeZ);
+
+  for (int i = 0; i < 6; i++) {
+    vertexColors[ct + 24 + i] = glm::vec4(1, 1, 1, 0.5);
   }
 
   // Create the vertex array to record buffer assignments.
@@ -420,6 +435,10 @@ void A1::draw()
     // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glDrawArrays( GL_TRIANGLES, 0, 36 * (DIM * DIM) + 24 );
     glDrawArrays( GL_LINES, 0, 36 * (DIM * DIM) + 24 );
+
+    glDisable(GL_DEPTH_TEST);
+    glDrawArrays( GL_TRIANGLES, 36 * (DIM * DIM) + 24, 6);
+    glEnable(GL_DEPTH_TEST);
 
     // Draw the cubes
     // Highlight the active square.
@@ -664,6 +683,7 @@ void A1::changeActiveBar(int z, int x) {
   activeX = glm::clamp(x, 0, (int) (DIM - 1));
 
   updateActiveBarToSelectedColor();
+  updateActiveCellIndicatorPosition();
 
   if (shiftPressed) {
     glBindVertexArray( m_grid_vao );
@@ -688,6 +708,30 @@ void A1::changeActiveBar(int z, int x) {
       return oldActiveBarHeight;
     });
   }
+}
+
+void A1::updateActiveCellIndicatorPosition() {
+  glBindVertexArray( m_grid_vao );
+  glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
+
+  glm::vec3* activeCell = (glm::vec3*)glMapBufferRange(
+    GL_ARRAY_BUFFER,
+    (36 * (DIM * DIM) + 24) * sizeof(glm::vec3),
+    6 * sizeof(glm::vec3),
+    GL_MAP_WRITE_BIT
+  );
+
+  activeCell[0] = glm::vec3(activeX, 0, activeZ);
+  activeCell[1] = glm::vec3(activeX, 0, activeZ + 1);
+  activeCell[2] = glm::vec3(activeX + 1, 0, activeZ);
+
+  activeCell[3] = glm::vec3(activeX + 1, 0, activeZ + 1);
+  activeCell[4] = glm::vec3(activeX, 0, activeZ + 1);
+  activeCell[5] = glm::vec3(activeX + 1, 0, activeZ);
+
+  glUnmapBuffer(GL_ARRAY_BUFFER);
+  glBindBuffer( GL_ARRAY_BUFFER, 0 );
+  glBindVertexArray( 0 );
 }
 
 void A1::updateActiveBarToSelectedColor() {

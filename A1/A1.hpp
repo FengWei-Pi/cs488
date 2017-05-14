@@ -63,6 +63,7 @@ private:
   glm::mat4 getInitialPerspective();
   void initState();
   void updateActiveBarHeight(std::function<float(float)> fn);
+  void updateActiveCellIndicatorPosition();
   void changeActiveBar(int z, int x);
   void updateBarColor(int z, int x, std::function<glm::vec4(glm::vec4)> fn);
   void updateActiveBarToSelectedColor();
