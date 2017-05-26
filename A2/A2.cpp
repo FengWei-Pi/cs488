@@ -32,25 +32,25 @@ A2::A2() :
   view(A2::createView()),
   proj(createProj())
 {
-  const float min = -0.5;
-  const float max = 0.5;
+  const float min = -1;
+  const float max = 1;
 
   // Bottom Square
-  gridLines.push_back(std::make_tuple(glm::vec4(min, min, min, 1), glm::vec4(max, min, min, 1)));
-  gridLines.push_back(std::make_tuple(glm::vec4(min, min, min, 1), glm::vec4(min, min, max, 1)));
-  gridLines.push_back(std::make_tuple(glm::vec4(max, min, max, 1), glm::vec4(max, min, min, 1)));
-  gridLines.push_back(std::make_tuple(glm::vec4(max, min, max, 1), glm::vec4(min, min, max, 1)));
+  gridLines.push_back(LineSegment{glm::vec4(min, min, min, 1), glm::vec4(max, min, min, 1)});
+  gridLines.push_back(LineSegment{glm::vec4(min, min, min, 1), glm::vec4(min, min, max, 1)});
+  gridLines.push_back(LineSegment{glm::vec4(max, min, max, 1), glm::vec4(max, min, min, 1)});
+  gridLines.push_back(LineSegment{glm::vec4(max, min, max, 1), glm::vec4(min, min, max, 1)});
 
   // Top Square
-  gridLines.push_back(std::make_tuple(glm::vec4(min, max, min, 1), glm::vec4(max, max, min, 1)));
-  gridLines.push_back(std::make_tuple(glm::vec4(min, max, min, 1), glm::vec4(min, max, max, 1)));
-  gridLines.push_back(std::make_tuple(glm::vec4(max, max, max, 1), glm::vec4(max, max, min, 1)));
-  gridLines.push_back(std::make_tuple(glm::vec4(max, max, max, 1), glm::vec4(min, max, max, 1)));
+  gridLines.push_back(LineSegment{glm::vec4(min, max, min, 1), glm::vec4(max, max, min, 1)});
+  gridLines.push_back(LineSegment{glm::vec4(min, max, min, 1), glm::vec4(min, max, max, 1)});
+  gridLines.push_back(LineSegment{glm::vec4(max, max, max, 1), glm::vec4(max, max, min, 1)});
+  gridLines.push_back(LineSegment{glm::vec4(max, max, max, 1), glm::vec4(min, max, max, 1)});
 
   // Pillars
   for (const float x : std::vector<float>{min, max}) {
     for (const float z : std::vector<float>{min, max}) {
-      gridLines.push_back( std::make_tuple(glm::vec4(x, min, z, 1), glm::vec4(x, max, z, 1)));
+      gridLines.push_back(LineSegment{glm::vec4(x, min, z, 1), glm::vec4(x, max, z, 1)});
     }
   }
 }
@@ -65,7 +65,7 @@ glm::mat4 A2::createM() {
 }
 
 glm::mat4 A2::createView() {
-  glm::vec3 origin{0, 0, 1.125};
+  glm::vec3 origin{0, 0, 5};
   glm::vec3 lookAt{0, 0, -1};
   glm::vec3 up{lookAt.x, lookAt.y + 1, lookAt.z};
 
@@ -88,9 +88,9 @@ glm::mat4 A2::createView() {
 
 glm::mat4 A2::createProj() {
   float aspect = 1.0;
-  float theta = glm::radians(165.0f);
+  float theta = glm::radians(30.0f);
   float far = 1000.0f;
-  float near = 0.0f;
+  float near = 1.0f;
   float cot = std::cos(theta / 2) / std::sin(theta / 2);
 
   // return glm::perspective(
@@ -267,18 +267,25 @@ void A2::appLogic() {
 
   for (const LineSegment& line : gridLines) {
     try {
-      LineSegment transformedLine {
-        T * std::get<0>(line),
-        T * std::get<1>(line)
+      LineSegment worldLine {
+        view *  M * std::get<0>(line),
+        view *  M * std::get<1>(line)
       };
 
-      std::cout << "Transformed Line: " <<  std::get<0>(transformedLine) << " " << std::get<1>(transformedLine) << std::endl;
+      // std::cerr << "World Line: " << std::get<0>(worldLine) << " " << std::get<1>(worldLine) << std::endl;
+
+      LineSegment transformedLine {
+        proj * std::get<0>(worldLine),
+        proj * std::get<1>(worldLine)
+      };
+
+      // std::cerr << "Transformed Line: " <<  std::get<0>(transformedLine) << " " << std::get<1>(transformedLine) << std::endl;
 
       for (const LineSegment& clippedLine : Clipper::clip(transformedLine)) {
         glm::vec4 start = homogenize(std::get<0>(clippedLine));
         glm::vec4 end = homogenize(std::get<1>(clippedLine));
 
-        std::cout << "Clipped Line: " <<  std::get<0>(clippedLine) << " " << std::get<1>(clippedLine) << std::endl;
+        // std::cerr << "Clipped Line: " <<  std::get<0>(clippedLine) << " " << std::get<1>(clippedLine) << std::endl << std::endl;
 
         drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
       }
@@ -519,9 +526,9 @@ LineSegment Clipper::clipPos(const LineSegment &line) {
     float wecP2 = clippingBoundary(P2);
 
     if (wecP1 < 0 && wecP2 < 0) {
-      std::cerr << "i: " << i << std::endl;
-      std::cerr << "wecP1: " << wecP1 << std::endl;
-      std::cerr << "wecP2: " << wecP2 << std::endl;
+      // std::cerr << "i: " << i << std::endl;
+      // std::cerr << "wecP1: " << wecP1 << std::endl;
+      // std::cerr << "wecP2: " << wecP2 << std::endl;
       throw LineRejected();
     }
 
