@@ -2,6 +2,8 @@
 #include "cs488-framework/GlErrorCheck.hpp"
 
 #include <iostream>
+#include <cmath>
+#include <functional>
 using namespace std;
 
 #include <imgui/imgui.h>
@@ -15,7 +17,8 @@ using namespace glm;
 // Constructor
 VertexData::VertexData():
   numVertices(0),
-  index(0) {
+  index(0)
+{
   positions.resize(kMaxVertices);
   colours.resize(kMaxVertices);
 }
@@ -23,9 +26,88 @@ VertexData::VertexData():
 
 //----------------------------------------------------------------------------------------
 // Constructor
-A2::A2() : m_currentLineColour(vec3(0.0f)) {
+A2::A2() :
+  m_currentLineColour(vec3(0.0f)),
+  M(A2::createM()),
+  view(A2::createView()),
+  proj(createProj())
+{
+  const float min = -0.5;
+  const float max = 0.5;
 
+  // Bottom Square
+  gridLines.push_back(std::make_tuple(glm::vec4(min, min, min, 1), glm::vec4(max, min, min, 1)));
+  gridLines.push_back(std::make_tuple(glm::vec4(min, min, min, 1), glm::vec4(min, min, max, 1)));
+  gridLines.push_back(std::make_tuple(glm::vec4(max, min, max, 1), glm::vec4(max, min, min, 1)));
+  gridLines.push_back(std::make_tuple(glm::vec4(max, min, max, 1), glm::vec4(min, min, max, 1)));
+
+  // Top Square
+  gridLines.push_back(std::make_tuple(glm::vec4(min, max, min, 1), glm::vec4(max, max, min, 1)));
+  gridLines.push_back(std::make_tuple(glm::vec4(min, max, min, 1), glm::vec4(min, max, max, 1)));
+  gridLines.push_back(std::make_tuple(glm::vec4(max, max, max, 1), glm::vec4(max, max, min, 1)));
+  gridLines.push_back(std::make_tuple(glm::vec4(max, max, max, 1), glm::vec4(min, max, max, 1)));
+
+  // Pillars
+  for (const float x : std::vector<float>{min, max}) {
+    for (const float z : std::vector<float>{min, max}) {
+      gridLines.push_back( std::make_tuple(glm::vec4(x, min, z, 1), glm::vec4(x, max, z, 1)));
+    }
+  }
 }
+
+glm::mat4 A2::createM() {
+  return glm::mat4(
+    1, 0, 0, 0, // First column
+    0, 1, 0, 0, // Second column
+    0, 0, 1, 0, // Third column
+    0, 0, 0, 1  // Fourth column
+  );
+}
+
+glm::mat4 A2::createView() {
+  glm::vec3 origin{0, 0, 1.125};
+  glm::vec3 lookAt{0, 0, -1};
+  glm::vec3 up{lookAt.x, lookAt.y + 1, lookAt.z};
+
+  glm::vec3 z = lookAt;
+  glm::vec3 x = glm::cross(up, z);
+  glm::vec3 y = glm::cross(z, x);
+
+  glm::mat4 MT {
+    glm::vec4(x, 0),
+    glm::vec4(y, 0),
+    glm::vec4(z, 0),
+    glm::vec4(origin, 1)
+  };
+
+  // View will take coordinates in the cartesian frame to coordinates in the camera's frame
+  // http://www.uio.no/studier/emner/matnat/ifi/INF3320/h03/undervisningsmateriale/lecture3.pdf
+
+  return glm::inverse(MT);
+}
+
+glm::mat4 A2::createProj() {
+  float aspect = 1.0;
+  float theta = glm::radians(165.0f);
+  float far = 1000.0f;
+  float near = 0.0f;
+  float cot = std::cos(theta / 2) / std::sin(theta / 2);
+
+  // return glm::perspective(
+  //   glm::radians( 40.0f ),
+  //   16.0f / 9,
+  //   1.0f,
+  //   1000.0f
+  // );
+
+  return glm::mat4(
+    cot / aspect,   0,                               0,  0,
+    0,            cot,                               0,  0,
+    0,              0,    -(far + near) / (far - near),  1,
+    0,              0,  2 * far * near  / (far - near),  0
+  );
+}
+
 
 //----------------------------------------------------------------------------------------
 // Destructor
@@ -180,18 +262,43 @@ void A2::appLogic() {
 
   // Draw outer square:
   setLineColour(vec3(1.0f, 0.7f, 0.8f));
-  drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f));
-  drawLine(vec2(0.5f, -0.5f), vec2(0.5f, 0.5f));
-  drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
-  drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
 
+  const glm::mat4 T = proj * view *  M;
 
-  // Draw inner square:
-  setLineColour(vec3(0.2f, 1.0f, 1.0f));
-  drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));
-  drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
-  drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
-  drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
+  for (const LineSegment& line : gridLines) {
+    try {
+      LineSegment transformedLine {
+        T * std::get<0>(line),
+        T * std::get<1>(line)
+      };
+
+      std::cout << "Transformed Line: " <<  std::get<0>(transformedLine) << " " << std::get<1>(transformedLine) << std::endl;
+
+      for (const LineSegment& clippedLine : Clipper::clip(transformedLine)) {
+        glm::vec4 start = homogenize(std::get<0>(clippedLine));
+        glm::vec4 end = homogenize(std::get<1>(clippedLine));
+
+        std::cout << "Clipped Line: " <<  std::get<0>(clippedLine) << " " << std::get<1>(clippedLine) << std::endl;
+
+        drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
+      }
+    } catch (Clipper::LineRejected& e) {
+      continue;
+    }
+  }
+}
+
+glm::vec4 A2::homogenize(const glm::vec4& v) {
+  if (std::fabs(v.w) < 0.00001) {
+    return v;
+  }
+
+  return glm::vec4(
+    v.x * 1.0f / v.w,
+    v.y * 1.0f  / v.w,
+    v.z * 1.0f / v.w,
+    1
+  );
 }
 
 //----------------------------------------------------------------------------------------
@@ -366,4 +473,92 @@ bool A2::keyInputEvent (
   // Fill in with event handling code...
 
   return eventHandled;
+}
+
+/**
+ * Clipper
+ */
+
+float Clipper::BL(const glm::vec4 point) {
+  return point.w + point.x;
+}
+
+float Clipper::BR(const glm::vec4 point) {
+  return point.w - point.x;
+}
+
+float Clipper::BB(const glm::vec4 point) {
+  return point.w + point.y;
+}
+
+float Clipper::BT(const glm::vec4 point) {
+  return point.w - point.y;
+}
+
+float Clipper::BN(const glm::vec4 point) {
+  return point.w + point.z;
+}
+
+float Clipper::BF(const glm::vec4 point) {
+  return point.w - point.z;
+}
+
+LineSegment Clipper::clipPos(const LineSegment &line) {
+  glm::vec4 P1 = std::get<0>(line);
+  glm::vec4 P2 = std::get<1>(line);
+
+  std::vector<std::function<float(const glm::vec4)> > clippingBoundaries {
+    BL, BR, BB, BT, BN, BF
+  };
+
+  int i = 0;
+
+  for (const auto clippingBoundary : clippingBoundaries) {
+    i += 1;
+    float wecP1 = clippingBoundary(P1);
+    float wecP2 = clippingBoundary(P2);
+
+    if (wecP1 < 0 && wecP2 < 0) {
+      std::cerr << "i: " << i << std::endl;
+      std::cerr << "wecP1: " << wecP1 << std::endl;
+      std::cerr << "wecP2: " << wecP2 << std::endl;
+      throw LineRejected();
+    }
+
+    if (wecP1 >= 0 && wecP2 >= 0) {
+      continue;
+    }
+
+    float a = wecP1 / (wecP1 - wecP2);
+
+    if (wecP1 < 0) {
+      P1 = P1 + a * (P2 - P1);
+    } else {
+      P2 = P1 + a * (P2 - P1);
+    }
+  }
+
+  return LineSegment{P1, P2};
+}
+
+std::vector<LineSegment> Clipper::clip(const LineSegment &line) {
+  glm::vec4 P1 = std::get<0>(line);
+  glm::vec4 P2 = std::get<1>(line);
+
+  if (P1.w >= 0 && P2.w >= 0) {
+    return std::vector<LineSegment>{clipPos(line)};
+  }
+
+  LineSegment mirrored {
+    P1 * -1.0f,
+    P2 * -1.0f
+  };
+
+  if (P1.w < 0 && P2.w < 0) {
+    std::cerr << "Clipping " << P1 * -1.0f << " " << P2 * -1.0f << std::endl;
+
+    return std::vector<LineSegment>{clipPos(mirrored)};
+  }
+
+  return std::vector<LineSegment>{clipPos(line), clipPos(mirrored)};
 }

@@ -4,14 +4,15 @@
 #include "cs488-framework/OpenGLImport.hpp"
 #include "cs488-framework/ShaderProgram.hpp"
 
+#include <tuple>
+#include <vector>
 #include <glm/glm.hpp>
 
-#include <vector>
+typedef std::tuple<glm::vec4, glm::vec4> LineSegment;
 
 // Set a global maximum number of vertices in order to pre-allocate VBO data
 // in one shot, rather than reallocating each frame.
 const GLsizei kMaxVertices = 1000;
-
 
 // Convenience class for storing vertex data in CPU memory.
 // Data should be copied over to GPU memory via VBO storage before rendering.
@@ -70,4 +71,34 @@ protected:
 
   glm::vec3 m_currentLineColour;
 
+  std::vector<LineSegment> gridLines;
+  glm::mat4 M;
+  glm::mat4 view;
+  glm::mat4 proj;
+
+  static glm::mat4 createM();
+  static glm::mat4 createView();
+  glm::mat4 createProj();
+  static glm::vec4 homogenize(const glm::vec4& v);
+};
+
+#include <exception>
+
+class Clipper {
+private:
+  static float BL(const glm::vec4 point);
+  static float BR(const glm::vec4 point);
+  static float BB(const glm::vec4 point);
+  static float BT(const glm::vec4 point);
+  static float BN(const glm::vec4 point);
+  static float BF(const glm::vec4 point);
+  static LineSegment clipPos(const LineSegment &line);
+public:
+  static std::vector<LineSegment> clip(const LineSegment &line);
+
+  class LineRejected : public std::exception {
+    virtual const char* what() const throw() {
+      return "Line cannot be viewed.";
+    }
+  };
 };

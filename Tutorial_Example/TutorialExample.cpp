@@ -2,6 +2,7 @@
 #include "cs488-framework/GlErrorCheck.hpp"
 
 #include <vector>
+#include <iostream>
 using namespace std;
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -74,14 +75,14 @@ void TutorialExample::uploadVertexDataToVbo()
 {
     vec3 red(0.7, 0.3, 0.3);
     vec3 blue(0.3, 0.3, 0.7);
-    
+
 	// Vertex positions for triangle vertices.
 	vec3 triangleVertices[] = {
         //     Positions            Colors
 		vec3(-0.4f, -0.5f, 0.0f),     red,
 		vec3(-0.0f, -0.5f, 0.0f),     red,
 		vec3(-0.4f,  0.0f, 0.0f),     red,
-        
+
 		vec3( 0.0f,  0.2f, 0.0f),     blue,
 		vec3( 0.4f,  0.2f, 0.0f),     blue,
 		vec3( 0.4f,  0.7f, 0.0f),     blue,
@@ -116,6 +117,8 @@ void TutorialExample::mapVboDataToShaderAttributeLocations()
 	// Map vertex positions from m_vbo into vertex attribute slot
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    std::cout << "sizeof(vec3) " << sizeof(vec3) << std::endl;
+    std::cout << "sizeof(float) " << sizeof(float) << std::endl;
         GLsizei stride = sizeof(vec3) * 2;
         const GLvoid * offset = 0;
 		glVertexAttribPointer(m_position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride,
