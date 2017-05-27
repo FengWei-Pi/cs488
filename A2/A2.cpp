@@ -30,7 +30,13 @@ A2::A2() :
   m_currentLineColour(vec3(0.0f)),
   M(A2::createM()),
   view(A2::createView()),
-  proj(createProj())
+  proj(createProj()),
+  isModelScaling(false),
+  isModelTranslating(false),
+  isModelRotating(false),
+  isMouseButtonLeftPressed(false),
+  isMouseButtonRightPressed(false),
+  isMouseButtonMiddlePressed(false)
 {
   const float min = -1;
   const float max = 1;
@@ -53,6 +59,21 @@ A2::A2() :
       gridLines.push_back(LineSegment{glm::vec4(x, min, z, 1), glm::vec4(x, max, z, 1)});
     }
   }
+
+  /**
+   * Model Gnomon
+   */
+
+  modelGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(1, 0, 0, 1)});
+  modelGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 1, 0, 1)});
+  modelGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 0, 1, 1)});
+
+  /**
+   * World Gnomon
+   */
+  worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(1, 0, 0, 1)});
+  worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 1, 0, 1)});
+  worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 0, 1, 1)});
 }
 
 glm::mat4 A2::createM() {
@@ -266,31 +287,47 @@ void A2::appLogic() {
   const glm::mat4 T = proj * view *  M;
 
   for (const LineSegment& line : gridLines) {
-    try {
-      LineSegment worldLine {
-        view *  M * std::get<0>(line),
-        view *  M * std::get<1>(line)
-      };
+    LineSegment worldLine {
+      view * M * MTransformations * std::get<0>(line),
+      view * M * MTransformations * std::get<1>(line)
+    };
 
-      // std::cerr << "World Line: " << std::get<0>(worldLine) << " " << std::get<1>(worldLine) << std::endl;
+    LineSegment transformedLine {
+      proj * std::get<0>(worldLine),
+      proj * std::get<1>(worldLine)
+    };
 
-      LineSegment transformedLine {
-        proj * std::get<0>(worldLine),
-        proj * std::get<1>(worldLine)
-      };
+    for (const LineSegment& clippedLine : Clipper::clip(transformedLine)) {
+      glm::vec4 start = homogenize(std::get<0>(clippedLine));
+      glm::vec4 end = homogenize(std::get<1>(clippedLine));
 
-      // std::cerr << "Transformed Line: " <<  std::get<0>(transformedLine) << " " << std::get<1>(transformedLine) << std::endl;
+      drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
+    }
+  }
 
-      for (const LineSegment& clippedLine : Clipper::clip(transformedLine)) {
-        glm::vec4 start = homogenize(std::get<0>(clippedLine));
-        glm::vec4 end = homogenize(std::get<1>(clippedLine));
+  // Draw model gnomon
+  for (unsigned int i = 0; i < modelGnomon.size(); i += 1) {
+    glm::vec3 color;
+    color[i] = 1;
+    setLineColour(color);
 
-        // std::cerr << "Clipped Line: " <<  std::get<0>(clippedLine) << " " << std::get<1>(clippedLine) << std::endl << std::endl;
+    LineSegment& line = modelGnomon.at(i);
 
-        drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
-      }
-    } catch (Clipper::LineRejected& e) {
-      continue;
+    LineSegment worldLine {
+      view * M * MGnomonTransformations * std::get<0>(line),
+      view * M * MGnomonTransformations * std::get<1>(line)
+    };
+
+    LineSegment transformedLine {
+      proj * std::get<0>(worldLine),
+      proj * std::get<1>(worldLine)
+    };
+
+    for (const LineSegment& clippedLine : Clipper::clip(transformedLine)) {
+      glm::vec4 start = homogenize(std::get<0>(clippedLine));
+      glm::vec4 end = homogenize(std::get<1>(clippedLine));
+
+      drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
     }
   }
 }
@@ -413,11 +450,126 @@ bool A2::mouseMoveEvent (
   double xPos,
   double yPos
 ) {
-  bool eventHandled(false);
+  const double diffX = xPos - prevX;
+  const double diffY = yPos - prevY;
 
-  // Fill in with event handling code...
+  if (isModelRotating) {
+    double theta = glm::radians(diffX);
 
-  return eventHandled;
+    if (isMouseButtonLeftPressed) {
+      const glm::mat4 rotationX (
+        1, 0, 0, 0,
+        0, std::cos(theta), std::sin(theta), 0,
+        0, -std::sin(theta), std::cos(theta), 0,
+        0, 0, 0, 1
+      );
+
+      MTransformations = rotationX * MTransformations;
+      MGnomonTransformations = rotationX * MGnomonTransformations;
+    }
+
+    if (isMouseButtonRightPressed) {
+      const glm::mat4 rotationY (
+        std::cos(theta), 0, -std::sin(theta), 0,
+        0, 1, 0, 0,
+        std::sin(theta), 0, std::cos(theta), 0,
+        0, 0, 0, 1
+      );
+
+      MTransformations = rotationY * MTransformations;
+      MGnomonTransformations = rotationY * MGnomonTransformations;
+    }
+
+    if (isMouseButtonMiddlePressed) {
+      const glm::mat4 rotationZ (
+        std::cos(theta), std::sin(theta), 0, 0,
+        -std::sin(theta), std::cos(theta), 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+
+      MTransformations = rotationZ * MTransformations;
+      MGnomonTransformations = rotationZ * MGnomonTransformations;
+    }
+  }
+
+  if (isModelScaling) {
+    const double factor = diffX > 0 ? 1.05 : 1/1.05;
+
+    if (isMouseButtonLeftPressed) {
+      const glm::mat4 scaleX (
+        factor, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+
+      MTransformations = scaleX * MTransformations;
+    }
+
+    if (isMouseButtonRightPressed) {
+      const glm::mat4 scaleY (
+        1, 0, 0, 0,
+        0, factor, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+      );
+
+      MTransformations = scaleY * MTransformations;
+    }
+
+    if (isMouseButtonMiddlePressed) {
+      const glm::mat4 scaleZ (
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, factor, 0,
+        0, 0, 0, 1
+      );
+
+      MTransformations = scaleZ * MTransformations;
+    }
+  }
+
+  if (isModelTranslating) {
+    const double diff = -diffX / 100;
+
+    if (isMouseButtonLeftPressed) {
+      const glm::mat4 translateX(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        diff, 0, 0, 1
+      );
+
+      MTransformations = translateX * MTransformations;
+    }
+
+    if (isMouseButtonRightPressed) {
+      const glm::mat4 translateY(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, diff, 0, 1
+      );
+
+      MTransformations = translateY * MTransformations;
+    }
+
+    if (isMouseButtonMiddlePressed) {
+      const glm::mat4 translateZ(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, diff, 1
+      );
+
+      MTransformations = translateZ * MTransformations;
+    }
+  }
+
+  prevX = xPos;
+  prevY = yPos;
+  return true;
 }
 
 //----------------------------------------------------------------------------------------
@@ -426,14 +578,38 @@ bool A2::mouseMoveEvent (
  */
 bool A2::mouseButtonInputEvent (
   int button,
-  int actions,
+  int action,
   int mods
 ) {
-  bool eventHandled(false);
+  if (action == GLFW_PRESS) {
+    switch (button) {
+      case GLFW_MOUSE_BUTTON_LEFT:
+        isMouseButtonLeftPressed = true;
+        return true;
+      case GLFW_MOUSE_BUTTON_RIGHT:
+        isMouseButtonRightPressed = true;
+        return true;
+      case GLFW_MOUSE_BUTTON_MIDDLE:
+        isMouseButtonMiddlePressed = true;
+        return true;
+    }
+  }
 
-  // Fill in with event handling code...
+  if (action == GLFW_RELEASE) {
+    switch (button) {
+      case GLFW_MOUSE_BUTTON_LEFT:
+        isMouseButtonLeftPressed = false;
+        return true;
+      case GLFW_MOUSE_BUTTON_RIGHT:
+        isMouseButtonRightPressed = false;
+        return true;
+      case GLFW_MOUSE_BUTTON_MIDDLE:
+        isMouseButtonMiddlePressed = false;
+        return true;
+    }
+  }
 
-  return eventHandled;
+  return false;
 }
 
 //----------------------------------------------------------------------------------------
@@ -475,11 +651,36 @@ bool A2::keyInputEvent (
   int action,
   int mods
 ) {
-  bool eventHandled(false);
 
-  // Fill in with event handling code...
+  if (action == GLFW_PRESS) {
+    switch (key) {
+      case GLFW_KEY_R:
+        isModelRotating = true;
+        return true;
+      case GLFW_KEY_T:
+        isModelTranslating = true;
+        return true;
+      case GLFW_KEY_S:
+        isModelScaling = true;
+        return true;
+    }
+  }
 
-  return eventHandled;
+  if (action == GLFW_RELEASE) {
+    switch (key) {
+      case GLFW_KEY_R:
+        isModelRotating = false;
+        return true;
+      case GLFW_KEY_T:
+        isModelTranslating = false;
+        return true;
+      case GLFW_KEY_S:
+        isModelScaling = false;
+        return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -503,11 +704,11 @@ float Clipper::BT(const glm::vec4 point) {
 }
 
 float Clipper::BN(const glm::vec4 point) {
-  return point.w + point.z;
+  return point.w - point.z;
 }
 
 float Clipper::BF(const glm::vec4 point) {
-  return point.w - point.z;
+  return point.w + point.z;
 }
 
 LineSegment Clipper::clipPos(const LineSegment &line) {
@@ -527,6 +728,10 @@ LineSegment Clipper::clipPos(const LineSegment &line) {
 
     if (wecP1 < 0 && wecP2 < 0) {
       // std::cerr << "i: " << i << std::endl;
+      // if (i == 1) {
+      //   std::cerr << "BL(P1: " << P1 << "): " << BL(P1) << std::endl;
+      //   std::cerr << "BL(P2: " << P2 << "): " << BL(P2) << std::endl;
+      // }
       // std::cerr << "wecP1: " << wecP1 << std::endl;
       // std::cerr << "wecP2: " << wecP2 << std::endl;
       throw LineRejected();
@@ -553,7 +758,11 @@ std::vector<LineSegment> Clipper::clip(const LineSegment &line) {
   glm::vec4 P2 = std::get<1>(line);
 
   if (P1.w >= 0 && P2.w >= 0) {
-    return std::vector<LineSegment>{clipPos(line)};
+    try {
+      return std::vector<LineSegment>{clipPos(line)};
+    } catch (LineRejected) {
+      return std::vector<LineSegment>{};
+    }
   }
 
   LineSegment mirrored {
@@ -562,10 +771,22 @@ std::vector<LineSegment> Clipper::clip(const LineSegment &line) {
   };
 
   if (P1.w < 0 && P2.w < 0) {
-    std::cerr << "Clipping " << P1 * -1.0f << " " << P2 * -1.0f << std::endl;
-
-    return std::vector<LineSegment>{clipPos(mirrored)};
+    try {
+      return std::vector<LineSegment>{clipPos(mirrored)};
+    } catch (LineRejected) {
+      return std::vector<LineSegment>{};
+    }
   }
 
-  return std::vector<LineSegment>{clipPos(line), clipPos(mirrored)};
+  std::vector<LineSegment> clippedLines;
+
+  try {
+    clippedLines.push_back(clipPos(line));
+  } catch (LineRejected) {}
+
+  try {
+    clippedLines.push_back(clipPos(mirrored));
+  } catch (LineRejected) {}
+
+  return clippedLines;
 }

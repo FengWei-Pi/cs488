@@ -72,9 +72,30 @@ protected:
   glm::vec3 m_currentLineColour;
 
   std::vector<LineSegment> gridLines;
+  std::vector<LineSegment> modelGnomon;
+  std::vector<LineSegment> worldGnomon;
   glm::mat4 M;
   glm::mat4 view;
   glm::mat4 proj;
+
+  /**
+   * Model transformations
+   */
+  bool isModelTranslating;
+  bool isModelRotating;
+  bool isModelScaling;
+
+  glm::mat4 MTransformations;
+  glm::mat4 MGnomonTransformations;
+
+  /**
+   * Mouse input state
+   */
+  double prevX;
+  double prevY;
+  bool isMouseButtonLeftPressed;
+  bool isMouseButtonRightPressed;
+  bool isMouseButtonMiddlePressed;
 
   static glm::mat4 createM();
   static glm::mat4 createView();
@@ -93,12 +114,12 @@ private:
   static float BN(const glm::vec4 point);
   static float BF(const glm::vec4 point);
   static LineSegment clipPos(const LineSegment &line);
-public:
-  static std::vector<LineSegment> clip(const LineSegment &line);
 
   class LineRejected : public std::exception {
     virtual const char* what() const throw() {
       return "Line cannot be viewed.";
     }
   };
+public:
+  static std::vector<LineSegment> clip(const LineSegment &line);
 };
