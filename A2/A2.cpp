@@ -1005,7 +1005,12 @@ bool A2::keyInputEvent (
 }
 
 /**
- * Clipper
+ * The Clipper
+ * Citation:
+ *
+ * James F. Blinn and Martin E. Newell. 1978. Clipping using homogeneous coordinates.
+ * In Proceedings of the 5th annual conference on Computer graphics and interactive techniques
+ * (SIGGRAPH '78). ACM, New York, NY, USA, 245-251.
  */
 
 float Clipper::BL(const glm::vec4 point) {
