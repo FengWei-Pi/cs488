@@ -74,8 +74,11 @@ protected:
   glm::vec3 m_currentLineColour;
 
   std::vector<LineSegment> gridLines;
-  std::vector<LineSegment> modelGnomon;
-  std::vector<LineSegment> worldGnomon;
+  std::vector<std::tuple<LineSegment, glm::vec3> > modelGnomon;
+  std::vector<std::tuple<LineSegment, glm::vec3> > worldGnomon;
+  float near;
+  float far;
+  float fov;
   glm::mat4 M;
   glm::mat4 view;
   glm::mat4 proj;
@@ -108,6 +111,17 @@ protected:
 
   glm::mat4 MTransformations;
   glm::mat4 MGnomonTransformations;
+
+  /**
+   * View Transformations
+   */
+
+  glm::mat4 VTransformations;
+  glm::mat4 VGnomonTransformations;
+
+  void translateView(double x, double y);
+  void rotateView(double x, double y);
+  void perspective(double x, double y);
 
   /**
    * Mouse input state

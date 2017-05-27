@@ -28,9 +28,11 @@ VertexData::VertexData():
 // Constructor
 A2::A2() :
   m_currentLineColour(vec3(0.0f)),
+  near(1.0f),
+  far(1000.0f),
+  fov(30.0f),
   M(A2::createM()),
   view(A2::createView()),
-  proj(createProj()),
   isModelScaling(false),
   isModelTranslating(false),
   isModelRotating(false),
@@ -65,16 +67,39 @@ A2::A2() :
    * Model Gnomon
    */
 
-  modelGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(1, 0, 0, 1)});
-  modelGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 1, 0, 1)});
-  modelGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 0, 1, 1)});
+  modelGnomon.push_back(std::tuple<LineSegment, glm::vec3>{
+    LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(1, 0, 0, 1)},
+    glm::vec3(1, 0, 0)
+  });
+
+  modelGnomon.push_back(std::tuple<LineSegment, glm::vec3>{
+    LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 1, 0, 1)},
+    glm::vec3(0, 1, 0)
+  });
+
+  modelGnomon.push_back(std::tuple<LineSegment, glm::vec3>{
+    LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 0, 1, 1)},
+    glm::vec3(0, 0, 1)
+  });
 
   /**
    * World Gnomon
    */
-  worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(1, 0, 0, 1)});
-  worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 1, 0, 1)});
-  worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 0, 1, 1)});
+
+   worldGnomon.push_back(std::tuple<LineSegment, glm::vec3>{
+     LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(1, 0, 0, 1)},
+     glm::vec3(11.0/255, 57.0/255, 84.0/255)
+   });
+
+   worldGnomon.push_back(std::tuple<LineSegment, glm::vec3>{
+     LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 1, 0, 1)},
+     glm::vec3(1, 102.0/255, 99.0/255)
+   });
+
+   worldGnomon.push_back(std::tuple<LineSegment, glm::vec3>{
+     LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 0, 1, 1)},
+     glm::vec3(1, 1, 1)
+   });
 
   /**
    * Modes
@@ -99,7 +124,7 @@ glm::mat4 A2::createM() {
 }
 
 glm::mat4 A2::createView() {
-  glm::vec3 origin{0, 0, 5};
+  glm::vec3 origin{0, 0, 10};
   glm::vec3 lookAt{0, 0, -1};
   glm::vec3 up{lookAt.x, lookAt.y + 1, lookAt.z};
 
@@ -121,11 +146,14 @@ glm::mat4 A2::createView() {
 }
 
 glm::mat4 A2::createProj() {
-  float aspect = 1.0;
-  float theta = glm::radians(30.0f);
-  float far = 1000.0f;
-  float near = 1.0f;
+  float aspect = float(m_framebufferWidth) / float(m_framebufferHeight);
+  float theta = glm::radians(fov);
   float cot = std::cos(theta / 2) / std::sin(theta / 2);
+
+  std::cerr << "aspect: " << aspect << std::endl;
+  std::cerr << "fov: " << fov << std::endl;
+  std::cerr << "near: " << near << std::endl;
+  std::cerr << "far: " << far << std::endl;
 
   return glm::mat4(
     cot / aspect,   0,                               0,  0,
@@ -147,6 +175,8 @@ A2::~A2() {
  * Called once, at program start.
  */
 void A2::init() {
+  proj = createProj();
+
   // Set the background colour.
   glClearColor(0.3, 0.5, 0.7, 1.0);
 
@@ -294,8 +324,8 @@ void A2::appLogic() {
 
   for (const LineSegment& line : gridLines) {
     LineSegment worldLine {
-      view * M * MTransformations * std::get<0>(line),
-      view * M * MTransformations * std::get<1>(line)
+      VTransformations * view * M * MTransformations * std::get<0>(line),
+      VTransformations * view * M * MTransformations * std::get<1>(line)
     };
 
     LineSegment transformedLine {
@@ -312,16 +342,41 @@ void A2::appLogic() {
   }
 
   // Draw model gnomon
-  for (unsigned int i = 0; i < modelGnomon.size(); i += 1) {
-    glm::vec3 color;
-    color[i] = 1;
+
+  for (const auto gnomonAxis : modelGnomon) {
+    const LineSegment gnomonLineSegment = std::get<0>(gnomonAxis);
+    const glm::vec3 color = std::get<1>(gnomonAxis);
+
     setLineColour(color);
 
-    LineSegment& line = modelGnomon.at(i);
+    LineSegment worldLine {
+      VTransformations * view * M * MGnomonTransformations * std::get<0>(gnomonLineSegment),
+      VTransformations * view * M * MGnomonTransformations * std::get<1>(gnomonLineSegment)
+    };
+
+    LineSegment transformedLine {
+      proj * std::get<0>(worldLine),
+      proj * std::get<1>(worldLine)
+    };
+
+    for (const LineSegment& clippedLine : Clipper::clip(transformedLine)) {
+      glm::vec4 start = homogenize(std::get<0>(clippedLine));
+      glm::vec4 end = homogenize(std::get<1>(clippedLine));
+
+      drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
+    }
+  }
+
+  // Draw world gnomon
+  for (const auto gnomonAxis : worldGnomon) {
+    const LineSegment gnomonLineSegment = std::get<0>(gnomonAxis);
+    const glm::vec3 color = std::get<1>(gnomonAxis);
+
+    setLineColour(color);
 
     LineSegment worldLine {
-      view * M * MGnomonTransformations * std::get<0>(line),
-      view * M * MGnomonTransformations * std::get<1>(line)
+      VGnomonTransformations * view * M * std::get<0>(gnomonLineSegment),
+      VGnomonTransformations * view * M * std::get<1>(gnomonLineSegment)
     };
 
     LineSegment transformedLine {
@@ -481,6 +536,15 @@ bool A2::mouseMoveEvent (
     case TranslateModel:
       translateModel(xPos, yPos);
       break;
+    case RotateView:
+      rotateView(xPos, yPos);
+      break;
+    case TranslateView:
+      translateView(xPos, yPos);
+      break;
+    case Perspective:
+      perspective(xPos, yPos);
+      break;
   }
 
   prevX = xPos;
@@ -499,8 +563,8 @@ void A2::rotateModel(double xPos, double yPos) {
       0, 0, 0, 1
     );
 
-    MTransformations = rotationX * MTransformations;
-    MGnomonTransformations = rotationX * MGnomonTransformations;
+    MTransformations = MTransformations * rotationX;
+    MGnomonTransformations = MGnomonTransformations * rotationX;
   }
 
   if (isMouseButtonRightPressed) {
@@ -511,8 +575,8 @@ void A2::rotateModel(double xPos, double yPos) {
       0, 0, 0, 1
     );
 
-    MTransformations = rotationY * MTransformations;
-    MGnomonTransformations = rotationY * MGnomonTransformations;
+    MTransformations = MTransformations * rotationY;
+    MGnomonTransformations = MGnomonTransformations * rotationY;
   }
 
   if (isMouseButtonMiddlePressed) {
@@ -523,8 +587,8 @@ void A2::rotateModel(double xPos, double yPos) {
       0, 0, 0, 1
     );
 
-    MTransformations = rotationZ * MTransformations;
-    MGnomonTransformations = rotationZ * MGnomonTransformations;
+    MTransformations = MTransformations * rotationZ;
+    MGnomonTransformations = MGnomonTransformations * rotationZ;
   }
 }
 
@@ -539,7 +603,7 @@ void A2::scaleModel(double xPos, double yPos) {
       0, 0, 0, 1
     );
 
-    MTransformations = scaleX * MTransformations;
+    MTransformations = MTransformations * scaleX;
   }
 
   if (isMouseButtonRightPressed) {
@@ -550,7 +614,7 @@ void A2::scaleModel(double xPos, double yPos) {
       0, 0, 0, 1
     );
 
-    MTransformations = scaleY * MTransformations;
+    MTransformations = MTransformations * scaleY;
   }
 
   if (isMouseButtonMiddlePressed) {
@@ -561,14 +625,12 @@ void A2::scaleModel(double xPos, double yPos) {
       0, 0, 0, 1
     );
 
-    MTransformations = scaleZ * MTransformations;
+    MTransformations = MTransformations * scaleZ;
   }
 }
 
 void A2::translateModel(double xPos, double yPos) {
   const double diff = (xPos - prevX) / 100;
-
-  std::cerr << "diff: " << diff << std::endl;
 
   if (isMouseButtonLeftPressed) {
     const glm::mat4 translateX(
@@ -578,8 +640,8 @@ void A2::translateModel(double xPos, double yPos) {
       diff, 0, 0, 1
     );
 
-    MTransformations = translateX * MTransformations;
-    MGnomonTransformations = translateX * MGnomonTransformations;
+    MTransformations = MTransformations * translateX;
+    MGnomonTransformations = MGnomonTransformations * translateX;
   }
 
   if (isMouseButtonRightPressed) {
@@ -590,8 +652,8 @@ void A2::translateModel(double xPos, double yPos) {
       0, diff, 0, 1
     );
 
-    MTransformations = translateY * MTransformations;
-    MGnomonTransformations = translateY * MGnomonTransformations;
+    MTransformations = MTransformations * translateY;
+    MGnomonTransformations = MGnomonTransformations * translateY;
   }
 
   if (isMouseButtonMiddlePressed) {
@@ -602,8 +664,107 @@ void A2::translateModel(double xPos, double yPos) {
       0, 0, diff, 1
     );
 
-    MTransformations = translateZ * MTransformations;
-    MGnomonTransformations = translateZ * MGnomonTransformations;
+    MTransformations = MTransformations * translateZ;
+    MGnomonTransformations = MGnomonTransformations * translateZ;
+  }
+}
+
+void A2::rotateView(double xPos, double yPos) {
+  double theta =-glm::radians(xPos - prevX);
+
+  if (isMouseButtonLeftPressed) {
+    const glm::mat4 rotationX (
+      1, 0, 0, 0,
+      0, std::cos(theta), std::sin(theta), 0,
+      0, -std::sin(theta), std::cos(theta), 0,
+      0, 0, 0, 1
+    );
+
+    VTransformations = rotationX * VTransformations;
+    VGnomonTransformations = rotationX * VGnomonTransformations;
+  }
+
+  if (isMouseButtonRightPressed) {
+    const glm::mat4 rotationY (
+      std::cos(theta), 0, -std::sin(theta), 0,
+      0, 1, 0, 0,
+      std::sin(theta), 0, std::cos(theta), 0,
+      0, 0, 0, 1
+    );
+
+    VTransformations = rotationY * VTransformations;
+    VGnomonTransformations = rotationY * VGnomonTransformations;
+  }
+
+  if (isMouseButtonMiddlePressed) {
+    const glm::mat4 rotationZ (
+      std::cos(theta), std::sin(theta), 0, 0,
+      -std::sin(theta), std::cos(theta), 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+
+    VTransformations = rotationZ * VTransformations;
+    VGnomonTransformations = rotationZ * VGnomonTransformations;
+  }
+}
+
+void A2::translateView(double xPos, double yPos) {
+  const double diff = - (xPos - prevX) / 100;
+
+  if (isMouseButtonLeftPressed) {
+    const glm::mat4 translateX(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      diff, 0, 0, 1
+    );
+
+    VTransformations = translateX * VTransformations;
+    VGnomonTransformations = translateX * VGnomonTransformations;
+  }
+
+  if (isMouseButtonRightPressed) {
+    const glm::mat4 translateY(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, diff, 0, 1
+    );
+
+    VTransformations = translateY * VTransformations;
+    VGnomonTransformations = translateY * VGnomonTransformations;
+  }
+
+  if (isMouseButtonMiddlePressed) {
+    const glm::mat4 translateZ(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, diff, 1
+    );
+
+    VTransformations = translateZ * VTransformations;
+    VGnomonTransformations = translateZ * VGnomonTransformations;
+  }
+}
+
+void A2::perspective(double xPos, double yPos) {
+  const float diff = (xPos - prevX) / 10;
+
+  if (isMouseButtonLeftPressed) {
+    fov = glm::clamp(fov + diff, 5.0f, 160.0f);
+    proj = createProj();
+  }
+
+  if (isMouseButtonRightPressed) {
+    near += diff;
+    proj = createProj();
+  }
+
+  if (isMouseButtonMiddlePressed) {
+    far += diff;
+    proj = createProj();
   }
 }
 
