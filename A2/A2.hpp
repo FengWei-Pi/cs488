@@ -6,6 +6,8 @@
 
 #include <tuple>
 #include <vector>
+#include <map>
+#include <string>
 #include <glm/glm.hpp>
 
 typedef std::tuple<glm::vec4, glm::vec4> LineSegment;
@@ -78,12 +80,31 @@ protected:
   glm::mat4 view;
   glm::mat4 proj;
 
+  enum Mode {
+    RotateView,
+    TranslateView,
+    Perspective,
+    RotateModel,
+    TranslateModel,
+    ScaleModel,
+    Viewport,
+    LastMode
+  };
+
+  std::string modeNames[LastMode];
+
+  Mode selectedMode;
+
   /**
    * Model transformations
    */
   bool isModelTranslating;
   bool isModelRotating;
   bool isModelScaling;
+
+  void translateModel(double x, double y);
+  void rotateModel(double x, double y);
+  void scaleModel(double x, double y);
 
   glm::mat4 MTransformations;
   glm::mat4 MGnomonTransformations;

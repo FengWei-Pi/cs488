@@ -36,7 +36,8 @@ A2::A2() :
   isModelRotating(false),
   isMouseButtonLeftPressed(false),
   isMouseButtonRightPressed(false),
-  isMouseButtonMiddlePressed(false)
+  isMouseButtonMiddlePressed(false),
+  selectedMode(RotateModel)
 {
   const float min = -1;
   const float max = 1;
@@ -74,6 +75,18 @@ A2::A2() :
   worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(1, 0, 0, 1)});
   worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 1, 0, 1)});
   worldGnomon.push_back(LineSegment{glm::vec4(0, 0, 0, 1), glm::vec4(0, 0, 1, 1)});
+
+  /**
+   * Modes
+   */
+
+  modeNames[RotateView] = "Rotate View";
+  modeNames[TranslateView] = "Translate View";
+  modeNames[Perspective] = "Perspective";
+  modeNames[RotateModel] = "Rotate Model";
+  modeNames[TranslateModel] = "Translate Model";
+  modeNames[ScaleModel] = "Scale Model";
+  modeNames[Viewport] = "Viewport";
 }
 
 glm::mat4 A2::createM() {
@@ -113,13 +126,6 @@ glm::mat4 A2::createProj() {
   float far = 1000.0f;
   float near = 1.0f;
   float cot = std::cos(theta / 2) / std::sin(theta / 2);
-
-  // return glm::perspective(
-  //   glm::radians( 40.0f ),
-  //   16.0f / 9,
-  //   1.0f,
-  //   1000.0f
-  // );
 
   return glm::mat4(
     cot / aspect,   0,                               0,  0,
@@ -360,16 +366,28 @@ void A2::guiLogic() {
   ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
   float opacity(0.5f);
 
-  ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
-      windowFlags);
-
-
-    // Add more gui elements here here ...
-
+  ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
 
     // Create Button, and check if it was clicked:
-    if( ImGui::Button( "Quit Application" ) ) {
-      glfwSetWindowShouldClose(m_window, GL_TRUE);
+    if( ImGui::Button( "Reset" ) ) {
+      std::cerr << "IMPLEMENT RESET!" << std::endl;
+    }
+
+    // Eventually you'll create multiple colour widgets with
+    // radio buttons.  If you use PushID/PopID to give them all
+    // unique IDs, then ImGui will be able to keep them separate.
+    // This is unnecessary with a single colour selector and
+    // radio button, but I'm leaving it in as an example.
+
+    // Prefixing a widget name with "##" keeps it from being
+    // displayed.
+
+    for (int m = RotateView; m != LastMode; m++) {
+      ImGui::PushID( m );
+      if( ImGui::RadioButton( modeNames[m].c_str(), (int*) &selectedMode, m ) ) {
+
+      }
+      ImGui::PopID();
     }
 
     ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
@@ -453,123 +471,140 @@ bool A2::mouseMoveEvent (
   const double diffX = xPos - prevX;
   const double diffY = yPos - prevY;
 
-  if (isModelRotating) {
-    double theta = glm::radians(diffX);
-
-    if (isMouseButtonLeftPressed) {
-      const glm::mat4 rotationX (
-        1, 0, 0, 0,
-        0, std::cos(theta), std::sin(theta), 0,
-        0, -std::sin(theta), std::cos(theta), 0,
-        0, 0, 0, 1
-      );
-
-      MTransformations = rotationX * MTransformations;
-      MGnomonTransformations = rotationX * MGnomonTransformations;
-    }
-
-    if (isMouseButtonRightPressed) {
-      const glm::mat4 rotationY (
-        std::cos(theta), 0, -std::sin(theta), 0,
-        0, 1, 0, 0,
-        std::sin(theta), 0, std::cos(theta), 0,
-        0, 0, 0, 1
-      );
-
-      MTransformations = rotationY * MTransformations;
-      MGnomonTransformations = rotationY * MGnomonTransformations;
-    }
-
-    if (isMouseButtonMiddlePressed) {
-      const glm::mat4 rotationZ (
-        std::cos(theta), std::sin(theta), 0, 0,
-        -std::sin(theta), std::cos(theta), 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-      );
-
-      MTransformations = rotationZ * MTransformations;
-      MGnomonTransformations = rotationZ * MGnomonTransformations;
-    }
-  }
-
-  if (isModelScaling) {
-    const double factor = diffX > 0 ? 1.05 : 1/1.05;
-
-    if (isMouseButtonLeftPressed) {
-      const glm::mat4 scaleX (
-        factor, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-      );
-
-      MTransformations = scaleX * MTransformations;
-    }
-
-    if (isMouseButtonRightPressed) {
-      const glm::mat4 scaleY (
-        1, 0, 0, 0,
-        0, factor, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-      );
-
-      MTransformations = scaleY * MTransformations;
-    }
-
-    if (isMouseButtonMiddlePressed) {
-      const glm::mat4 scaleZ (
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, factor, 0,
-        0, 0, 0, 1
-      );
-
-      MTransformations = scaleZ * MTransformations;
-    }
-  }
-
-  if (isModelTranslating) {
-    const double diff = -diffX / 100;
-
-    if (isMouseButtonLeftPressed) {
-      const glm::mat4 translateX(
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        diff, 0, 0, 1
-      );
-
-      MTransformations = translateX * MTransformations;
-    }
-
-    if (isMouseButtonRightPressed) {
-      const glm::mat4 translateY(
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, diff, 0, 1
-      );
-
-      MTransformations = translateY * MTransformations;
-    }
-
-    if (isMouseButtonMiddlePressed) {
-      const glm::mat4 translateZ(
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, diff, 1
-      );
-
-      MTransformations = translateZ * MTransformations;
-    }
+  switch (selectedMode) {
+    case RotateModel:
+      rotateModel(xPos, yPos);
+      break;
+    case ScaleModel:
+      scaleModel(xPos, yPos);
+      break;
+    case TranslateModel:
+      translateModel(xPos, yPos);
+      break;
   }
 
   prevX = xPos;
   prevY = yPos;
   return true;
+}
+
+void A2::rotateModel(double xPos, double yPos) {
+  double theta = glm::radians(xPos - prevX);
+
+  if (isMouseButtonLeftPressed) {
+    const glm::mat4 rotationX (
+      1, 0, 0, 0,
+      0, std::cos(theta), std::sin(theta), 0,
+      0, -std::sin(theta), std::cos(theta), 0,
+      0, 0, 0, 1
+    );
+
+    MTransformations = rotationX * MTransformations;
+    MGnomonTransformations = rotationX * MGnomonTransformations;
+  }
+
+  if (isMouseButtonRightPressed) {
+    const glm::mat4 rotationY (
+      std::cos(theta), 0, -std::sin(theta), 0,
+      0, 1, 0, 0,
+      std::sin(theta), 0, std::cos(theta), 0,
+      0, 0, 0, 1
+    );
+
+    MTransformations = rotationY * MTransformations;
+    MGnomonTransformations = rotationY * MGnomonTransformations;
+  }
+
+  if (isMouseButtonMiddlePressed) {
+    const glm::mat4 rotationZ (
+      std::cos(theta), std::sin(theta), 0, 0,
+      -std::sin(theta), std::cos(theta), 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+
+    MTransformations = rotationZ * MTransformations;
+    MGnomonTransformations = rotationZ * MGnomonTransformations;
+  }
+}
+
+void A2::scaleModel(double xPos, double yPos) {
+  const double factor = xPos > prevX ? 1.05 : 1/1.05;
+
+  if (isMouseButtonLeftPressed) {
+    const glm::mat4 scaleX (
+      factor, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+
+    MTransformations = scaleX * MTransformations;
+  }
+
+  if (isMouseButtonRightPressed) {
+    const glm::mat4 scaleY (
+      1, 0, 0, 0,
+      0, factor, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    );
+
+    MTransformations = scaleY * MTransformations;
+  }
+
+  if (isMouseButtonMiddlePressed) {
+    const glm::mat4 scaleZ (
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, factor, 0,
+      0, 0, 0, 1
+    );
+
+    MTransformations = scaleZ * MTransformations;
+  }
+}
+
+void A2::translateModel(double xPos, double yPos) {
+  const double diff = (xPos - prevX) / 100;
+
+  std::cerr << "diff: " << diff << std::endl;
+
+  if (isMouseButtonLeftPressed) {
+    const glm::mat4 translateX(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      diff, 0, 0, 1
+    );
+
+    MTransformations = translateX * MTransformations;
+    MGnomonTransformations = translateX * MGnomonTransformations;
+  }
+
+  if (isMouseButtonRightPressed) {
+    const glm::mat4 translateY(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, diff, 0, 1
+    );
+
+    MTransformations = translateY * MTransformations;
+    MGnomonTransformations = translateY * MGnomonTransformations;
+  }
+
+  if (isMouseButtonMiddlePressed) {
+    const glm::mat4 translateZ(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, diff, 1
+    );
+
+    MTransformations = translateZ * MTransformations;
+    MGnomonTransformations = translateZ * MGnomonTransformations;
+  }
 }
 
 //----------------------------------------------------------------------------------------
@@ -655,27 +690,13 @@ bool A2::keyInputEvent (
   if (action == GLFW_PRESS) {
     switch (key) {
       case GLFW_KEY_R:
-        isModelRotating = true;
+        selectedMode = RotateModel;
         return true;
       case GLFW_KEY_T:
-        isModelTranslating = true;
+        selectedMode = TranslateModel;
         return true;
       case GLFW_KEY_S:
-        isModelScaling = true;
-        return true;
-    }
-  }
-
-  if (action == GLFW_RELEASE) {
-    switch (key) {
-      case GLFW_KEY_R:
-        isModelRotating = false;
-        return true;
-      case GLFW_KEY_T:
-        isModelTranslating = false;
-        return true;
-      case GLFW_KEY_S:
-        isModelScaling = false;
+        selectedMode = ScaleModel;
         return true;
     }
   }
