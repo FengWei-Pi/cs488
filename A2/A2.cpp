@@ -39,6 +39,7 @@ A2::A2() :
   isMouseButtonLeftPressed(false),
   isMouseButtonRightPressed(false),
   isMouseButtonMiddlePressed(false),
+  captureViewportPosition(false),
   selectedMode(RotateModel)
 {
   const float min = -1;
@@ -150,10 +151,10 @@ glm::mat4 A2::createProj() {
   float theta = glm::radians(fov);
   float cot = std::cos(theta / 2) / std::sin(theta / 2);
 
-  std::cerr << "aspect: " << aspect << std::endl;
-  std::cerr << "fov: " << fov << std::endl;
-  std::cerr << "near: " << near << std::endl;
-  std::cerr << "far: " << far << std::endl;
+  // std::cerr << "aspect: " << aspect << std::endl;
+  // std::cerr << "fov: " << fov << std::endl;
+  // std::cerr << "near: " << near << std::endl;
+  // std::cerr << "far: " << far << std::endl;
 
   return glm::mat4(
     cot / aspect,   0,                               0,  0,
@@ -176,6 +177,11 @@ A2::~A2() {
  */
 void A2::init() {
   proj = createProj();
+
+  viewportX = 0.05f * m_framebufferWidth;
+  viewportY = 0.05f * m_framebufferHeight;
+  viewportWidth = 0.9f * m_framebufferWidth;
+  viewportHeight = 0.9f * m_framebufferHeight;
 
   // Set the background colour.
   glClearColor(0.3, 0.5, 0.7, 1.0);
@@ -320,8 +326,6 @@ void A2::appLogic() {
   // Draw outer square:
   setLineColour(vec3(1.0f, 0.7f, 0.8f));
 
-  const glm::mat4 T = proj * view *  M;
-
   for (const LineSegment& line : gridLines) {
     LineSegment worldLine {
       VTransformations * view * M * MTransformations * std::get<0>(line),
@@ -337,7 +341,7 @@ void A2::appLogic() {
       glm::vec4 start = homogenize(std::get<0>(clippedLine));
       glm::vec4 end = homogenize(std::get<1>(clippedLine));
 
-      drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
+      drawLineInViewport(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
     }
   }
 
@@ -363,7 +367,7 @@ void A2::appLogic() {
       glm::vec4 start = homogenize(std::get<0>(clippedLine));
       glm::vec4 end = homogenize(std::get<1>(clippedLine));
 
-      drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
+      drawLineInViewport(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
     }
   }
 
@@ -388,9 +392,17 @@ void A2::appLogic() {
       glm::vec4 start = homogenize(std::get<0>(clippedLine));
       glm::vec4 end = homogenize(std::get<1>(clippedLine));
 
-      drawLine(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
+      drawLineInViewport(glm::vec2(start.x, start.y), glm::vec2(end.x, end.y));
     }
   }
+
+  // Draw Viewport
+  setLineColour(glm::vec3(1, 1, 1));
+  drawLineInViewport(glm::vec2(-1, -1), glm::vec2(glm::vec2(-1, 1)));
+  drawLineInViewport(glm::vec2(-1, -1), glm::vec2(glm::vec2(1, -1)));
+  drawLineInViewport(glm::vec2(1, 1), glm::vec2(glm::vec2(-1, 1)));
+  drawLineInViewport(glm::vec2(1, 1), glm::vec2(glm::vec2(1, -1)));
+
 }
 
 glm::vec4 A2::homogenize(const glm::vec4& v) {
@@ -545,6 +557,10 @@ bool A2::mouseMoveEvent (
     case Perspective:
       perspective(xPos, yPos);
       break;
+    case Viewport:
+      viewport(xPos, yPos);
+      break;
+    default:;
   }
 
   prevX = xPos;
@@ -768,6 +784,76 @@ void A2::perspective(double xPos, double yPos) {
   }
 }
 
+void A2::viewport(double xPos, double yPos) {
+  xPos = 2 * xPos;
+  yPos = m_framebufferHeight - 2 * yPos;
+  if (isMouseButtonLeftPressed) {
+    if (captureViewportPosition) {
+      viewportX = xPos;
+      viewportY = yPos;
+      viewportHeight = 1;
+      viewportWidth = 1;
+      captureViewportPosition = false;
+    } else {
+      viewportWidth = xPos - viewportX;
+      viewportHeight = yPos - viewportY;
+    }
+  }
+
+  // std::cerr << "viewportX: " << viewportX << std::endl;
+  // std::cerr << "viewportY: " << viewportY << std::endl;
+  // std::cerr << "viewportWidth: " << viewportWidth << std::endl;
+  // std::cerr << "viewportHeight: " << viewportHeight << std::endl;
+}
+
+// glm::mat4 getViewportTransform() {
+//   float vEndX = 2 * std::max(viewportX + viewportWidth, viewportX) / m_framebufferWidth - 1;
+//   float vEndY = 2 * std::max(viewportY + viewportHeight, viewportY) / m_framebufferHeight - 1;
+//   float vx = 2 * std::min(viewportX + viewportWidth, viewportX) / m_framebufferWidth - 1;
+//   float vy = 2 * std::min(viewportY + viewportHeight, viewportY) / m_framebufferHeight - 1;
+//
+//   float vcx = (vEndx + vx) / 2;
+//   float vcy = (vEndY + vy) / 2;
+//
+//   float sx
+//   float tx = vcx / m_framebufferWidth;
+//   float ty = vcy / m_framebufferHeight;
+//
+//   return glm::mat4(
+//     vWidth /
+//   )
+// }
+
+void A2::drawLineInViewport(const glm::vec2 & v0, const glm::vec2 & v1) {
+  drawLine(scalePointToViewport(v0), scalePointToViewport(v1));
+}
+
+glm::vec2 A2::scalePointToViewport(const glm::vec2 & v) {
+  // std::cerr << "viewportX: " << viewportX << std::endl;
+  // std::cerr << "viewportY: " << viewportY << std::endl;
+  // std::cerr << "viewportWidth: " << viewportWidth << std::endl;
+  // std::cerr << "viewportHeight: " << viewportHeight << std::endl;
+  // std::cerr << "m_framebufferWidth: " << m_framebufferWidth << std::endl;
+  // std::cerr << "m_framebufferHeight: " << m_framebufferHeight << std::endl;
+
+  float vEndX = 2 * std::max(viewportX + viewportWidth, viewportX) / m_framebufferWidth - 1;
+  float vEndY = 2 * std::max(viewportY + viewportHeight, viewportY) / m_framebufferHeight - 1;
+  float vx = 2 * std::min(viewportX + viewportWidth, viewportX) / m_framebufferWidth - 1;
+  float vy = 2 * std::min(viewportY + viewportHeight, viewportY) / m_framebufferHeight - 1;
+
+  // std::cerr << "vx: " << vx << std::endl;
+  // std::cerr << "vy: " << vy << std::endl;
+  // std::cerr << "vEndX: " << vEndX << std::endl;
+  // std::cerr << "vEndY: " << vEndY << std::endl;
+
+  glm::vec2 result(
+    (vEndX - vx) / (1 - (-1)) * (v.x - (-1)) + vx,
+    ((vEndY - vy) / (1 - (-1)) * (v.y - (-1)) + vy)
+  );
+
+  return result;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles mouse button events.
@@ -781,6 +867,10 @@ bool A2::mouseButtonInputEvent (
     switch (button) {
       case GLFW_MOUSE_BUTTON_LEFT:
         isMouseButtonLeftPressed = true;
+
+        if (selectedMode == Viewport) {
+          captureViewportPosition = true;
+        }
         return true;
       case GLFW_MOUSE_BUTTON_RIGHT:
         isMouseButtonRightPressed = true;
@@ -833,7 +923,11 @@ bool A2::windowResizeEvent (
 ) {
   bool eventHandled(false);
 
-  // Fill in with event handling code...
+  /**
+   * @todo What should happen here?
+   * Should the viewport also resize with the window?
+   */
+  proj = createProj();
 
   return eventHandled;
 }

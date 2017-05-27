@@ -124,6 +124,24 @@ protected:
   void perspective(double x, double y);
 
   /**
+   * Viewport
+   */
+
+  float viewportX;
+  float viewportY;
+  float viewportWidth;
+  float viewportHeight;
+  bool captureViewportPosition;
+  void viewport(double x, double y);
+
+  void drawLineInViewport (
+    const glm::vec2 & v0,
+    const glm::vec2 & v1
+  );
+
+  glm::vec2 scalePointToViewport(const glm::vec2 & v0);
+
+  /**
    * Mouse input state
    */
   double prevX;
