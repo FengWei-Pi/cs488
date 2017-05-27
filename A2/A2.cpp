@@ -130,8 +130,8 @@ glm::mat4 A2::createView() {
   glm::vec3 up{lookAt.x, lookAt.y + 1, lookAt.z};
 
   glm::vec3 z = lookAt;
-  glm::vec3 x = glm::cross(up, z);
-  glm::vec3 y = glm::cross(z, x);
+  glm::vec3 x = glm::cross(z, up);
+  glm::vec3 y = glm::cross(x, z);
 
   glm::mat4 MT {
     glm::vec4(x, 0),
@@ -150,11 +150,6 @@ glm::mat4 A2::createProj() {
   float aspect = float(m_framebufferWidth) / float(m_framebufferHeight);
   float theta = glm::radians(fov);
   float cot = std::cos(theta / 2) / std::sin(theta / 2);
-
-  // std::cerr << "aspect: " << aspect << std::endl;
-  // std::cerr << "fov: " << fov << std::endl;
-  // std::cerr << "near: " << near << std::endl;
-  // std::cerr << "far: " << far << std::endl;
 
   return glm::mat4(
     cot / aspect,   0,                               0,  0,
@@ -182,6 +177,11 @@ void A2::init() {
   viewportY = 0.05f * m_framebufferHeight;
   viewportWidth = 0.9f * m_framebufferWidth;
   viewportHeight = 0.9f * m_framebufferHeight;
+
+  initViewportX = viewportX;
+  initViewportY = viewportY;
+  initViewportWidth = viewportWidth;
+  initViewportHeight = viewportHeight;
 
   // Set the background colour.
   glClearColor(0.3, 0.5, 0.7, 1.0);
@@ -434,11 +434,16 @@ void A2::guiLogic() {
   float opacity(0.5f);
 
   ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
-
     // Create Button, and check if it was clicked:
     if( ImGui::Button( "Reset" ) ) {
-      std::cerr << "IMPLEMENT RESET!" << std::endl;
+      reset();
     }
+
+    ImGui::SameLine();
+
+    if( ImGui::Button( "Quit" ) ) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
 
     // Eventually you'll create multiple colour widgets with
     // radio buttons.  If you use PushID/PopID to give them all
@@ -456,6 +461,10 @@ void A2::guiLogic() {
       }
       ImGui::PopID();
     }
+
+    ImGui::Text("FOV: %.2f deg", fov);
+    ImGui::Text("Near: %.2f", near);
+    ImGui::Text("Far: %.2f", far);
 
     ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
@@ -583,7 +592,7 @@ void A2::rotateModel(double xPos, double yPos) {
     MGnomonTransformations = MGnomonTransformations * rotationX;
   }
 
-  if (isMouseButtonRightPressed) {
+  if (isMouseButtonMiddlePressed) {
     const glm::mat4 rotationY (
       std::cos(theta), 0, -std::sin(theta), 0,
       0, 1, 0, 0,
@@ -595,7 +604,7 @@ void A2::rotateModel(double xPos, double yPos) {
     MGnomonTransformations = MGnomonTransformations * rotationY;
   }
 
-  if (isMouseButtonMiddlePressed) {
+  if (isMouseButtonRightPressed) {
     const glm::mat4 rotationZ (
       std::cos(theta), std::sin(theta), 0, 0,
       -std::sin(theta), std::cos(theta), 0, 0,
@@ -622,7 +631,7 @@ void A2::scaleModel(double xPos, double yPos) {
     MTransformations = MTransformations * scaleX;
   }
 
-  if (isMouseButtonRightPressed) {
+  if (isMouseButtonMiddlePressed) {
     const glm::mat4 scaleY (
       1, 0, 0, 0,
       0, factor, 0, 0,
@@ -633,7 +642,7 @@ void A2::scaleModel(double xPos, double yPos) {
     MTransformations = MTransformations * scaleY;
   }
 
-  if (isMouseButtonMiddlePressed) {
+  if (isMouseButtonRightPressed) {
     const glm::mat4 scaleZ (
       1, 0, 0, 0,
       0, 1, 0, 0,
@@ -660,7 +669,7 @@ void A2::translateModel(double xPos, double yPos) {
     MGnomonTransformations = MGnomonTransformations * translateX;
   }
 
-  if (isMouseButtonRightPressed) {
+  if (isMouseButtonMiddlePressed) {
     const glm::mat4 translateY(
       1, 0, 0, 0,
       0, 1, 0, 0,
@@ -672,7 +681,7 @@ void A2::translateModel(double xPos, double yPos) {
     MGnomonTransformations = MGnomonTransformations * translateY;
   }
 
-  if (isMouseButtonMiddlePressed) {
+  if (isMouseButtonRightPressed) {
     const glm::mat4 translateZ(
       1, 0, 0, 0,
       0, 1, 0, 0,
@@ -700,7 +709,7 @@ void A2::rotateView(double xPos, double yPos) {
     VGnomonTransformations = rotationX * VGnomonTransformations;
   }
 
-  if (isMouseButtonRightPressed) {
+  if (isMouseButtonMiddlePressed) {
     const glm::mat4 rotationY (
       std::cos(theta), 0, -std::sin(theta), 0,
       0, 1, 0, 0,
@@ -712,7 +721,7 @@ void A2::rotateView(double xPos, double yPos) {
     VGnomonTransformations = rotationY * VGnomonTransformations;
   }
 
-  if (isMouseButtonMiddlePressed) {
+  if (isMouseButtonRightPressed) {
     const glm::mat4 rotationZ (
       std::cos(theta), std::sin(theta), 0, 0,
       -std::sin(theta), std::cos(theta), 0, 0,
@@ -740,7 +749,7 @@ void A2::translateView(double xPos, double yPos) {
     VGnomonTransformations = translateX * VGnomonTransformations;
   }
 
-  if (isMouseButtonRightPressed) {
+  if (isMouseButtonMiddlePressed) {
     const glm::mat4 translateY(
       1, 0, 0, 0,
       0, 1, 0, 0,
@@ -752,7 +761,7 @@ void A2::translateView(double xPos, double yPos) {
     VGnomonTransformations = translateY * VGnomonTransformations;
   }
 
-  if (isMouseButtonMiddlePressed) {
+  if (isMouseButtonRightPressed) {
     const glm::mat4 translateZ(
       1, 0, 0, 0,
       0, 1, 0, 0,
@@ -766,37 +775,37 @@ void A2::translateView(double xPos, double yPos) {
 }
 
 void A2::perspective(double xPos, double yPos) {
-  const float diff = (xPos - prevX) / 10;
+  const float diff = (xPos - prevX) / 50;
 
   if (isMouseButtonLeftPressed) {
     fov = glm::clamp(fov + diff, 5.0f, 160.0f);
     proj = createProj();
   }
 
-  if (isMouseButtonRightPressed) {
-    near += diff;
+  if (isMouseButtonMiddlePressed) {
+    near = std::min(near + diff, far);
     proj = createProj();
   }
 
-  if (isMouseButtonMiddlePressed) {
-    far += diff;
+  if (isMouseButtonRightPressed) {
+    far = std::max(far + diff, near);
     proj = createProj();
   }
 }
 
-void A2::viewport(double xPos, double yPos) {
-  xPos = 2 * xPos;
-  yPos = m_framebufferHeight - 2 * yPos;
+void A2::viewport(double x, double y) {
+  float xPos = 2 * x;
+  float yPos = m_framebufferHeight - 2 * y;
   if (isMouseButtonLeftPressed) {
     if (captureViewportPosition) {
-      viewportX = xPos;
-      viewportY = yPos;
+      viewportX = glm::clamp(xPos, 0.0f, (float)m_framebufferWidth - 1);
+      viewportY = glm::clamp(yPos, 0.0f, (float)m_framebufferHeight - 1);
       viewportHeight = 1;
       viewportWidth = 1;
       captureViewportPosition = false;
     } else {
-      viewportWidth = xPos - viewportX;
-      viewportHeight = yPos - viewportY;
+      viewportWidth = glm::clamp(xPos, 0.0f, (float)m_framebufferWidth) - viewportX;
+      viewportHeight = glm::clamp(yPos, 0.0f, (float)m_framebufferHeight) - viewportY;
     }
   }
 
@@ -804,6 +813,24 @@ void A2::viewport(double xPos, double yPos) {
   // std::cerr << "viewportY: " << viewportY << std::endl;
   // std::cerr << "viewportWidth: " << viewportWidth << std::endl;
   // std::cerr << "viewportHeight: " << viewportHeight << std::endl;
+}
+
+void A2::reset() {
+  selectedMode = RotateModel;
+  near = 1.0f;
+  far = 1000.0f;
+  fov = 30.0f;
+
+  proj = createProj();
+  MTransformations = glm::mat4();
+  MGnomonTransformations = glm::mat4();
+  VTransformations = glm::mat4();
+  VGnomonTransformations = glm::mat4();
+
+  viewportX = initViewportX;
+  viewportY = initViewportY;
+  viewportWidth = initViewportWidth;
+  viewportHeight = initViewportHeight;
 }
 
 // glm::mat4 getViewportTransform() {
@@ -952,6 +979,24 @@ bool A2::keyInputEvent (
         return true;
       case GLFW_KEY_S:
         selectedMode = ScaleModel;
+        return true;
+      case GLFW_KEY_O:
+        selectedMode = RotateView;
+        return true;
+      case GLFW_KEY_N:
+        selectedMode = TranslateView;
+        return true;
+      case GLFW_KEY_P:
+        selectedMode = Perspective;
+        return true;
+      case GLFW_KEY_V:
+        selectedMode = Viewport;
+        return true;
+      case GLFW_KEY_A:
+        reset();
+        return true;
+      case GLFW_KEY_Q:
+        glfwSetWindowShouldClose(m_window, GL_TRUE);
         return true;
     }
   }

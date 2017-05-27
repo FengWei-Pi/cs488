@@ -131,6 +131,12 @@ protected:
   float viewportY;
   float viewportWidth;
   float viewportHeight;
+
+  float initViewportX;
+  float initViewportY;
+  float initViewportWidth;
+  float initViewportHeight;
+
   bool captureViewportPosition;
   void viewport(double x, double y);
 
@@ -149,6 +155,8 @@ protected:
   bool isMouseButtonLeftPressed;
   bool isMouseButtonRightPressed;
   bool isMouseButtonMiddlePressed;
+
+  void reset();
 
   static glm::mat4 createM();
   static glm::mat4 createView();
