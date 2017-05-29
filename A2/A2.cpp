@@ -151,6 +151,10 @@ glm::mat4 A2::createProj() {
   float theta = glm::radians(fov);
   float cot = std::cos(theta / 2) / std::sin(theta / 2);
 
+  /**
+   * Derived using the notes on page 60.
+   */
+  
   return glm::mat4(
     cot / aspect,   0,                               0,  0,
     0,            cot,                               0,  0,
@@ -794,8 +798,8 @@ void A2::perspective(double xPos, double yPos) {
 }
 
 void A2::viewport(double x, double y) {
-  float xPos = 2 * x;
-  float yPos = m_framebufferHeight - 2 * y;
+  float xPos = x;
+  float yPos = m_framebufferHeight - y;
   if (isMouseButtonLeftPressed) {
     if (captureViewportPosition) {
       viewportX = glm::clamp(xPos, 0.0f, (float)m_framebufferWidth - 1);
