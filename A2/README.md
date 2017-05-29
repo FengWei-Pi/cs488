@@ -7,6 +7,8 @@ Standard compilation instructions
 > ./A2
 ```
 
+I tested this assignment on computer CS009792.
+
 # Manual
 
 For transformations, the y displacement of the mouse is usually ignored and only the x displacement is used.
