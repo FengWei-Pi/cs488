@@ -29,7 +29,7 @@ VertexData::VertexData():
 A2::A2() :
   m_currentLineColour(vec3(0.0f)),
   near(1.0f),
-  far(1000.0f),
+  far(25.0f),
   fov(30.0f),
   M(A2::createM()),
   view(A2::createView()),
@@ -774,7 +774,7 @@ void A2::perspective(double xPos, double yPos) {
   }
 
   if (isMouseButtonMiddlePressed) {
-    near = glm::clamp(near + diff, 0.0f, far);
+    near = glm::clamp(near + diff, 0.001f, far);
     proj = createProj();
   }
 
@@ -809,7 +809,7 @@ void A2::viewport(double x, double y) {
 void A2::reset() {
   selectedMode = RotateModel;
   near = 1.0f;
-  far = 1000.0f;
+  far = 25.0f;
   fov = 30.0f;
 
   proj = createProj();
