@@ -20,3 +20,4 @@ For transformations, the y displacement of the mouse is usually ignored and only
 3. The viewport is initially set to be 90% window width and height. If, during the lifetime of the applcation, the window is resized, then the reset button is pressed, the viewport will reset to it's original dimensions, not 90% of the current window width and 90% of the current height.
 4. The near plane cannot be moved past the far plane. The far plane cannot be moved to lie before the near plane.
 5. Initially, the z-axis points into the screen, the x-axis points to the right, and the y-axis points up.
+6. I set the lower bound of the clipping plane to 0.001.
