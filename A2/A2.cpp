@@ -125,25 +125,12 @@ glm::mat4 A2::createM() {
 }
 
 glm::mat4 A2::createView() {
-  glm::vec3 origin{0, 0, 10};
-  glm::vec3 lookAt{0, 0, -1};
-  glm::vec3 up{lookAt.x, lookAt.y + 1, lookAt.z};
-
-  glm::vec3 z = lookAt;
-  glm::vec3 x = glm::cross(z, up);
-  glm::vec3 y = glm::cross(x, z);
-
-  glm::mat4 MT {
-    glm::vec4(x, 0),
-    glm::vec4(y, 0),
-    glm::vec4(z, 0),
-    glm::vec4(origin, 1)
-  };
-
-  // View will take coordinates in the cartesian frame to coordinates in the camera's frame
-  // http://www.uio.no/studier/emner/matnat/ifi/INF3320/h03/undervisningsmateriale/lecture3.pdf
-
-  return glm::inverse(MT);
+  return glm::mat4(
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 10, 1		   
+  );
 }
 
 glm::mat4 A2::createProj() {
@@ -787,7 +774,7 @@ void A2::perspective(double xPos, double yPos) {
   }
 
   if (isMouseButtonMiddlePressed) {
-    near = std::min(near + diff, far);
+    near = glm::clamp(near + diff, 0.0f, far);
     proj = createProj();
   }
 
