@@ -544,11 +544,11 @@ bool A3::mouseMoveEvent (
 		double xPos,
 		double yPos
 ) {
-	bool eventHandled(false);
-
-	// Fill in with event handling code...
-
-	return eventHandled;
+	mouse.prevX = mouse.x;
+  mouse.prevY = mouse.y;
+  mouse.x = xPos;
+  mouse.y = yPos;
+	return true;
 }
 
 //----------------------------------------------------------------------------------------
@@ -557,14 +557,38 @@ bool A3::mouseMoveEvent (
  */
 bool A3::mouseButtonInputEvent (
 		int button,
-		int actions,
+		int action,
 		int mods
 ) {
-	bool eventHandled(false);
+  if (action == GLFW_PRESS) {
+    switch (button) {
+      case GLFW_MOUSE_BUTTON_LEFT:
+        mouse.isLeftButtonPressed = true;
+        return true;
+      case GLFW_MOUSE_BUTTON_RIGHT:
+        mouse.isRightButtonPressed = true;
+        return true;
+      case GLFW_MOUSE_BUTTON_MIDDLE:
+        mouse.isMiddleButtonPressed = true;
+        return true;
+    }
+  }
 
-	// Fill in with event handling code...
+  if (action == GLFW_RELEASE) {
+    switch (button) {
+      case GLFW_MOUSE_BUTTON_LEFT:
+        mouse.isLeftButtonPressed = false;
+        return true;
+      case GLFW_MOUSE_BUTTON_RIGHT:
+        mouse.isRightButtonPressed = false;
+        return true;
+      case GLFW_MOUSE_BUTTON_MIDDLE:
+        mouse.isMiddleButtonPressed = false;
+        return true;
+    }
+  }
 
-	return eventHandled;
+  return false;
 }
 
 //----------------------------------------------------------------------------------------

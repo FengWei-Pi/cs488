@@ -115,4 +115,14 @@ protected:
   void updateZBuffer(const std::function<bool(bool)> fn);
   void updateBackfaceCulling(const std::function<bool(bool)> fn);
   void updateFrontfaceCulling(const std::function<bool(bool)> fn);
+
+  struct Mouse {
+    double x;
+    double y;
+    double prevX;
+    double prevY;
+    bool isRightButtonPressed;
+    bool isLeftButtonPressed;
+    bool isMiddleButtonPressed;
+  } mouse;
 };
