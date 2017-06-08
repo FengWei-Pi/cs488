@@ -13,6 +13,8 @@ using namespace std;
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <functional>
+
 using namespace glm;
 
 static bool show_gui = true;
@@ -250,8 +252,11 @@ void A3::initPerspectiveMatrix()
 
 //----------------------------------------------------------------------------------------
 void A3::initViewMatrix() {
-	m_view = glm::lookAt(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f),
-			vec3(0.0f, 1.0f, 0.0f));
+	m_view = glm::lookAt(
+    vec3(0.0f, 0.0f, 10.0f),
+    vec3(0.0f, 0.0f, -1.0f),
+		vec3(0.0f, 1.0f, 0.0f)
+  );
 }
 
 //----------------------------------------------------------------------------------------
@@ -322,12 +327,15 @@ void A3::guiLogic()
 	ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
 	float opacity(0.5f);
 
-	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
-			windowFlags);
+	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
 
+    ImGui::Text("Options: ");
 
-		// Add more gui elements here here ...
-
+    ImGui::Checkbox("Circle", &showCircle);
+    ImGui::Checkbox("Z-buffer", &useZBuffer);
+    ImGui::Checkbox("Backface culling", &useBackfaceCulling);
+    ImGui::Checkbox("Frontface culling", &useFrontfaceCulling);
+    ImGui::Text("");
 
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
@@ -337,47 +345,6 @@ void A3::guiLogic()
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
 	ImGui::End();
-}
-
-//----------------------------------------------------------------------------------------
-// Update mesh specific shader uniforms:
-static void updateShaderUniforms(
-		const ShaderProgram & shader,
-		const GeometryNode & node,
-		const glm::mat4 & viewMatrix
-) {
-
-	shader.enable();
-	{
-		//-- Set ModelView matrix:
-		GLint location = shader.getUniformLocation("ModelView");
-		mat4 modelView = viewMatrix * node.trans;
-		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
-		CHECK_GL_ERRORS;
-
-		//-- Set NormMatrix:
-		location = shader.getUniformLocation("NormalMatrix");
-		mat3 normalMatrix = glm::transpose(glm::inverse(mat3(modelView)));
-		glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
-		CHECK_GL_ERRORS;
-
-
-		//-- Set Material values:
-		location = shader.getUniformLocation("material.kd");
-		vec3 kd = node.material.kd;
-		glUniform3fv(location, 1, value_ptr(kd));
-		CHECK_GL_ERRORS;
-		location = shader.getUniformLocation("material.ks");
-		vec3 ks = node.material.ks;
-		glUniform3fv(location, 1, value_ptr(ks));
-		CHECK_GL_ERRORS;
-		location = shader.getUniformLocation("material.shininess");
-		glUniform1f(location, node.material.shininess);
-		CHECK_GL_ERRORS;
-
-	}
-	shader.disable();
-
 }
 
 //----------------------------------------------------------------------------------------
@@ -413,27 +380,98 @@ void A3::renderSceneGraph(const SceneNode & root) {
 	// could put a set of mutually recursive functions in this class, which
 	// walk down the tree from nodes of different types.
 
-	for (const SceneNode * node : root.children) {
-
-		if (node->m_nodeType != NodeType::GeometryNode)
-			continue;
-
-		const GeometryNode * geometryNode = static_cast<const GeometryNode *>(node);
-
-		updateShaderUniforms(m_shader, *geometryNode, m_view);
-
-
-		// Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
-		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
-
-		//-- Now render the mesh:
-		m_shader.enable();
-		glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
-		m_shader.disable();
-	}
+  draw(root, m_view);
 
 	glBindVertexArray(0);
 	CHECK_GL_ERRORS;
+}
+
+void A3::draw(const SceneNode & root, const glm::mat4& parentModelView) {
+  glm::mat4 modelView = parentModelView * root.trans;
+
+  switch (root.m_nodeType) {
+    case NodeType::GeometryNode: {
+      setModelViewUniforms(m_shader, modelView);
+
+      const GeometryNode * geometryNode = static_cast<const GeometryNode *>(&root);
+      setShaderMaterialUniforms(m_shader, *geometryNode);
+
+      // Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
+      BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
+
+      //-- Now render the mesh:
+      m_shader.enable();
+      glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+      m_shader.disable();
+      break;
+    }
+    case NodeType::SceneNode: {
+      break;
+    }
+    case NodeType::JointNode: {
+      const JointNode * jointNode = static_cast<const JointNode *>(&root);
+      float xRotation = glm::radians(glm::clamp(
+        jointNode->m_joint_x.init,
+        jointNode->m_joint_x.min,
+        jointNode->m_joint_x.max
+      ));
+      float yRotation = glm::radians(glm::clamp(
+        jointNode->m_joint_y.init,
+        jointNode->m_joint_y.min,
+        jointNode->m_joint_y.max
+      ));
+
+      modelView = modelView * glm::rotate(glm::mat4(), yRotation, glm::vec3(0, 1, 0));
+      modelView = modelView * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
+      break;
+    }
+  }
+
+  for (const SceneNode * child : root.children) {
+    draw(*child, modelView);
+  }
+}
+
+void A3::setModelViewUniforms(const ShaderProgram & shader, const glm::mat4 & modelView) {
+	shader.enable();
+	{
+		//-- Set ModelView matrix:
+		GLint location = shader.getUniformLocation("ModelView");
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
+		CHECK_GL_ERRORS;
+
+		//-- Set NormMatrix:
+		location = shader.getUniformLocation("NormalMatrix");
+		mat3 normalMatrix = glm::transpose(glm::inverse(mat3(modelView)));
+		glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
+		CHECK_GL_ERRORS;
+
+	}
+	shader.disable();
+
+}
+
+//----------------------------------------------------------------------------------------
+// Update mesh specific shader uniforms:
+void A3::setShaderMaterialUniforms(const ShaderProgram & shader, const GeometryNode & node) {
+	shader.enable();
+	{
+		//-- Set Material values:
+		GLint location = shader.getUniformLocation("material.kd");
+		vec3 kd = node.material.kd;
+		glUniform3fv(location, 1, value_ptr(kd));
+		CHECK_GL_ERRORS;
+		location = shader.getUniformLocation("material.ks");
+		vec3 ks = node.material.ks;
+		glUniform3fv(location, 1, value_ptr(ks));
+		CHECK_GL_ERRORS;
+		location = shader.getUniformLocation("material.shininess");
+		glUniform1f(location, node.material.shininess);
+		CHECK_GL_ERRORS;
+
+	}
+	shader.disable();
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -550,8 +588,42 @@ bool A3::keyInputEvent (
 		int mods
 ) {
 	bool eventHandled(false);
+  std::function<bool(bool)> toggle = [](bool x) -> bool {
+    return !x;
+  };
 
 	if( action == GLFW_PRESS ) {
+    switch (key) {
+      case GLFW_KEY_M: {
+        show_gui = !show_gui;
+        return true;
+      }
+      case GLFW_KEY_C: {
+        updateCircle(toggle);
+        return true;
+      }
+      case GLFW_KEY_Z: {
+        updateZBuffer(toggle);
+        return true;
+      }
+      case GLFW_KEY_B: {
+        updateBackfaceCulling(toggle);
+        return true;
+      }
+      case GLFW_KEY_F: {
+        updateFrontfaceCulling(toggle);
+        return true;
+      }
+      case GLFW_KEY_P: {
+        interactionMode = PositionOrientation;
+        return true;
+      }
+      case GLFW_KEY_J: {
+        interactionMode = Joints;
+        return true;
+      }
+    }
+
 		if( key == GLFW_KEY_M ) {
 			show_gui = !show_gui;
 			eventHandled = true;
@@ -560,4 +632,34 @@ bool A3::keyInputEvent (
 	// Fill in with event handling code...
 
 	return eventHandled;
+}
+
+void A3::updateCircle(const std::function<bool(bool)> fn) {
+  showCircle = fn(showCircle);
+  std::cerr
+    << "If checked, draw a circle to indicate the region of the screen being "
+    << "used as the boundary for trackball rotation. The circle is drawn for "
+    << "you (unconditionally) in the skeleton code."
+    << std::endl;
+}
+
+void A3::updateZBuffer(const std::function<bool(bool)> fn) {
+  useZBuffer = fn(useZBuffer);
+  std::cerr
+    << "If checked, use depth buffering when drawing the puppet."
+    << std::endl;
+}
+
+void A3::updateBackfaceCulling(const std::function<bool(bool)> fn) {
+  useBackfaceCulling = fn(useBackfaceCulling);
+  std::cerr
+    << "Draws the puppet with backfacing polygons removed."
+    << std::endl;
+}
+
+void A3::updateFrontfaceCulling(const std::function<bool(bool)> fn) {
+  useFrontfaceCulling = fn(useFrontfaceCulling);
+  std::cerr
+    << "Draws the puppet with frontfacing polygons removed."
+    << std::endl;
 }

@@ -6,6 +6,7 @@
 #include "cs488-framework/MeshConsolidator.hpp"
 
 #include "SceneNode.hpp"
+#include "GeometryNode.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -50,6 +51,17 @@ protected:
 	void renderSceneGraph(const SceneNode &node);
 	void renderArcCircle();
 
+  void draw(const SceneNode& root, const glm::mat4& parentModelView);
+  static void setModelViewUniforms(
+  	const ShaderProgram & shader,
+  	const glm::mat4 & modelView
+  );
+
+  static void setShaderMaterialUniforms(
+  	const ShaderProgram & shader,
+  	const GeometryNode & node
+  );
+
 	glm::mat4 m_perpsective;
 	glm::mat4 m_view;
 
@@ -77,4 +89,25 @@ protected:
 	std::string m_luaSceneFile;
 
 	std::shared_ptr<SceneNode> m_rootNode;
+
+  /**
+   * UI Interactions
+   */
+  enum InteractionMode {
+    PositionOrientation,
+    Joints,
+    InteractionModeNum
+  };
+
+  InteractionMode interactionMode;
+
+  bool showCircle;
+  bool useZBuffer;
+  bool useBackfaceCulling;
+  bool useFrontfaceCulling;
+
+  void updateCircle(const std::function<bool(bool)> fn);
+  void updateZBuffer(const std::function<bool(bool)> fn);
+  void updateBackfaceCulling(const std::function<bool(bool)> fn);
+  void updateFrontfaceCulling(const std::function<bool(bool)> fn);
 };
