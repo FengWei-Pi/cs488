@@ -31,9 +31,15 @@ A3::A3(const std::string & luaSceneFile)
 	  m_vbo_vertexPositions(0),
 	  m_vbo_vertexNormals(0),
 	  m_vao_arcCircle(0),
-	  m_vbo_arcCircle(0)
+	  m_vbo_arcCircle(0),
+    interactionMode(PositionOrientation),
+    showCircle(false),
+    useZBuffer(true),
+    useBackfaceCulling(false),
+    useFrontfaceCulling(false)
 {
-
+  interactionModeNames[PositionOrientation] = "Position/Orientation (P)";
+  interactionModeNames[Joints] = "Joints (J)";
 }
 
 //----------------------------------------------------------------------------------------
@@ -329,12 +335,23 @@ void A3::guiLogic()
 
 	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
 
-    ImGui::Text("Options: ");
+    ImGui::Text("Options:");
 
-    ImGui::Checkbox("Circle", &showCircle);
-    ImGui::Checkbox("Z-buffer", &useZBuffer);
-    ImGui::Checkbox("Backface culling", &useBackfaceCulling);
-    ImGui::Checkbox("Frontface culling", &useFrontfaceCulling);
+    ImGui::Checkbox("Circle (C)", &showCircle);
+    ImGui::Checkbox("Z-buffer (Z)", &useZBuffer);
+    ImGui::Checkbox("Backface culling (B)", &useBackfaceCulling);
+    ImGui::Checkbox("Frontface culling (F)", &useFrontfaceCulling);
+    ImGui::Text("");
+
+    ImGui::Text("Interaction Mode:");
+
+    for (int m = PositionOrientation; m != LastInteractionMode; m++) {
+      ImGui::PushID(m);
+      if( ImGui::RadioButton( interactionModeNames[m].c_str(), (int*) &interactionMode, m ) ) {
+
+      }
+      ImGui::PopID();
+    }
     ImGui::Text("");
 
 		// Create Button, and check if it was clicked:
@@ -615,11 +632,11 @@ bool A3::keyInputEvent (
         return true;
       }
       case GLFW_KEY_P: {
-        interactionMode = PositionOrientation;
+        usePositionOrientationInteractionMode();
         return true;
       }
       case GLFW_KEY_J: {
-        interactionMode = Joints;
+        useJointInteractionMode();
         return true;
       }
     }
@@ -632,6 +649,17 @@ bool A3::keyInputEvent (
 	// Fill in with event handling code...
 
 	return eventHandled;
+}
+
+void A3::usePositionOrientationInteractionMode() {
+  interactionMode = PositionOrientation;
+}
+
+void A3::useJointInteractionMode() {
+  interactionMode = Joints;
+  std::cerr
+    << "Use joint interaction mode"
+    << std::endl;
 }
 
 void A3::updateCircle(const std::function<bool(bool)> fn) {

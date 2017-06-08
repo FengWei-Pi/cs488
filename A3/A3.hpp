@@ -10,6 +10,7 @@
 
 #include <glm/glm.hpp>
 #include <memory>
+#include <string>
 
 struct LightSource {
 	glm::vec3 position;
@@ -96,10 +97,14 @@ protected:
   enum InteractionMode {
     PositionOrientation,
     Joints,
-    InteractionModeNum
+    LastInteractionMode
   };
 
   InteractionMode interactionMode;
+  std::string interactionModeNames[LastInteractionMode];
+
+  void usePositionOrientationInteractionMode();
+  void useJointInteractionMode();
 
   bool showCircle;
   bool useZBuffer;
