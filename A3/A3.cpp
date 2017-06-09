@@ -306,11 +306,31 @@ void A3::uploadCommonSceneUniforms() {
 /*
  * Called once per frame, before guiLogic().
  */
-void A3::appLogic()
-{
-  // Place per frame, application logic here ...
+void A3::appLogic() {
+  switch (interactionMode) {
+    case PositionOrientation: {
+      processPositionOrOrientationChanges();
+      break;
+    }
+    case Joints: {
+      processJointChanges();
+      break;
+    }
+  }
 
   uploadCommonSceneUniforms();
+}
+
+void A3::processPositionOrOrientationChanges() {
+  // std::cerr
+  //   << "Process position or orientation changes"
+  //   << std::endl;
+}
+
+void A3::processJointChanges() {
+  // std::cerr
+  //   << "Process joint changes"
+  //   << std::endl;
 }
 
 //----------------------------------------------------------------------------------------
@@ -333,34 +353,64 @@ void A3::guiLogic()
   ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
   float opacity(0.5f);
 
+  if (ImGui::BeginMainMenuBar()) {
+    if (ImGui::BeginMenu("Application")) {
+      if (ImGui::MenuItem("Reset Position (I)")) {
+        resetPosition();
+      }
+
+      if (ImGui::MenuItem("Reset Orientation (O)")) {
+        resetOrientation();
+      }
+
+      if (ImGui::MenuItem("Reset Joints (N)")) {
+        resetJoints();
+      }
+
+      if (ImGui::MenuItem("Reset All (A)")) {
+        resetAll();
+      }
+
+      if (ImGui::MenuItem("Quit (Q)")) {
+        quit();
+      }
+
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Edit")) {
+      if (ImGui::MenuItem("Undo (U)")) {
+        undo();
+      }
+
+      if (ImGui::MenuItem("Redo (R)")) {
+        redo();
+      }
+
+      ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Options")) {
+      ImGui::Checkbox("Circle (C)", &showCircle);
+      ImGui::Checkbox("Z-buffer (Z)", &useZBuffer);
+      ImGui::Checkbox("Backface culling (B)", &useBackfaceCulling);
+      ImGui::Checkbox("Frontface culling (F)", &useFrontfaceCulling);
+      ImGui::EndMenu();
+    }
+
+    ImGui::EndMainMenuBar();
+  }
+
   ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
-
-    ImGui::Text("Options:");
-
-    ImGui::Checkbox("Circle (C)", &showCircle);
-    ImGui::Checkbox("Z-buffer (Z)", &useZBuffer);
-    ImGui::Checkbox("Backface culling (B)", &useBackfaceCulling);
-    ImGui::Checkbox("Frontface culling (F)", &useFrontfaceCulling);
-    ImGui::Text("");
-
-    ImGui::Text("Interaction Mode:");
-
     for (int m = PositionOrientation; m != LastInteractionMode; m++) {
       ImGui::PushID(m);
       if( ImGui::RadioButton( interactionModeNames[m].c_str(), (int*) &interactionMode, m ) ) {
-
+        std::cerr << "Switching to " << m << std::endl;
       }
       ImGui::PopID();
     }
-    ImGui::Text("");
-
-    // Create Button, and check if it was clicked:
-    if( ImGui::Button( "Quit Application" ) ) {
-      glfwSetWindowShouldClose(m_window, GL_TRUE);
-    }
 
     ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
-
   ImGui::End();
 }
 
@@ -624,21 +674,57 @@ bool A3::windowResizeEvent (
  * Event handler.  Handles key input events.
  */
 bool A3::keyInputEvent (
-    int key,
-    int action,
-    int mods
+  int key,
+  int action,
+  int mods
 ) {
-  bool eventHandled(false);
   std::function<bool(bool)> toggle = [](bool x) -> bool {
     return !x;
   };
 
   if( action == GLFW_PRESS ) {
     switch (key) {
-      case GLFW_KEY_M: {
-        show_gui = !show_gui;
+      /**
+       * Application Menu
+       */
+      case GLFW_KEY_I: {
+        resetPosition();
         return true;
       }
+      case GLFW_KEY_O: {
+        resetOrientation();
+        return true;
+      }
+      case GLFW_KEY_N: {
+        resetJoints();
+        return true;
+      }
+      case GLFW_KEY_A: {
+        resetAll();
+        return true;
+      }
+      case GLFW_KEY_Q: {
+        quit();
+        return true;
+      }
+
+      /**
+       * Edit Menu
+       */
+
+      case GLFW_KEY_U: {
+        undo();
+        return true;
+      }
+      case GLFW_KEY_R: {
+        redo();
+        return true;
+      }
+
+      /**
+       * Options Menu
+       */
+
       case GLFW_KEY_C: {
         updateCircle(toggle);
         return true;
@@ -655,63 +741,92 @@ bool A3::keyInputEvent (
         updateFrontfaceCulling(toggle);
         return true;
       }
+
+      case GLFW_KEY_M: {
+        show_gui = !show_gui;
+        return true;
+      }
+
       case GLFW_KEY_P: {
-        usePositionOrientationInteractionMode();
+        interactionMode = PositionOrientation;
         return true;
       }
       case GLFW_KEY_J: {
-        useJointInteractionMode();
+        interactionMode = Joints;
         return true;
       }
     }
 
     if( key == GLFW_KEY_M ) {
       show_gui = !show_gui;
-      eventHandled = true;
+      return true;
     }
   }
   // Fill in with event handling code...
 
-  return eventHandled;
+  return false;
 }
 
-void A3::usePositionOrientationInteractionMode() {
-  interactionMode = PositionOrientation;
-}
-
-void A3::useJointInteractionMode() {
-  interactionMode = Joints;
+void A3::redo() {
   std::cerr
-    << "Use joint interaction mode"
+    << "Redo"
     << std::endl;
 }
+
+void A3::undo() {
+  std::cerr
+    << "Undo"
+    << std::endl;
+}
+
+void A3::quit() {
+  glfwSetWindowShouldClose(m_window, GL_TRUE);
+}
+
+/**
+ * Resets
+ */
+
+void A3::resetAll() {
+  resetPosition();
+  resetOrientation();
+  resetJoints();
+}
+
+void A3::resetPosition() {
+  std::cerr
+    << "Resetting position"
+    << std::endl;
+}
+
+void A3::resetOrientation() {
+  std::cerr
+    << "Resetting orientation"
+    << std::endl;
+}
+
+void A3::resetJoints() {
+  std::cerr
+    << "Resetting joints"
+    << std::endl;
+}
+
+/**
+ * Switch rendering algorithms
+ */
 
 void A3::updateCircle(const std::function<bool(bool)> fn) {
   showCircle = fn(showCircle);
-  std::cerr
-    << "If checked, draw a circle to indicate the region of the screen being "
-    << "used as the boundary for trackball rotation. The circle is drawn for "
-    << "you (unconditionally) in the skeleton code."
-    << std::endl;
 }
 
 void A3::updateZBuffer(const std::function<bool(bool)> fn) {
   useZBuffer = fn(useZBuffer);
-  std::cerr
-    << "If checked, use depth buffering when drawing the puppet."
-    << std::endl;
 }
 
 void A3::updateBackfaceCulling(const std::function<bool(bool)> fn) {
   useBackfaceCulling = fn(useBackfaceCulling);
-  std::cerr
-    << "Draws the puppet with backfacing polygons removed."
-    << std::endl;
 }
 
 void A3::updateFrontfaceCulling(const std::function<bool(bool)> fn) {
   useFrontfaceCulling = fn(useFrontfaceCulling);
-  std::cerr
-    << "Draws the puppet with frontfacing polygons removed."
-    << std::endl;
 }

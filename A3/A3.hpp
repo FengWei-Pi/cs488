@@ -103,8 +103,19 @@ protected:
   InteractionMode interactionMode;
   std::string interactionModeNames[LastInteractionMode];
 
-  void usePositionOrientationInteractionMode();
-  void useJointInteractionMode();
+  void processJointChanges();
+  void processPositionOrOrientationChanges();
+
+  /**
+   * Resets
+   */
+  void resetPosition();
+  void resetOrientation();
+  void resetJoints();
+  void resetAll();
+  void quit();
+  void undo();
+  void redo();
 
   bool showCircle;
   bool useZBuffer;
