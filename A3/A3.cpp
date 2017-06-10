@@ -39,8 +39,7 @@ A3::A3(const std::string & luaSceneFile)
     useZBuffer(true),
     useBackfaceCulling(false),
     useFrontfaceCulling(false),
-    isPicking(false),
-    selectedJoint(nullptr)
+    isPicking(false)
 {
   interactionModeNames[PositionOrientation] = "Position/Orientation (P)";
   interactionModeNames[Joints] = "Joints (J)";
@@ -332,11 +331,11 @@ void A3::processPositionOrOrientationChanges() {
 }
 
 void A3::processJointChanges() {
-  if (mouse.isLeftButtonPressed) {
-    if (selectedJoint != nullptr) {
-      const double scale = 1.0 / 10;
-      selectedJoint->rotateAboutY((mouse.x - mouse.prevX) * scale);
-      selectedJoint->rotateAboutX((mouse.y - mouse.prevY) * scale);
+  if (mouse.isMiddleButtonPressed) {
+    const double scale = 1.0 / 10;
+    for (JointNode* joint : selectedJoints) {
+      joint->rotateAboutY((mouse.x - mouse.prevX) * scale);
+      joint->rotateAboutX((mouse.y - mouse.prevY) * scale);
     }
   }
 }
@@ -420,6 +419,13 @@ void A3::guiLogic()
     }
 
     ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
+
+    ImGui::Text( "" );
+    ImGui::Text( "Selected Joints:" );
+
+    for (JointNode * joint : selectedJoints) {
+      ImGui::Text( "%s", joint->m_name.c_str() );
+    }
   ImGui::End();
 }
 
@@ -582,8 +588,7 @@ void A3::renderArcCircle() {
 /*
  * Called once, after program is signaled to terminate.
  */
-void A3::cleanup()
-{
+void A3::cleanup() {
 
 }
 
@@ -678,11 +683,16 @@ void A3::pick() {
   unsigned int selectedNodeId =  buffer[0] + (buffer[1] << 8) + (buffer[2] << 16);
 
   try {
-    selectedJoint = findJoint(selectedNodeId, *m_rootNode);
-    std::cerr << *selectedJoint << std::endl;
+    JointNode* joint = findJoint(selectedNodeId, *m_rootNode);
+    if (selectedJoints.find(joint) != selectedJoints.end()) {
+      std::cerr << "Unselecting " << *joint << std::endl;
+      selectedJoints.erase(joint);
+    } else {
+      std::cerr << "Selecting " << *joint << std::endl;
+      selectedJoints.insert(joint);
+    }
   } catch (ChildNotFound& ex) {
   } catch (JointNotFound& ex) {
-    selectedJoint = nullptr;
     if (ex.getSelectedNode().m_name != "torso") {
       throw ex;
     }

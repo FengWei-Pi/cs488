@@ -12,6 +12,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
+#include <set>
 
 struct LightSource {
   glm::vec3 position;
@@ -134,9 +135,9 @@ protected:
     double y;
     double prevX;
     double prevY;
-    bool isRightButtonPressed;
-    bool isLeftButtonPressed;
-    bool isMiddleButtonPressed;
+    bool isRightButtonPressed = false;
+    bool isLeftButtonPressed = false;
+    bool isMiddleButtonPressed = false;
   } mouse;
 
   /**
@@ -144,8 +145,8 @@ protected:
    */
 
   bool isPicking;
-  JointNode* selectedJoint;
   void pick();
+  std::set<JointNode*> selectedJoints;
 
   static JointNode* findJoint(const unsigned int id, const SceneNode & root);
 
