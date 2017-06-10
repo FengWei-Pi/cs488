@@ -333,7 +333,11 @@ void A3::processPositionOrOrientationChanges() {
 
 void A3::processJointChanges() {
   if (mouse.isLeftButtonPressed) {
-
+    if (selectedJoint != nullptr) {
+      const double scale = 1.0 / 10;
+      selectedJoint->rotateAboutY((mouse.x - mouse.prevX) * scale);
+      selectedJoint->rotateAboutX((mouse.y - mouse.prevY) * scale);
+    }
   }
 }
 
@@ -677,8 +681,8 @@ void A3::pick() {
     selectedJoint = findJoint(selectedNodeId, *m_rootNode);
     std::cerr << *selectedJoint << std::endl;
   } catch (ChildNotFound& ex) {
-    // Do nothing.
   } catch (JointNotFound& ex) {
+    selectedJoint = nullptr;
     if (ex.getSelectedNode().m_name != "torso") {
       throw ex;
     }
