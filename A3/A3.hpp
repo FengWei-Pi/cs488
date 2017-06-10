@@ -7,6 +7,7 @@
 
 #include "SceneNode.hpp"
 #include "GeometryNode.hpp"
+#include "JointNode.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -17,6 +18,7 @@ struct LightSource {
   glm::vec3 rgbIntensity;
 };
 
+const int COLOUR_COUNT = 256;
 
 class A3 : public CS488Window {
 public:
@@ -58,7 +60,7 @@ protected:
     const glm::mat4 & modelView
   );
 
-  static void setShaderMaterialUniforms(
+  void setShaderMaterialUniforms(
     const ShaderProgram & shader,
     const GeometryNode & node
   );
@@ -136,4 +138,33 @@ protected:
     bool isLeftButtonPressed;
     bool isMiddleButtonPressed;
   } mouse;
+
+  /**
+   * Picking
+   */
+
+  bool isPicking;
+  JointNode* selectedJoint;
+  void pick();
+
+  static JointNode* findJoint(const unsigned int id, const SceneNode & root);
+
+  class JointNotFound: public std::exception {
+   private:
+    const char* what() const throw() {
+      return "Could not find the joint, but found the child.";
+    }
+    const SceneNode* const child;
+   public:
+    JointNotFound(const SceneNode* child): child(child) {}
+    const SceneNode& getSelectedNode() {
+      return *child;
+    }
+  };
+
+  class ChildNotFound: public std::exception {
+    const char* what() const throw() {
+      return "Could not find the joint.";
+    }
+  };
 };

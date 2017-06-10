@@ -14,6 +14,8 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <functional>
+#include <queue>
+#include <map>
 
 using namespace glm;
 
@@ -36,7 +38,9 @@ A3::A3(const std::string & luaSceneFile)
     showCircle(false),
     useZBuffer(true),
     useBackfaceCulling(false),
-    useFrontfaceCulling(false)
+    useFrontfaceCulling(false),
+    isPicking(false),
+    selectedJoint(nullptr)
 {
   interactionModeNames[PositionOrientation] = "Position/Orientation (P)";
   interactionModeNames[Joints] = "Joints (J)";
@@ -328,10 +332,11 @@ void A3::processPositionOrOrientationChanges() {
 }
 
 void A3::processJointChanges() {
-  // std::cerr
-  //   << "Process joint changes"
-  //   << std::endl;
+  if (mouse.isLeftButtonPressed) {
+
+  }
 }
+
 
 //----------------------------------------------------------------------------------------
 /*
@@ -422,7 +427,6 @@ void A3::draw() {
 
   glEnable( GL_DEPTH_TEST );
   renderSceneGraph(*m_rootNode);
-
 
   glDisable( GL_DEPTH_TEST );
   renderArcCircle();
@@ -523,22 +527,29 @@ void A3::setModelViewUniforms(const ShaderProgram & shader, const glm::mat4 & mo
 void A3::setShaderMaterialUniforms(const ShaderProgram & shader, const GeometryNode & node) {
   shader.enable();
   {
-    //-- Set Material values:
-    GLint location = shader.getUniformLocation("material.kd");
-    vec3 kd = node.material.kd;
-    glUniform3fv(location, 1, value_ptr(kd));
-    CHECK_GL_ERRORS;
-    location = shader.getUniformLocation("material.ks");
-    vec3 ks = node.material.ks;
-    glUniform3fv(location, 1, value_ptr(ks));
-    CHECK_GL_ERRORS;
-    location = shader.getUniformLocation("material.shininess");
-    glUniform1f(location, node.material.shininess);
-    CHECK_GL_ERRORS;
+    glUniform1i( shader.getUniformLocation("isPicking"), isPicking ? 1 : 0 );
 
+    if (isPicking) {
+      unsigned int idx = node.m_nodeId;
+      float r = float(idx&0xff) / 255.0f;
+      float g = float((idx>>8)&0xff) / 255.0f;
+      float b = float((idx>>16)&0xff) / 255.0f;
+
+      glUniform3f(shader.getUniformLocation("material.kd"), r, g, b);
+      CHECK_GL_ERRORS;
+    } else {
+      //-- Set Material values:
+      vec3 kd = node.material.kd;
+      glUniform3fv(shader.getUniformLocation("material.kd"), 1, glm::value_ptr(kd));
+      CHECK_GL_ERRORS;
+      vec3 ks = node.material.ks;
+      glUniform3fv(shader.getUniformLocation("material.ks"), 1, glm::value_ptr(ks));
+      CHECK_GL_ERRORS;
+      glUniform1f(shader.getUniformLocation("material.shininess"), node.material.shininess);
+      CHECK_GL_ERRORS;
+    }
   }
   shader.disable();
-
 }
 
 //----------------------------------------------------------------------------------------
@@ -596,8 +607,8 @@ bool A3::mouseMoveEvent (
 ) {
   mouse.prevX = mouse.x;
   mouse.prevY = mouse.y;
-  mouse.x = xPos;
-  mouse.y = yPos;
+  mouse.x = xPos * double(m_framebufferWidth) / double(m_windowWidth);
+  mouse.y = (m_windowHeight - yPos) * double(m_framebufferHeight) / double(m_windowHeight);
   return true;
 }
 
@@ -614,6 +625,9 @@ bool A3::mouseButtonInputEvent (
     switch (button) {
       case GLFW_MOUSE_BUTTON_LEFT:
         mouse.isLeftButtonPressed = true;
+        if (interactionMode == Joints) {
+          pick();
+        }
         return true;
       case GLFW_MOUSE_BUTTON_RIGHT:
         mouse.isRightButtonPressed = true;
@@ -639,6 +653,70 @@ bool A3::mouseButtonInputEvent (
   }
 
   return false;
+}
+
+void A3::pick() {
+  glClearColor(1.0, 1.0, 1.0, 1.0 );
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClearColor(0.35, 0.35, 0.35, 1.0);
+
+  isPicking = true;
+  draw();
+  isPicking = false;
+
+  CHECK_GL_ERRORS;
+
+  GLubyte buffer[ 4 ] = { 0, 0, 0, 0 };
+  glReadBuffer( GL_BACK );
+  glReadPixels( int(mouse.x), int(mouse.y), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, buffer );
+  CHECK_GL_ERRORS;
+
+  unsigned int selectedNodeId =  buffer[0] + (buffer[1] << 8) + (buffer[2] << 16);
+
+  try {
+    selectedJoint = findJoint(selectedNodeId, *m_rootNode);
+    std::cerr << *selectedJoint << std::endl;
+  } catch (ChildNotFound& ex) {
+    // Do nothing.
+  } catch (JointNotFound& ex) {
+    if (ex.getSelectedNode().m_name != "torso") {
+      throw ex;
+    }
+  }
+}
+
+JointNode* A3::findJoint(const unsigned int id, const SceneNode & root) {
+  assert(root.m_nodeId != id);
+
+  std::queue<const SceneNode*> fringe;
+  fringe.push(&root);
+
+  std::map<const SceneNode*, const SceneNode*> parents;
+  parents[&root] = nullptr;
+
+  while (!fringe.empty()) {
+    const SceneNode* const parent = fringe.front();
+    fringe.pop();
+
+    for(SceneNode * child : parent->children) {
+      parents[child] = parent;
+      fringe.push(child);
+
+      if (child->m_nodeId == id) {
+        const SceneNode* ancestor = parent;
+        while (ancestor != nullptr) {
+          if (ancestor->m_nodeType == NodeType::JointNode) {
+            return (JointNode *)(ancestor);
+          }
+          ancestor = parents[ancestor];
+        }
+
+        throw JointNotFound(child);
+      }
+    }
+  }
+
+  throw ChildNotFound();
 }
 
 //----------------------------------------------------------------------------------------
