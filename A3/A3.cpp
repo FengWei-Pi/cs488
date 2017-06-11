@@ -492,12 +492,12 @@ void A3::draw(const SceneNode & root, const glm::mat4& parentModelView) {
     case NodeType::JointNode: {
       const JointNode * jointNode = static_cast<const JointNode *>(&root);
       float xRotation = glm::radians(glm::clamp(
-        jointNode->m_joint_x.init,
+        jointNode->m_joint_x.v,
         jointNode->m_joint_x.min,
         jointNode->m_joint_x.max
       ));
       float yRotation = glm::radians(glm::clamp(
-        jointNode->m_joint_y.init,
+        jointNode->m_joint_y.v,
         jointNode->m_joint_y.min,
         jointNode->m_joint_y.max
       ));
