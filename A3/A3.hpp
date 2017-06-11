@@ -109,6 +109,9 @@ protected:
   void processJointChanges();
   void processPositionOrOrientationChanges();
 
+  glm::mat4 viewTransformations;
+  glm::mat4 modelTransformations;
+
   /**
    * Resets
    */

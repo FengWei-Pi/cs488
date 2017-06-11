@@ -332,19 +332,19 @@ void A3::processPositionOrOrientationChanges() {
     double scale = 1.0 / 100;
     double deltaX = mouse.x - mouse.prevX;
     double deltaY = mouse.y - mouse.prevY;
-    m_view = glm::translate(glm::mat4(1), glm::vec3{deltaX * scale, deltaY * scale, 0}) * m_view;
+    viewTransformations = glm::translate(glm::mat4(), glm::vec3{deltaX * scale, deltaY * scale, 0}) * viewTransformations;
   }
 
   if (mouse.isMiddleButtonPressed) {
     double scale = 1.0 / 50;
     double deltaY = mouse.y - mouse.prevY;
-    m_view = glm::translate(glm::mat4(1), glm::vec3{0, 0, deltaY * scale}) * m_view;
+    viewTransformations = glm::translate(glm::mat4(), glm::vec3{0, 0, deltaY * scale}) * viewTransformations;
   }
 
   if (mouse.isRightButtonPressed) {
     float scale = 1.0 / 100;
     float deltaX = mouse.x - mouse.prevX;
-    m_view = glm::rotate(m_view, deltaX * scale, glm::vec3(0.0f, 1.0f, 0.0f));
+    modelTransformations = modelTransformations * glm::rotate(glm::mat4(), deltaX * scale, glm::vec3(0.0f, 1.0f, 0.0f));
   }
 }
 
@@ -465,7 +465,10 @@ void A3::draw() {
   renderSceneGraph(*m_rootNode);
 
   glDisable( GL_DEPTH_TEST );
-  renderArcCircle();
+
+  if (showCircle) {
+    renderArcCircle();
+  }
 }
 
 //----------------------------------------------------------------------------------------
@@ -487,7 +490,7 @@ void A3::renderSceneGraph(const SceneNode & root) {
   // could put a set of mutually recursive functions in this class, which
   // walk down the tree from nodes of different types.
 
-  draw(root, m_view);
+  draw(root, viewTransformations * m_view * modelTransformations);
 
   glBindVertexArray(0);
   CHECK_GL_ERRORS;
@@ -602,6 +605,7 @@ void A3::renderArcCircle() {
     } else {
       M = glm::scale( glm::mat4(), glm::vec3( 0.5, 0.5*aspect, 1.0 ) );
     }
+
     glUniformMatrix4fv( m_location, 1, GL_FALSE, value_ptr( M ) );
     glDrawArrays( GL_LINE_LOOP, 0, CIRCLE_PTS );
   m_shader_arcCircle.disable();
