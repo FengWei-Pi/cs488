@@ -332,10 +332,10 @@ void A3::processPositionOrOrientationChanges() {
 
 void A3::processJointChanges() {
   if (mouse.isMiddleButtonPressed) {
-    const double scale = 1.0 / 10;
+    const double scale = 1.0 / 5;
     for (JointNode* joint : selectedJoints) {
       joint->rotateAboutY((mouse.x - mouse.prevX) * scale);
-      joint->rotateAboutX((mouse.y - mouse.prevY) * scale);
+      joint->rotateAboutX(-(mouse.y - mouse.prevY) * scale);
     }
   }
 }
