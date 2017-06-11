@@ -321,13 +321,31 @@ void A3::appLogic() {
     }
   }
 
+  mouse.prevX = mouse.x;
+  mouse.prevY = mouse.y;
+
   uploadCommonSceneUniforms();
 }
 
 void A3::processPositionOrOrientationChanges() {
-  // std::cerr
-  //   << "Process position or orientation changes"
-  //   << std::endl;
+  if (mouse.isLeftButtonPressed) {
+    double scale = 1.0 / 100;
+    double deltaX = mouse.x - mouse.prevX;
+    double deltaY = mouse.y - mouse.prevY;
+    m_view = glm::translate(glm::mat4(1), glm::vec3{deltaX * scale, deltaY * scale, 0}) * m_view;
+  }
+
+  if (mouse.isMiddleButtonPressed) {
+    double scale = 1.0 / 50;
+    double deltaY = mouse.y - mouse.prevY;
+    m_view = glm::translate(glm::mat4(1), glm::vec3{0, 0, deltaY * scale}) * m_view;
+  }
+
+  if (mouse.isRightButtonPressed) {
+    float scale = 1.0 / 100;
+    float deltaX = mouse.x - mouse.prevX;
+    m_view = glm::rotate(m_view, deltaX * scale, glm::vec3(0.0f, 1.0f, 0.0f));
+  }
 }
 
 void A3::processJointChanges() {

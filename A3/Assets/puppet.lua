@@ -26,7 +26,7 @@ ARM = {
 
 HEAD = {1, 1, 1}
 NECK = {0.5, 0.5, 0.5}
-TORSO = {2, 4.5, 0.5}
+TORSO = {2, 4, 0.5}
 
 function createPuppet()
   body = gr.node('body');
