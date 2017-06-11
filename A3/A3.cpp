@@ -916,15 +916,11 @@ void A3::resetAll() {
 }
 
 void A3::resetPosition() {
-  std::cerr
-    << "Resetting position"
-    << std::endl;
+  viewTransformations = glm::mat4();
 }
 
 void A3::resetOrientation() {
-  std::cerr
-    << "Resetting orientation"
-    << std::endl;
+  modelTransformations = glm::mat4();
 }
 
 void A3::resetJoints() {
