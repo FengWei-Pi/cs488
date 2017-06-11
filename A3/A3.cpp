@@ -352,8 +352,16 @@ void A3::processJointChanges() {
   if (mouse.isMiddleButtonPressed) {
     const double scale = 1.0 / 5;
     for (JointNode* joint : selectedJoints) {
-      joint->rotateAboutY((mouse.x - mouse.prevX) * scale);
       joint->rotateAboutX(-(mouse.y - mouse.prevY) * scale);
+    }
+  }
+
+  if (mouse.isRightButtonPressed) {
+    const double scale = 1.0 / 5;
+    for (JointNode* joint : selectedJoints) {
+      if (joint->m_name == "head-joint" || joint->m_name == "neck-joint") {
+        joint->rotateAboutY((mouse.x - mouse.prevX) * scale);
+      }
     }
   }
 }
