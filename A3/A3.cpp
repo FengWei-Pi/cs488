@@ -924,9 +924,22 @@ void A3::resetOrientation() {
 }
 
 void A3::resetJoints() {
-  std::cerr
-    << "Resetting joints"
-    << std::endl;
+  std::queue<const SceneNode*> fringe;
+  const SceneNode& root = *m_rootNode;
+  fringe.push(&root);
+
+  while (!fringe.empty()) {
+    const SceneNode* const parent = fringe.front();
+    fringe.pop();
+
+    if (parent->m_nodeType == NodeType::JointNode) {
+      ((JointNode *)parent)->reset();
+    }
+
+    for(SceneNode * child : parent->children) {
+      fringe.push(child);
+    }
+  }
 }
 
 /**
