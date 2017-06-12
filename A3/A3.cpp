@@ -16,6 +16,7 @@ using namespace std;
 #include <functional>
 #include <queue>
 #include <map>
+#include <cmath>
 
 using namespace glm;
 
@@ -343,6 +344,19 @@ void A3::processPositionOrOrientationChanges() {
   }
 
   if (mouse.isRightButtonPressed) {
+    if (!showCircle) {
+      // TODO: Should we disable rotation with the trackball is not visible?
+      return;
+    }
+
+    float radius = 0.25 * std::min(m_framebufferWidth, m_framebufferHeight);
+    float centerX = m_framebufferWidth / 2.0;
+    float centerY = m_framebufferHeight / 2.0;
+
+    if (std::sqrt(std::pow(mouse.x - centerX, 2.0) + std::pow(mouse.y - centerY, 2.0)) > radius) {
+      return;
+    }
+
     float scale = 1.0 / 100;
     float deltaX = mouse.x - mouse.prevX;
     modelTransformations = modelTransformations * glm::rotate(glm::mat4(), deltaX * scale, glm::vec3(0.0f, 1.0f, 0.0f));
