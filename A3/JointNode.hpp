@@ -14,9 +14,9 @@ public:
   void reset();
 
   struct JointRange {
-    double min, init, v, max;
+    double min, init, v, oldV, max;
   };
 
-
+  void save();
   JointRange m_joint_x, m_joint_y;
 };

@@ -39,7 +39,8 @@ A3::A3(const std::string & luaSceneFile)
     useZBuffer(true),
     useBackfaceCulling(false),
     useFrontfaceCulling(false),
-    isPicking(false)
+    isPicking(false),
+    commandIndex(-1)
 {
   interactionModeNames[PositionOrientation] = "Position/Orientation (P)";
   interactionModeNames[Joints] = "Joints (J)";
@@ -683,9 +684,15 @@ bool A3::mouseButtonInputEvent (
         mouse.isLeftButtonPressed = false;
         return true;
       case GLFW_MOUSE_BUTTON_RIGHT:
+        if (interactionMode == Joints) {
+          save();
+        }
         mouse.isRightButtonPressed = false;
         return true;
       case GLFW_MOUSE_BUTTON_MIDDLE:
+        if (interactionMode == Joints) {
+          save();
+        }
         mouse.isMiddleButtonPressed = false;
         return true;
     }
@@ -890,15 +897,99 @@ bool A3::keyInputEvent (
 }
 
 void A3::redo() {
-  std::cerr
-    << "Redo"
-    << std::endl;
+  if (commandIndex < -1) {
+    return;
+  }
+
+  if (commands.size() == 0) {
+    return;
+  }
+
+  if (commandIndex + 1 >= commands.size()) {
+    return;
+  }
+
+  commandIndex += 1;
+
+  for(auto &kvp : commands.at(commandIndex)) {
+    JointNode* joint = kvp.first;
+    std::map<JointNodeOP, double>& operations = kvp.second;
+
+    for (auto const & op: operations) {
+      switch (op.first) {
+        case RotateAboutX: {
+          joint->rotateAboutX(op.second);
+          break;
+        }
+        case RotateAboutY: {
+          joint->rotateAboutY(op.second);
+          break;
+        }
+      }
+      joint->save();
+    }
+  }
 }
 
 void A3::undo() {
-  std::cerr
-    << "Undo"
-    << std::endl;
+  if (commandIndex < 0) {
+    return;
+  }
+
+  if (commands.size() == 0) {
+    return;
+  }
+
+  if (commandIndex >= commands.size()) {
+    return;
+  }
+
+  for(auto &kvp : commands.at(commandIndex)) {
+    JointNode* joint = kvp.first;
+    std::map<JointNodeOP, double>& operations = kvp.second;
+
+    for (auto const & op: operations) {
+      switch (op.first) {
+        case RotateAboutX: {
+          joint->rotateAboutX(-op.second);
+          break;
+        }
+        case RotateAboutY: {
+          joint->rotateAboutY(-op.second);
+          break;
+        }
+      }
+      joint->save();
+    }
+  }
+
+  commandIndex -= 1;
+}
+
+void A3::save() {
+  for (JointNode* joint : selectedJoints) {
+    if (joint->m_joint_x.v != joint->m_joint_x.oldV || joint->m_joint_y.v != joint->m_joint_y.oldV) {
+      goto DIRTY;
+    }
+  }
+
+  return;
+
+  DIRTY:
+
+  commandIndex += 1;
+  if (commandIndex < commands.size()) {
+    commands.erase(commands.begin() + commandIndex, commands.end());
+  }
+
+  Command command;
+  for (JointNode* joint : selectedJoints) {
+    command[joint][RotateAboutX] = joint->m_joint_x.v - joint->m_joint_x.oldV;
+    command[joint][RotateAboutY] = joint->m_joint_y.v - joint->m_joint_y.oldV;
+    joint->save();
+  }
+
+  commands.push_back(command);
 }
 
 void A3::quit() {
@@ -940,6 +1031,9 @@ void A3::resetJoints() {
       fringe.push(child);
     }
   }
+
+  commands.clear();
+  commandIndex = -1;
 }
 
 /**

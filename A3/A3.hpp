@@ -13,6 +13,7 @@
 #include <memory>
 #include <string>
 #include <set>
+#include <map>
 
 struct LightSource {
   glm::vec3 position;
@@ -122,6 +123,18 @@ protected:
   void quit();
   void undo();
   void redo();
+
+  enum JointNodeOP {
+    RotateAboutY,
+    RotateAboutX
+  };
+
+  typedef std::map<JointNode*, std::map<JointNodeOP, double> > Command;
+  std::vector<Command> commands;
+  int commandIndex;
+  Command currentCommand;
+
+  void save();
 
   bool showCircle;
   bool useZBuffer;
