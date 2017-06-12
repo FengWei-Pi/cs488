@@ -475,11 +475,31 @@ void A3::guiLogic()
  * Called once per frame, after guiLogic().
  */
 void A3::draw() {
+  if (useBackfaceCulling || useFrontfaceCulling) {
+    glEnable(GL_CULL_FACE);
+  }
 
-  glEnable( GL_DEPTH_TEST );
+  if (useBackfaceCulling && useFrontfaceCulling) {
+    glCullFace( GL_FRONT_AND_BACK );
+  } else if (useFrontfaceCulling) {
+    glCullFace( GL_FRONT );
+  } else if (useBackfaceCulling) {
+    glCullFace( GL_BACK );
+  }
+
+  if (useZBuffer) {
+    glEnable( GL_DEPTH_TEST );
+  }
+  
   renderSceneGraph(*m_rootNode);
 
-  glDisable( GL_DEPTH_TEST );
+  if (useZBuffer) {
+    glDisable( GL_DEPTH_TEST );
+  }
+
+  if (useBackfaceCulling || useFrontfaceCulling) {
+    glDisable(GL_CULL_FACE);
+  }
 
   if (showCircle) {
     renderArcCircle();
