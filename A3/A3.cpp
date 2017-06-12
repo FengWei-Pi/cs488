@@ -17,6 +17,7 @@ using namespace std;
 #include <queue>
 #include <map>
 #include <cmath>
+#include <chrono>
 
 using namespace glm;
 
@@ -41,7 +42,8 @@ A3::A3(const std::string & luaSceneFile)
     useBackfaceCulling(false),
     useFrontfaceCulling(false),
     isPicking(false),
-    commandIndex(-1)
+    commandIndex(-1),
+    t_start(std::chrono::high_resolution_clock::now())
 {
   interactionModeNames[PositionOrientation] = "Position/Orientation (P)";
   interactionModeNames[Joints] = "Joints (J)";
@@ -52,6 +54,11 @@ A3::A3(const std::string & luaSceneFile)
 A3::~A3()
 {
 
+}
+
+float A3::getTime() {
+  auto t_now = std::chrono::high_resolution_clock::now();
+  return std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
 }
 
 //----------------------------------------------------------------------------------------
@@ -490,7 +497,7 @@ void A3::draw() {
   if (useZBuffer) {
     glEnable( GL_DEPTH_TEST );
   }
-  
+
   renderSceneGraph(*m_rootNode);
 
   if (useZBuffer) {
@@ -525,21 +532,26 @@ void A3::renderSceneGraph(const SceneNode & root) {
   // could put a set of mutually recursive functions in this class, which
   // walk down the tree from nodes of different types.
 
-  draw(root, viewTransformations * m_view * modelTransformations);
+  draw(root, viewTransformations * m_view * modelTransformations, false);
 
   glBindVertexArray(0);
   CHECK_GL_ERRORS;
 }
 
-void A3::draw(const SceneNode & root, const glm::mat4& parentModelView) {
+void A3::draw(
+  const SceneNode & root,
+  const glm::mat4& parentModelView,
+  const bool isParentSelected
+) {
   glm::mat4 modelView = parentModelView * root.trans;
+  bool isSelected = false;
 
   switch (root.m_nodeType) {
     case NodeType::GeometryNode: {
       setModelViewUniforms(m_shader, modelView);
 
       const GeometryNode * geometryNode = static_cast<const GeometryNode *>(&root);
-      setShaderMaterialUniforms(m_shader, *geometryNode);
+      setShaderMaterialUniforms(m_shader, *geometryNode, isParentSelected);
 
       // Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
       BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
@@ -568,12 +580,19 @@ void A3::draw(const SceneNode & root, const glm::mat4& parentModelView) {
 
       modelView = modelView * glm::rotate(glm::mat4(), yRotation, glm::vec3(0, 1, 0));
       modelView = modelView * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
+
+      for (JointNode *n : selectedJoints) {
+        if (n->m_nodeId == root.m_nodeId) {
+          isSelected = true;
+        }
+      }
       break;
     }
   }
 
+
   for (const SceneNode * child : root.children) {
-    draw(*child, modelView);
+    draw(*child, modelView, isSelected);
   }
 }
 
@@ -598,7 +617,11 @@ void A3::setModelViewUniforms(const ShaderProgram & shader, const glm::mat4 & mo
 
 //----------------------------------------------------------------------------------------
 // Update mesh specific shader uniforms:
-void A3::setShaderMaterialUniforms(const ShaderProgram & shader, const GeometryNode & node) {
+void A3::setShaderMaterialUniforms(
+  const ShaderProgram & shader,
+  const GeometryNode & node,
+  const bool varyAlpha
+) {
   shader.enable();
   {
     glUniform1i( shader.getUniformLocation("isPicking"), isPicking ? 1 : 0 );
@@ -612,6 +635,13 @@ void A3::setShaderMaterialUniforms(const ShaderProgram & shader, const GeometryN
       glUniform3f(shader.getUniformLocation("material.kd"), r, g, b);
       CHECK_GL_ERRORS;
     } else {
+      if (varyAlpha) {
+        const float alpha = 0.25 * std::sin(getTime() * 4.0) + 0.75;
+        glUniform1f( shader.getUniformLocation("alpha"), alpha );
+      } else {
+        glUniform1f( shader.getUniformLocation("alpha"), 1.0f );
+      }
+
       //-- Set Material values:
       vec3 kd = node.material.kd;
       glUniform3fv(shader.getUniformLocation("material.kd"), 1, glm::value_ptr(kd));

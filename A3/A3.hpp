@@ -14,6 +14,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <chrono>
 
 struct LightSource {
   glm::vec3 position;
@@ -56,7 +57,7 @@ protected:
   void renderSceneGraph(const SceneNode &node);
   void renderArcCircle();
 
-  void draw(const SceneNode& root, const glm::mat4& parentModelView);
+  void draw(const SceneNode& root, const glm::mat4& parentModelView, const bool isParentSelected);
   static void setModelViewUniforms(
     const ShaderProgram & shader,
     const glm::mat4 & modelView
@@ -64,7 +65,8 @@ protected:
 
   void setShaderMaterialUniforms(
     const ShaderProgram & shader,
-    const GeometryNode & node
+    const GeometryNode & node,
+    const bool varyAlpha
   );
 
   glm::mat4 m_perpsective;
@@ -155,6 +157,9 @@ protected:
     bool isLeftButtonPressed = false;
     bool isMiddleButtonPressed = false;
   } mouse;
+
+  std::chrono::high_resolution_clock::time_point t_start;
+  float getTime();
 
   /**
    * Picking

@@ -25,6 +25,7 @@ uniform Material material;
 uniform vec3 ambientIntensity;
 
 uniform bool isPicking;
+uniform float alpha;
 
 vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
 	LightSource light = fs_in.light;
@@ -55,8 +56,8 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
 
 void main() {
   if (isPicking) {
-    fragColour = vec4(material.kd, 1.0);
+    fragColour = vec4(material.kd, alpha);
   } else {
-    fragColour = vec4(phongModel(fs_in.position_ES, fs_in.normal_ES), 1.0);
+    fragColour = vec4(phongModel(fs_in.position_ES, fs_in.normal_ES), alpha);
   }
 }
