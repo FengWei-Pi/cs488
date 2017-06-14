@@ -161,6 +161,10 @@ protected:
   std::chrono::high_resolution_clock::time_point t_start;
   float getTime();
 
+  std::string message;
+  float messageTime;
+  float MESSAGE_TIMEOUT;
+
   /**
    * Picking
    */

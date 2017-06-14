@@ -43,7 +43,9 @@ A3::A3(const std::string & luaSceneFile)
     useFrontfaceCulling(false),
     isPicking(false),
     commandIndex(-1),
-    t_start(std::chrono::high_resolution_clock::now())
+    t_start(std::chrono::high_resolution_clock::now()),
+    MESSAGE_TIMEOUT(1),
+    messageTime(getTime() - MESSAGE_TIMEOUT)
 {
   interactionModeNames[PositionOrientation] = "Position/Orientation (P)";
   interactionModeNames[Joints] = "Joints (J)";
@@ -468,12 +470,11 @@ void A3::guiLogic()
 
     ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
-    ImGui::Text( "" );
-    ImGui::Text( "Selected Joints:" );
-
-    for (JointNode * joint : selectedJoints) {
-      ImGui::Text( "%s", joint->m_name.c_str() );
+    if (getTime() - messageTime <= MESSAGE_TIMEOUT) {
+      ImGui::Text( "" );
+      ImGui::Text("Message: %s", message.c_str());
     }
+
   ImGui::End();
 }
 
@@ -806,24 +807,16 @@ JointNode* A3::findJoint(const unsigned int id, const SceneNode & root) {
   std::queue<const SceneNode*> fringe;
   fringe.push(&root);
 
-  std::map<const SceneNode*, const SceneNode*> parents;
-  parents[&root] = nullptr;
-
   while (!fringe.empty()) {
     const SceneNode* const parent = fringe.front();
     fringe.pop();
 
     for(SceneNode * child : parent->children) {
-      parents[child] = parent;
       fringe.push(child);
 
       if (child->m_nodeId == id) {
-        const SceneNode* ancestor = parent;
-        while (ancestor != nullptr) {
-          if (ancestor->m_nodeType == NodeType::JointNode) {
-            return (JointNode *)(ancestor);
-          }
-          ancestor = parents[ancestor];
+        if (parent->m_nodeType == NodeType::JointNode) {
+          return (JointNode *)(parent);
         }
 
         throw JointNotFound(child);
@@ -961,15 +954,9 @@ bool A3::keyInputEvent (
 }
 
 void A3::redo() {
-  if (commandIndex < -1) {
-    return;
-  }
-
-  if (commands.size() == 0) {
-    return;
-  }
-
-  if (commandIndex + 1 >= commands.size()) {
+  if (commandIndex < -1 || commands.size() == 0 || commandIndex + 1 >= commands.size()) {
+    message = "Cannot redo!";
+    messageTime = getTime();
     return;
   }
 
@@ -996,15 +983,9 @@ void A3::redo() {
 }
 
 void A3::undo() {
-  if (commandIndex < 0) {
-    return;
-  }
-
-  if (commands.size() == 0) {
-    return;
-  }
-
-  if (commandIndex >= commands.size()) {
+  if (commandIndex < 0 || commands.size() == 0 || commandIndex >= commands.size()) {
+    message = "Cannot undo!";
+    messageTime = getTime();
     return;
   }
 
