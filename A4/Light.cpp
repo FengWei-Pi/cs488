@@ -15,8 +15,8 @@ Light::Light()
 
 std::ostream& operator<<(std::ostream& out, const Light& l)
 {
-  out << "L[" << glm::to_string(l.colour) 
-  	  << ", " << glm::to_string(l.position) << ", ";
+  out << "L[" << glm::to_string(l.colour)
+      << ", " << glm::to_string(l.position) << ", ";
   for (int i = 0; i < 3; i++) {
     if (i > 0) out << ", ";
     out << l.falloff[i];
