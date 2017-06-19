@@ -5,6 +5,7 @@
 #include <cmath>
 #include "polyroots.hpp"
 #include "GeometryNode.hpp"
+#include "PhongMaterial.hpp"
 #include "ray.hpp"
 
 #define PRINT_DEBUG 0
@@ -154,11 +155,12 @@ void A4_Render(
         GeometryNode* node = (GeometryNode*) child;
         try {
           glm::vec4 p = node->m_primitive->intersect(ray);
+          PhongMaterial *material = (PhongMaterial*) node->m_material;
           hit += 1;
 
-          image(x, y, 0) = 1.0;
-          image(x, y, 1) = 1.0;
-          image(x, y, 2) = 1.0;
+          image(x, y, 0) = material->m_kd.r;
+          image(x, y, 1) = material->m_kd.g;
+          image(x, y, 2) = material->m_kd.b;
         } catch (IntersectionNotFound& ex) {
           miss += 1;
         }
