@@ -27,9 +27,9 @@ public:
   virtual ~NonhierSphere();
 
   virtual glm::vec4 intersect(Ray r);
-private:
   const glm::vec3 m_pos;
   const double m_radius;
+private:
 };
 
 class NonhierBox : public Primitive {

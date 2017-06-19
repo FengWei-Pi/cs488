@@ -32,11 +32,23 @@ glm::vec4 NonhierSphere::intersect(Ray ray) {
 
   size_t numRoots = quadraticRoots(A, B, C, roots);
 
-  if (numRoots == 0) {
+  if (
+    (numRoots == 0) ||
+    (numRoots == 1 && roots[0] < 0) ||
+    (numRoots == 2 && roots[0] < 0 && roots[1] < 0)
+  ) {
     throw IntersectionNotFound();
   }
 
   if (numRoots == 1) {
+    return ray.from + (ray.to - ray.from) * (float) roots[0];
+  }
+
+  if (roots[0] < 0) {
+    return ray.from + (ray.to - ray.from) * (float) roots[1];
+  }
+
+  if (roots[1] < 0) {
     return ray.from + (ray.to - ray.from) * (float) roots[0];
   }
 
