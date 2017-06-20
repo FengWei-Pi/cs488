@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 
 #include "Primitive.hpp"
+#include "ray.hpp"
 
 struct Triangle
 {
@@ -25,6 +26,9 @@ struct Triangle
 class Mesh : public Primitive {
 public:
   Mesh( const std::string& fname );
+
+  glm::vec4 getNormal(glm::vec4 point);
+  glm::vec4 intersect(Ray ray);
 
 private:
   std::vector<glm::vec3> m_vertices;

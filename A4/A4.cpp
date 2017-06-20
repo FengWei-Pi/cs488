@@ -10,6 +10,7 @@
 #include "PhongMaterial.hpp"
 #include "ray.hpp"
 #include "common.hpp"
+#include "Mesh.hpp"
 
 void A4_Render(
     // What to render
@@ -62,7 +63,7 @@ void A4_Render(
 
   T = glm::translate(T, glm::vec3(-nx / 2, -ny / 2, d));
   /** Why was x scaled by -1 */
-  T = glm::scale(glm::vec3(-windowWidth / nx, windowHeight / ny, 1)) * T;
+  T = glm::scale(glm::vec3(-windowWidth / nx, -windowHeight / ny, 1)) * T;
 
   const glm::vec3 w = glm::normalize(view);
   const glm::vec3 u = glm::normalize(glm::cross(up, w));
@@ -80,10 +81,20 @@ void A4_Render(
   int miss = 0;
   int hit = 0;
 
-  bool prevCol = false;
+  /**
+   * Background
+   */
 
   for (uint y = 0; y < ny; y += 1) {
     for (uint x = 0; x < nx; x += 1) {
+      image(x, y, 0) = 0;
+      image(x, y, 1) = 0;
+      image(x, y, 2) = ((double)y) / ny;
+    }
+  }
+  for (unsigned int y = 0; y < ny; y += 1) {
+    for (unsigned int x = 0; x < nx; x += 1) {
+
       glm::vec4 pixel = T * glm::vec4(x, y, 0, 1);
       Ray ray{glm::vec4(lookFrom, 1), pixel};
 
@@ -91,6 +102,11 @@ void A4_Render(
         GeometryNode* node = (GeometryNode*) child;
         try {
           glm::vec4 intersection = node->m_primitive->intersect(ray);
+          glm::vec3 fragNormal = glm::vec3(node->m_primitive->getNormal(intersection));
+
+          std::cerr << "Intersection: " << glm::to_string(intersection) << std::endl;
+          std::cerr << "fragNormal: " << glm::to_string(fragNormal) << std::endl;
+
           PhongMaterial *material = (PhongMaterial*) node->m_material;
           glm::vec3 fragColour{ambient};
 
@@ -105,8 +121,11 @@ void A4_Render(
                 GeometryNode* otherNode = (GeometryNode*) other;
                 try {
                   otherNode->m_primitive->intersect(shadow);
+                  std::cerr << "Hit Light source: " << *light << std::endl;
                   intersectionFound = true;
-                } catch (IntersectionNotFound& ex) {}
+                } catch (IntersectionNotFound& ex) {
+                  std::cerr << "Didn't hit light source: " << *light << std::endl;
+                }
               }
             }
 
@@ -115,21 +134,10 @@ void A4_Render(
             // Light hits point
 
             // Direction from fragment to light source.
-            glm::vec4 lp = glm::normalize(shadow.to - shadow.from);
-            glm::vec3 l = glm::vec3(lp.x, lp.y, lp.z);
+            glm::vec3 l = glm::vec3(glm::normalize(shadow.to - shadow.from));
 
             // Direction from fragment to viewer (origin - fragPosition).
-            glm::vec4 vp = glm::normalize(ray.from - ray.to);
-            glm::vec3 v = glm::vec3(vp.x, vp.y, vp.z);
-
-            glm::vec4 normal = node->m_primitive->getNormal(intersection);
-
-            if (90 <= x && x <= 91 && y > 81 && y < 120) {
-              std::cerr << "intersection: " << glm::to_string(intersection) << std::endl;
-              std::cerr << "normal: " << glm::to_string(normal) << std::endl;
-            }
-
-            glm::vec3 fragNormal = glm::vec3(normal.x, normal.y, normal.z);
+            glm::vec3 v = glm::vec3(glm::normalize(ray.from - ray.to));
 
             float n_dot_l = std::max((float)glm::dot(fragNormal, l), 0.0f);
 
@@ -145,25 +153,22 @@ void A4_Render(
               specular = material->m_ks * std::pow(n_dot_h, material->m_shininess);
             }
 
-            fragColour += light->colour * (diffuse + specular);
-          }
+            double distanceFromLightSource = glm::distance(shadow.to, shadow.from);
+            double attenuation = (
+              light->falloff[0] +
+              light->falloff[1] * distanceFromLightSource +
+              light->falloff[2] * distanceFromLightSource * distanceFromLightSource
+            );
 
+            fragColour += light->colour * (diffuse + specular) / attenuation;
+          }
 
           hit += 1;
 
           image(x, y, 0) = fragColour.r;
           image(x, y, 1) = fragColour.g;
           image(x, y, 2) = fragColour.b;
-
-          if (90 <= x && x <= 91 && y > 81 && y < 120) {
-            std::cerr << "fragColour: " << glm::to_string(fragColour) << std::endl;
-          }
-
-          prevCol = true;
         } catch (IntersectionNotFound& ex) {
-          if (x == 45) {
-            std::cerr << "Missed" << std::endl;
-          }
           miss += 1;
         }
       }

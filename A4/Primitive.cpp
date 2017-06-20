@@ -10,14 +10,6 @@
  */
 Primitive::~Primitive(){}
 
-glm::vec4 Primitive::intersect(Ray ray) {
-  throw IntersectionNotFound();
-}
-
-glm::vec4 Primitive::getNormal(glm::vec4) {
-  throw NormalNotFound();
-}
-
 /**
  * Sphere
  */
@@ -147,8 +139,8 @@ glm::vec4 NonhierBox::intersect(Ray ray) {
   glm::vec3 A{ray.from};
   glm::vec3 B{ray.to};
 
-  double t = std::numeric_limits<double>::infinity();
-  glm::vec3 intersection;
+  double Infinity = std::numeric_limits<double>::infinity();
+  double t = Infinity;
 
   for (unsigned int i = 0; i < 6; i += 1) {
     glm::vec3 P = points[i * 3];
@@ -179,13 +171,12 @@ glm::vec4 NonhierBox::intersect(Ray ray) {
 
     if (S.z < t && S.z > 0) {
       t = S.z;
-      intersection = A + ((float)t) * (B - A);
     }
   }
 
-  if (t == std::numeric_limits<double>::infinity()) {
+  if (t == Infinity) {
     throw IntersectionNotFound{};
   }
 
-  return glm::vec4{intersection, 1};
+  return glm::vec4{A + ((float)t) * (B - A), 1};
 }

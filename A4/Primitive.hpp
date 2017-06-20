@@ -5,8 +5,8 @@
 
 class Primitive {
 public:
-  virtual glm::vec4 intersect(Ray r);
-  virtual glm::vec4 getNormal(glm::vec4);
+  virtual glm::vec4 intersect(Ray r) = 0;
+  virtual glm::vec4 getNormal(glm::vec4) = 0;
   virtual ~Primitive();
 };
 
