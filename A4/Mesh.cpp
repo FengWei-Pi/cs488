@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -8,9 +9,10 @@
 #include "cs488-framework/ObjFileDecoder.hpp"
 #include "Mesh.hpp"
 
-Mesh::Mesh( const std::string& fname )
-  : m_vertices()
-  , m_faces()
+Mesh::Mesh( const std::string& fname ) :
+  m_vertices(),
+  m_faces(),
+  boundingVolume(NULL)
 {
   std::string code;
   double vx, vy, vz;
@@ -32,6 +34,35 @@ Mesh::Mesh( const std::string& fname )
       m_faces.push_back( Triangle( s1 - 1, s2 - 1, s3 - 1 ) );
     }
   }
+
+  float Infinity = std::numeric_limits<float>::infinity();
+
+  float minX = Infinity;
+  float minY = Infinity;
+  float minZ = Infinity;
+
+  float maxX = -Infinity;
+  float maxY = -Infinity;
+  float maxZ = -Infinity;
+
+  for (const glm::vec3& v: m_vertices) {
+    minX = std::min(minX, v.x);
+    minY = std::min(minY, v.y);
+    minZ = std::min(minZ, v.z);
+
+    maxX = std::max(maxX, v.x);
+    maxY = std::max(maxY, v.y);
+    maxZ = std::max(maxZ, v.z);
+  }
+
+  const glm::vec3 min{minX, minY, minZ};
+  const glm::vec3 max{maxX, maxY, maxZ};
+
+  boundingVolume = new NonhierSphere((max + min)/2, glm::length(max - min)/2);
+}
+
+Mesh::~Mesh() {
+  delete boundingVolume;
 }
 
 glm::vec4 Mesh::getNormal(glm::vec4 point) {
@@ -51,6 +82,9 @@ glm::vec4 Mesh::getNormal(glm::vec4 point) {
 }
 
 glm::vec4 Mesh::intersect(Ray ray) {
+  // Ensure that the ray intersects the bounding volume.
+  boundingVolume->intersect(ray);
+
   double Infinity = std::numeric_limits<double>::infinity();
   double t = Infinity;
 

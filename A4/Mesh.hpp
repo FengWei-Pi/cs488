@@ -9,8 +9,7 @@
 #include "Primitive.hpp"
 #include "ray.hpp"
 
-struct Triangle
-{
+struct Triangle {
   size_t v1;
   size_t v2;
   size_t v3;
@@ -30,9 +29,12 @@ public:
   glm::vec4 getNormal(glm::vec4 point);
   glm::vec4 intersect(Ray ray);
 
+  NonhierSphere* boundingVolume;
+  virtual ~Mesh();
+
 private:
   std::vector<glm::vec3> m_vertices;
   std::vector<Triangle> m_faces;
 
-    friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
+  friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
 };
