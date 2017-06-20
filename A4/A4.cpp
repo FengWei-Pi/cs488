@@ -9,68 +9,7 @@
 #include "GeometryNode.hpp"
 #include "PhongMaterial.hpp"
 #include "ray.hpp"
-
-#define PRINT_DEBUG 0
-
-void print(std::string s) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  std::cerr << s;
-}
-
-void println(std::string s) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  print(s);
-  std::cerr << std::endl;
-}
-
-void print(glm::vec2 p) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  std::cerr << "[" << p.x << ", " << p.y << "]";
-}
-
-void println(glm::vec2 p) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  print(p);
-  std::cerr << std::endl;
-}
-
-void print(glm::vec3 p) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  std::cerr << "[" << p.x << ", " << p.y << ", " << p.z << "]";
-}
-
-void println(glm::vec3 p) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  print(p);
-  std::cerr << std::endl;
-}
-
-void print(glm::vec4 p) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  std::cerr << "[" << p.x << ", " << p.y << ", " << p.z << ", " << p.w << "]";
-}
-
-void println(glm::vec4 p) {
-  if (!PRINT_DEBUG) {
-    return;
-  }
-  print(p);
-  std::cerr << std::endl;
-}
+#include "common.hpp"
 
 void A4_Render(
     // What to render
@@ -129,13 +68,6 @@ void A4_Render(
   const glm::vec3 u = glm::normalize(glm::cross(up, w));
   const glm::vec3 v = glm::normalize(glm::cross(w, u));
 
-  std::cerr << "w: ";
-  println(w);
-  std::cerr << "u: ";
-  println(u);
-  std::cerr << "v: ";
-  println(v);
-
   glm::mat4 ViewToWorld {
     glm::vec4(u, 0),
     glm::vec4(v, 0),
@@ -147,6 +79,8 @@ void A4_Render(
 
   int miss = 0;
   int hit = 0;
+
+  bool prevCol = false;
 
   for (uint y = 0; y < ny; y += 1) {
     for (uint x = 0; x < nx; x += 1) {
@@ -188,9 +122,13 @@ void A4_Render(
             glm::vec4 vp = glm::normalize(ray.from - ray.to);
             glm::vec3 v = glm::vec3(vp.x, vp.y, vp.z);
 
-            NonhierSphere* sphere = (NonhierSphere*)node->m_primitive;
+            glm::vec4 normal = node->m_primitive->getNormal(intersection);
 
-            glm::vec4 normal = glm::normalize(intersection - glm::vec4(sphere->m_pos, 1));
+            if (90 <= x && x <= 91 && y > 81 && y < 120) {
+              std::cerr << "intersection: " << glm::to_string(intersection) << std::endl;
+              std::cerr << "normal: " << glm::to_string(normal) << std::endl;
+            }
+
             glm::vec3 fragNormal = glm::vec3(normal.x, normal.y, normal.z);
 
             float n_dot_l = std::max((float)glm::dot(fragNormal, l), 0.0f);
@@ -201,7 +139,6 @@ void A4_Render(
             glm::vec3 specular = glm::vec3(0.0);
 
             if (n_dot_l > 0.0) {
-            // Halfway vector.
               glm::vec3 h = glm::normalize(v + l);
               float n_dot_h = std::max((float)glm::dot(fragNormal, h), 0.0f);
 
@@ -217,7 +154,16 @@ void A4_Render(
           image(x, y, 0) = fragColour.r;
           image(x, y, 1) = fragColour.g;
           image(x, y, 2) = fragColour.b;
+
+          if (90 <= x && x <= 91 && y > 81 && y < 120) {
+            std::cerr << "fragColour: " << glm::to_string(fragColour) << std::endl;
+          }
+
+          prevCol = true;
         } catch (IntersectionNotFound& ex) {
+          if (x == 45) {
+            std::cerr << "Missed" << std::endl;
+          }
           miss += 1;
         }
       }

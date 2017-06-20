@@ -6,18 +6,21 @@
 class Primitive {
 public:
   virtual glm::vec4 intersect(Ray r);
+  virtual glm::vec4 getNormal(glm::vec4);
   virtual ~Primitive();
 };
 
 class Sphere : public Primitive {
 public:
   virtual glm::vec4 intersect(Ray r);
+  virtual glm::vec4 getNormal(glm::vec4);
   virtual ~Sphere();
 };
 
 class Cube : public Primitive {
 public:
   virtual glm::vec4 intersect(Ray r);
+  virtual glm::vec4 getNormal(glm::vec4);
   virtual ~Cube();
 };
 
@@ -27,6 +30,7 @@ public:
   virtual ~NonhierSphere();
 
   virtual glm::vec4 intersect(Ray r);
+  virtual glm::vec4 getNormal(glm::vec4);
   const glm::vec3 m_pos;
   const double m_radius;
 private:
@@ -35,7 +39,7 @@ private:
 class NonhierBox : public Primitive {
 public:
   NonhierBox(const glm::vec3& pos, double size) : m_pos(pos), m_size(size) {}
-
+  virtual glm::vec4 getNormal(glm::vec4);
   virtual glm::vec4 intersect(Ray r);
   virtual ~NonhierBox();
 
@@ -48,5 +52,13 @@ class IntersectionNotFound: public std::exception {
  private:
   const char* what() const throw() {
     return "Intersection doesn't exist.";
+  }
+};
+
+
+class NormalNotFound: public std::exception {
+private:
+  const char* what() const throw() {
+    return "Normal doesn't exist.";
   }
 };
