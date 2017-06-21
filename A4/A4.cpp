@@ -145,170 +145,176 @@ void A4_Render(
   int miss = 0;
   int hit = 0;
 
-  /**
-   * Background
-   */
-
-  for (uint y = 0; y < ny; y += 1) {
-    for (uint x = 0; x < nx; x += 1) {
-      image(x, y, 0) = 0;
-      image(x, y, 1) = 0;
-      image(x, y, 2) = ((double)y) / ny;
-    }
-  }
-
   double Infinity = std::numeric_limits<double>::infinity();
+
+  uint ssFactor = 2;
 
   // for (unsigned int y = 241; y < 242; y += 1) {
   //   for (unsigned int x = 217; x < 218; x += 1) {
-  for (uint y = 0; y < ny; y += 1) {
-    for (uint x = 0; x < nx; x += 1) {
+  for (double y = 0; y < ny; y += 1) {
+    for (double x = 0; x < nx; x += 1) {
       // if (!(y == 231 && x == 140) && !(y == 231 && x == 141)) continue;
 
       // std::cerr << "x: " << x << std::endl;
-      // std::cerr << "y: " << y << std::endl; 
+      // std::cerr << "y: " << y << std::endl;
 
-      glm::vec4 pixel = T * glm::vec4(x, y, 0, 1);
-      Ray ray{glm::vec4(lookFrom, 1), pixel};
+      glm::vec3 fragColourSuperSample{0, 0, 0};
 
-      double t = Infinity;
-      glm::mat4 toWorld;
-      glm::mat4 toModel;
-      GeometryNode* n;
+      int subpixelsSkipped = 0;
 
-      visit(
-        root,
-        [ray, &toModel, &toWorld, &t, &n](
-          const glm::mat4 modelToWorld,
-          const glm::mat4 worldToModel,
-          GeometryNode& node
-        ) -> void {
-          try {
-            Ray mr{worldToModel * ray.from, worldToModel * ray.to};
-            double intersection = node.m_primitive->intersect(mr);
-            if (intersection < t) {
-              t = intersection;
-              toWorld = modelToWorld;
-              toModel = worldToModel;
-              n = &node;
+      for (double a = 0; a < ssFactor; a += 1) {
+        for (double b = 0; b < ssFactor; b += 1) {
+          glm::vec4 pixel = T * glm::vec4(x + a / ssFactor, y + b / ssFactor, 0, 1);
+          Ray ray{glm::vec4(lookFrom, 1), pixel};
+
+          double t = Infinity;
+          glm::mat4 toWorld;
+          glm::mat4 toModel;
+          GeometryNode* n;
+
+          visit(
+            root,
+            [ray, &toModel, &toWorld, &t, &n](
+              const glm::mat4 modelToWorld,
+              const glm::mat4 worldToModel,
+              GeometryNode& node
+            ) -> void {
+              try {
+                Ray mr{worldToModel * ray.from, worldToModel * ray.to};
+                double intersection = node.m_primitive->intersect(mr);
+                if (intersection < t) {
+                  t = intersection;
+                  toWorld = modelToWorld;
+                  toModel = worldToModel;
+                  n = &node;
+                }
+              } catch (IntersectionNotFound& ex) {}
             }
-          } catch (IntersectionNotFound& ex) {}
-        }
-      );
+          );
 
-      if (t == Infinity) {
-        miss += 1;
-        continue;
-      }
-
-      GeometryNode& node = *n;
-      Ray modelRay{toModel * glm::vec4(lookFrom, 1), toModel * pixel};
-      glm::vec4 modelIntersection = modelRay.at(t);
-      glm::vec4 worldIntersection = toWorld * modelIntersection;
-
-      // std::cerr << "modelRay: " << glm::to_string(modelRay.from) << ", " << glm::to_string(modelRay.to) << std::endl;
-      // std::cerr << "t: " << t << std::endl;
-      // std::cerr << "worldIntersection: " << glm::to_string(worldIntersection) << std::endl;
-      // std::cerr << "modelIntersection: " << glm::to_string(modelIntersection) << std::endl;
-      // std::cerr << "Calculated worldIntersection, calculating normal: " << x << ", " << y <<  std::endl;
-      // std::cerr << "m_nodeId: " << node.m_nodeId << std::endl;
-
-      glm::vec3 modelNormal = glm::vec3(node.m_primitive->getNormal(modelIntersection)); // In model space
-
-      // std::cerr << "modelNormal:" <<  glm::to_string(modelNormal) << std::endl;
-
-      PhongMaterial *material = (PhongMaterial*) node.m_material;
-      glm::vec3 fragColour{ambient};
-
-      for (Light* light : lights) {
-
-        Ray worldShadowRay{toWorld * modelIntersection, glm::vec4(light->position, 1)}; // In world coordinates
-
-        bool intersectionFound = false;
-
-        visit(
-          root,
-          [&intersectionFound, worldIntersection, worldShadowRay, node, light] (
-            const glm::mat4 otherToWorld,
-            const glm::mat4 otherToModel,
-            GeometryNode& other
-          ) -> void {
-            if (intersectionFound) return;
-            Ray otherModelShadowRay{otherToModel * worldShadowRay.from, otherToModel * worldShadowRay.to};
-            try {
-              double otherT = other.m_primitive->intersect(otherModelShadowRay);
-              glm::vec4 otherModelIntersection = otherModelShadowRay.at(otherT);
-              glm::vec4 otherWorldIntersection = otherToWorld * otherModelIntersection;
-
-
-              // std::cerr << "otherWorldIntersection: " << glm::to_string(otherWorldIntersection) << std::endl;
-              // std::cerr << "other m_nodeId: " << other.m_nodeId << std::endl;
-              // std::cerr << "distance: " << std::fabs(glm::length(worldIntersection - otherWorldIntersection)) << std::endl;
-
-              if (std::fabs(glm::length(worldIntersection - otherWorldIntersection)) < 0.01) {
-                // Error, you've intersected the same point
-              } else {
-                intersectionFound = true;
-              }
-            } catch (IntersectionNotFound& ex) {
-              // std::cerr << "Didn't hit light source: " << *light << std::endl;
-            }
+          if (t == Infinity) {
+            miss += 1;
+            subpixelsSkipped += 1;
+            continue;
           }
-        );
 
-        // std::cerr << "IntersectionFound? " << (intersectionFound ? "true" : "false") << std::endl;
+          GeometryNode& node = *n;
+          Ray modelRay{toModel * glm::vec4(lookFrom, 1), toModel * pixel};
+          glm::vec4 modelIntersection = modelRay.at(t);
+          glm::vec4 worldIntersection = toWorld * modelIntersection;
 
-        if (intersectionFound) continue;
+          // std::cerr << "modelRay: " << glm::to_string(modelRay.from) << ", " << glm::to_string(modelRay.to) << std::endl;
+          // std::cerr << "t: " << t << std::endl;
+          // std::cerr << "worldIntersection: " << glm::to_string(worldIntersection) << std::endl;
+          // std::cerr << "modelIntersection: " << glm::to_string(modelIntersection) << std::endl;
+          // std::cerr << "Calculated worldIntersection, calculating normal: " << x << ", " << y <<  std::endl;
+          // std::cerr << "m_nodeId: " << node.m_nodeId << std::endl;
 
-        // Light hits point
+          PhongMaterial *material = (PhongMaterial*) node.m_material;
+          glm::vec3 modelNormal = glm::vec3(node.m_primitive->getNormal(modelIntersection)); // In model space
 
-        Ray modelShadowRay{modelIntersection, toModel * glm::vec4(light->position, 1)};
+          fragColourSuperSample += ambient;
 
-        // Direction from fragment to light source.
-        glm::vec3 l = glm::vec3(glm::normalize(modelShadowRay.to - modelShadowRay.from));
+          // std::cerr << "modelNormal:" <<  glm::to_string(modelNormal) << std::endl;
 
-        // std::cerr << "l: " << glm::to_string(l) << std::endl;
+          for (Light* light : lights) {
+            Ray worldShadowRay{toWorld * modelIntersection, glm::vec4(light->position, 1)}; // In world coordinates
 
-        float n_dot_l = std::max((float)glm::dot(modelNormal, l), 0.0f);
+            bool intersectionFound = false;
 
-        // std::cerr << "n_dot_l: " << n_dot_l << std::endl;
+            visit(
+              root,
+              [&intersectionFound, worldIntersection, worldShadowRay, node, light] (
+                const glm::mat4 otherToWorld,
+                const glm::mat4 otherToModel,
+                GeometryNode& other
+              ) -> void {
+                if (intersectionFound) return;
+                Ray otherModelShadowRay{otherToModel * worldShadowRay.from, otherToModel * worldShadowRay.to};
+                try {
+                  double otherT = other.m_primitive->intersect(otherModelShadowRay);
+                  glm::vec4 otherModelIntersection = otherModelShadowRay.at(otherT);
+                  glm::vec4 otherWorldIntersection = otherToWorld * otherModelIntersection;
 
-        glm::vec3 diffuse;
-        diffuse = material->m_kd * n_dot_l;
 
-        glm::vec3 specular = glm::vec3(0.0);
+                  // std::cerr << "otherWorldIntersection: " << glm::to_string(otherWorldIntersection) << std::endl;
+                  // std::cerr << "other m_nodeId: " << other.m_nodeId << std::endl;
+                  // std::cerr << "distance: " << std::fabs(glm::length(worldIntersection - otherWorldIntersection)) << std::endl;
 
-        if (n_dot_l > 0.0) {
-          // Direction from fragment to viewer (origin - fragPosition).
-          glm::vec3 v = glm::vec3(glm::normalize(modelRay.from - modelRay.to));
+                  if (std::fabs(glm::length(worldIntersection - otherWorldIntersection)) < 0.01) {
+                    // Error, you've intersected the same point
+                  } else {
+                    intersectionFound = true;
+                  }
+                } catch (IntersectionNotFound& ex) {
+                  // std::cerr << "Didn't hit light source: " << *light << std::endl;
+                }
+              }
+            );
 
-          // std::cerr << "v: " << glm::to_string(v) << std::endl;
+            // std::cerr << "IntersectionFound? " << (intersectionFound ? "true" : "false") << std::endl;
 
-          glm::vec3 h = glm::normalize(v + l);
+            if (intersectionFound) {
+              continue;
+            }
 
-          // std::cerr << "h: " << glm::to_string(h) << std::endl;
-          float n_dot_h = std::max((float)glm::dot(modelNormal, h), 0.0f);
+            // Light hits point
 
-          // std::cerr << "n_dot_h: " << n_dot_h << std::endl;
+            Ray modelShadowRay{modelIntersection, toModel * glm::vec4(light->position, 1)};
 
-          specular = material->m_ks * std::pow(n_dot_h, material->m_shininess);
+            // Direction from fragment to light source.
+            glm::vec3 l = glm::vec3(glm::normalize(modelShadowRay.to - modelShadowRay.from));
+
+            // std::cerr << "l: " << glm::to_string(l) << std::endl;
+
+            float n_dot_l = std::max((float)glm::dot(modelNormal, l), 0.0f);
+
+            // std::cerr << "n_dot_l: " << n_dot_l << std::endl;
+
+            glm::vec3 diffuse;
+            diffuse = material->m_kd * n_dot_l;
+
+            glm::vec3 specular = glm::vec3(0.0);
+
+            if (n_dot_l > 0.0) {
+              // Direction from fragment to viewer (origin - fragPosition).
+              glm::vec3 v = glm::vec3(glm::normalize(modelRay.from - modelRay.to));
+
+              // std::cerr << "v: " << glm::to_string(v) << std::endl;
+
+              glm::vec3 h = glm::normalize(v + l);
+
+              // std::cerr << "h: " << glm::to_string(h) << std::endl;
+              float n_dot_h = std::max((float)glm::dot(modelNormal, h), 0.0f);
+
+              // std::cerr << "n_dot_h: " << n_dot_h << std::endl;
+
+              specular = material->m_ks * std::pow(n_dot_h, material->m_shininess);
+            }
+
+            double distanceFromLightSource = glm::distance(modelShadowRay.to, modelShadowRay.from);
+            double attenuation = (
+              light->falloff[0] +
+              light->falloff[1] * distanceFromLightSource +
+              light->falloff[2] * distanceFromLightSource * distanceFromLightSource
+            );
+
+            fragColourSuperSample += light->colour * (diffuse + specular) / attenuation;
+            hit += 1;
+          }
         }
-
-        double distanceFromLightSource = glm::distance(modelShadowRay.to, modelShadowRay.from);
-        double attenuation = (
-          light->falloff[0] +
-          light->falloff[1] * distanceFromLightSource +
-          light->falloff[2] * distanceFromLightSource * distanceFromLightSource
-        );
-
-        fragColour += light->colour * (diffuse + specular) / attenuation;
       }
 
-      image(x, y, 0) = fragColour.r;
-      image(x, y, 1) = fragColour.g;
-      image(x, y, 2) = fragColour.b;
 
-      hit += 1;
+      for (int i = 0; i < subpixelsSkipped; i += 1) {
+        fragColourSuperSample += glm::vec3{0, 0, ((double)y)/ny};
+      }
+
+      fragColourSuperSample = fragColourSuperSample / (ssFactor * ssFactor);
+
+      image(x, y, 0) = fragColourSuperSample.r;
+      image(x, y, 1) = fragColourSuperSample.g;
+      image(x, y, 2) = fragColourSuperSample.b;
     }
   }
 
