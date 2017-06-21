@@ -25,9 +25,8 @@ struct Triangle {
 class Mesh : public Primitive {
 public:
   Mesh( const std::string& fname );
-
-  glm::vec4 getNormal(glm::vec4 point);
-  glm::vec4 intersect(Ray ray);
+  virtual double intersect(const Ray&);
+  virtual glm::vec4 getNormal(const glm::vec4&);
 
   NonhierSphere* boundingVolume;
   virtual ~Mesh();

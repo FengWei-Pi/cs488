@@ -23,7 +23,7 @@ public:
     virtual ~SceneNode();
 
   int totalSceneNodes() const;
-    
+
     const glm::mat4& get_transform() const;
     const glm::mat4& get_inverse() const;
 

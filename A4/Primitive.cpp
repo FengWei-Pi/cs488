@@ -13,29 +13,31 @@ Primitive::~Primitive(){}
 /**
  * Sphere
  */
+Sphere::Sphere() : hitbox(glm::vec3(0, 0, 0), 1) {}
 
 Sphere::~Sphere() {}
 
-glm::vec4 Sphere::intersect(Ray ray) {
-  throw IntersectionNotFound();
+double Sphere::intersect(const Ray& ray) {
+  return hitbox.intersect(ray);
 }
 
-glm::vec4 Sphere::getNormal(glm::vec4) {
-  throw NormalNotFound();
+glm::vec4 Sphere::getNormal(const glm::vec4& point) {
+  return hitbox.getNormal(point);
 }
 
 /**
  * Cube
  */
+Cube::Cube() : hitbox(glm::vec3(0, 0, 0), 1) {}
 
 Cube::~Cube() {}
 
-glm::vec4 Cube::intersect(Ray ray) {
-  throw IntersectionNotFound();
+double Cube::intersect(const Ray& ray) {
+  return hitbox.intersect(ray);
 }
 
-glm::vec4 Cube::getNormal(glm::vec4) {
-  throw NormalNotFound();
+glm::vec4 Cube::getNormal(const glm::vec4& point) {
+  return hitbox.getNormal(point);
 }
 
 /**
@@ -44,7 +46,7 @@ glm::vec4 Cube::getNormal(glm::vec4) {
 
 NonhierSphere::~NonhierSphere() {}
 
-glm::vec4 NonhierSphere::intersect(Ray ray) {
+double NonhierSphere::intersect(const Ray& ray) {
   double roots[2];
   const double A = glm::dot(ray.to - ray.from, ray.to - ray.from);
   const double B = 2 * glm::dot(ray.from - glm::vec4(m_pos, 1), ray.to - ray.from);
@@ -61,21 +63,21 @@ glm::vec4 NonhierSphere::intersect(Ray ray) {
   }
 
   if (numRoots == 1) {
-    return ray.from + (ray.to - ray.from) * (float) roots[0];
+    return roots[0];
   }
 
   if (roots[0] < 0) {
-    return ray.from + (ray.to - ray.from) * (float) roots[1];
+    return roots[1];
   }
 
   if (roots[1] < 0) {
-    return ray.from + (ray.to - ray.from) * (float) roots[0];
+    return roots[0];
   }
 
-  return ray.from + (ray.to - ray.from) * (float) std::min(roots[0], roots[1]);
+  return std::min(roots[0], roots[1]);
 }
 
-glm::vec4 NonhierSphere::getNormal(glm::vec4 point) {
+glm::vec4 NonhierSphere::getNormal(const glm::vec4& point) {
   glm::vec3 normal{glm::vec3(point) - m_pos};
   return glm::normalize(glm::vec4(normal, 0));
 }
@@ -86,7 +88,7 @@ glm::vec4 NonhierSphere::getNormal(glm::vec4 point) {
 
 NonhierBox::~NonhierBox() {}
 
-glm::vec4 NonhierBox::getNormal(glm::vec4 point) {
+glm::vec4 NonhierBox::getNormal(const glm::vec4& point) {
   double x = 0;
   double y = 0;
   double z = 0;
@@ -122,7 +124,7 @@ glm::vec4 NonhierBox::getNormal(glm::vec4 point) {
   return normal;
 }
 
-glm::vec4 NonhierBox::intersect(Ray ray) {
+double NonhierBox::intersect(const Ray& ray) {
   glm::vec3 x{m_size, 0, 0};
   glm::vec3 y{0, m_size, 0};
   glm::vec3 z{0, 0, m_size};
@@ -178,5 +180,5 @@ glm::vec4 NonhierBox::intersect(Ray ray) {
     throw IntersectionNotFound{};
   }
 
-  return glm::vec4{A + ((float)t) * (B - A), 1};
+  return t;
 }

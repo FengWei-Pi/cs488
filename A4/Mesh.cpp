@@ -65,30 +65,52 @@ Mesh::~Mesh() {
   delete boundingVolume;
 }
 
-glm::vec4 Mesh::getNormal(glm::vec4 point) {
+glm::vec4 Mesh::getNormal(const glm::vec4& point) {
+  int i = -1;
+  double Infinity = std::numeric_limits<double>::infinity();
+  double minDotProduct = Infinity;
+  glm::vec3 minNormal;
+
   for (Triangle& tri : m_faces) {
+    i += 1;
     const glm::vec3 P0{m_vertices.at(tri.v1)};
     const glm::vec3 P1{m_vertices.at(tri.v2)};
     const glm::vec3 P2{m_vertices.at(tri.v3)};
 
     const glm::vec3 normal{glm::normalize(glm::cross(P1 - P0, P2 - P0))};
 
-    if (std::fabs(glm::dot(normal, glm::vec3(point) - P0)) < 0.01) {
-      return glm::vec4{normal, 0};
+    double dot = glm::dot(normal, glm::vec3(point) - P0);
+
+    if (std::fabs(dot) < minDotProduct) {
+      minDotProduct = std::fabs(dot);
+      minNormal = normal;
+
+      // std::cerr << "Mesh::getNormal i: " << i <<  std::endl;
+
+      // std::cerr << "glm::dot(normal, glm::vec3(point) - P0): "
+      //           << glm::dot(normal, glm::vec3(point) - P0)
+      //           << std::endl;
     }
+  }
+
+  if (minDotProduct != Infinity) {
+    return glm::vec4{minNormal, 0};
   }
 
   throw NormalNotFound{};
 }
 
-glm::vec4 Mesh::intersect(Ray ray) {
+double Mesh::intersect(const Ray& ray) {
   // Ensure that the ray intersects the bounding volume.
   boundingVolume->intersect(ray);
 
   double Infinity = std::numeric_limits<double>::infinity();
   double t = Infinity;
 
+  int i = -1;
+
   for (const Triangle& tri : m_faces) {
+    i += 1;
     const glm::vec3 P0{m_vertices.at(tri.v1)};
     const glm::vec3 P1{m_vertices.at(tri.v2)};
     const glm::vec3 P2{m_vertices.at(tri.v3)};
@@ -97,29 +119,40 @@ glm::vec4 Mesh::intersect(Ray ray) {
     const glm::vec3 Y{P2 - P0};
     const glm::vec3 Z{ray.from - ray.to};
 
-    const glm::mat3 M{X, Y, Z};
+    const double D = glm::determinant(glm::mat3{X, Y, Z});
 
-    const double det = glm::determinant(M);
-
-    if (std::fabs(det) < 0.0001) {
-      std::cerr << "Determinant: " << det << std::endl;
+    if (std::fabs(D) < 0.0001) {
       continue;
     }
 
-    glm::vec3 R = glm::vec3(ray.from) - P0;
-    glm::vec3 S = glm::inverse(M) * R;
+    const glm::vec3 R = glm::vec3(ray.from) - P0;
+
+    const double Dx = glm::determinant(glm::mat3{R, Y, Z});
+    const double Dy = glm::determinant(glm::mat3{X, R, Z});
+    const double Dz = glm::determinant(glm::mat3{X, Y, R});
+
+    glm::vec3 S{Dx/D, Dy/D, Dz/D};
 
     if (
       !(S.x >= 0) ||
       !(S.y >= 0) ||
+      !(S.z >= 0) ||
       !((1 - S.x - S.y) >= 0)
     ) {
-      // Not a triangle
       continue;
     }
 
-    if (S.z < t && S.z > 0) {
+    if (S.z < t) {
+      // std::cerr << "Mesh::intersect i: " << i << std::endl;
+      // std::cerr << "Ray: " << glm::to_string(ray.from) << ", " << glm::to_string(ray.to) << std::endl;
+      // std::cerr << "t: " << S.z << std::endl;
+      // std::cerr << "Ray at i: " << glm::to_string(ray.at(S.z)) << std::endl;
       t = S.z;
+      std::cerr << "i: " << i << std::endl;
+      std::cerr << "P0: " << glm::to_string(P0) << std::endl;
+      std::cerr << "P1: " << glm::to_string(P1) << std::endl;
+      std::cerr << "P2: " << glm::to_string(P2) << std::endl;
+      std::cerr << "ray.at(" << t << "): " << glm::to_string(ray.at(t)) << std::endl;
     }
   }
 
@@ -127,7 +160,7 @@ glm::vec4 Mesh::intersect(Ray ray) {
     throw IntersectionNotFound{};
   }
 
-  return ray.from + ((float)t) * (ray.to - ray.from);
+  return t;
 }
 
 std::ostream& operator<<(std::ostream& out, const Mesh& mesh)
