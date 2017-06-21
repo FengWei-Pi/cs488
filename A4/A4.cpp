@@ -153,6 +153,7 @@ void A4_Render(
   //   for (unsigned int x = 217; x < 218; x += 1) {
   for (double y = 0; y < ny; y += 1) {
     for (double x = 0; x < nx; x += 1) {
+      std::cout << "Progress: " << (y * ny + x) / (1.0 * nx * ny) << std::endl;
       // if (!(y == 231 && x == 140) && !(y == 231 && x == 141)) continue;
 
       // std::cerr << "x: " << x << std::endl;
