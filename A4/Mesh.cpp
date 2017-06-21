@@ -148,11 +148,11 @@ double Mesh::intersect(const Ray& ray) {
       // std::cerr << "t: " << S.z << std::endl;
       // std::cerr << "Ray at i: " << glm::to_string(ray.at(S.z)) << std::endl;
       t = S.z;
-      std::cerr << "i: " << i << std::endl;
-      std::cerr << "P0: " << glm::to_string(P0) << std::endl;
-      std::cerr << "P1: " << glm::to_string(P1) << std::endl;
-      std::cerr << "P2: " << glm::to_string(P2) << std::endl;
-      std::cerr << "ray.at(" << t << "): " << glm::to_string(ray.at(t)) << std::endl;
+      // std::cerr << "i: " << i << std::endl;
+      // std::cerr << "P0: " << glm::to_string(P0) << std::endl;
+      // std::cerr << "P1: " << glm::to_string(P1) << std::endl;
+      // std::cerr << "P2: " << glm::to_string(P2) << std::endl;
+      // std::cerr << "ray.at(" << t << "): " << glm::to_string(ray.at(t)) << std::endl;
     }
   }
 
