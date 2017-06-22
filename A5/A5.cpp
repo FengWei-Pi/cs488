@@ -4,6 +4,7 @@ using namespace std;
 
 #include "cs488-framework/GlErrorCheck.hpp"
 #include "cs488-framework/MathUtils.hpp"
+#include "Visitor.hpp"
 #include "GeometryNode.hpp"
 #include "JointNode.hpp"
 
@@ -12,6 +13,8 @@ using namespace std;
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <stack>
+#include <cassert>
 
 using namespace glm;
 
@@ -64,9 +67,9 @@ void A5::init()
 	// class.
 	unique_ptr<MeshConsolidator> meshConsolidator (new MeshConsolidator{
 			getAssetFilePath("cube.obj"),
-			getAssetFilePath("sphere.obj"),
-			getAssetFilePath("suzanne.obj")
-	});
+        getAssetFilePath("sphere.obj"),
+        getAssetFilePath("suzanne.obj")
+        });
 
 
 	// Acquire the BatchInfoMap from the MeshConsolidator.
@@ -156,7 +159,7 @@ void A5::enableVertexShaderInputSlots()
 
 //----------------------------------------------------------------------------------------
 void A5::uploadVertexDataToVbos (
-		const MeshConsolidator & meshConsolidator
+  const MeshConsolidator & meshConsolidator
 ) {
 	// Generate VBO to store all vertex position data
 	{
@@ -165,7 +168,7 @@ void A5::uploadVertexDataToVbos (
 		glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
 
 		glBufferData(GL_ARRAY_BUFFER, meshConsolidator.getNumVertexPositionBytes(),
-				meshConsolidator.getVertexPositionDataPtr(), GL_STATIC_DRAW);
+                 meshConsolidator.getVertexPositionDataPtr(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		CHECK_GL_ERRORS;
@@ -178,7 +181,7 @@ void A5::uploadVertexDataToVbos (
 		glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
 
 		glBufferData(GL_ARRAY_BUFFER, meshConsolidator.getNumVertexNormalBytes(),
-				meshConsolidator.getVertexNormalDataPtr(), GL_STATIC_DRAW);
+                 meshConsolidator.getVertexNormalDataPtr(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		CHECK_GL_ERRORS;
@@ -251,7 +254,7 @@ void A5::initPerspectiveMatrix()
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
 	m_view = glm::lookAt(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f),
-			vec3(0.0f, 1.0f, 0.0f));
+                       vec3(0.0f, 1.0f, 0.0f));
 }
 
 //----------------------------------------------------------------------------------------
@@ -323,18 +326,18 @@ void A5::guiLogic()
 	float opacity(0.5f);
 
 	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
-			windowFlags);
+               windowFlags);
 
 
-		// Add more gui elements here here ...
+  // Add more gui elements here here ...
 
 
-		// Create Button, and check if it was clicked:
-		if( ImGui::Button( "Quit Application" ) ) {
-			glfwSetWindowShouldClose(m_window, GL_TRUE);
-		}
+  // Create Button, and check if it was clicked:
+  if( ImGui::Button( "Quit Application" ) ) {
+    glfwSetWindowShouldClose(m_window, GL_TRUE);
+  }
 
-		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
+  ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
 	ImGui::End();
 }
@@ -342,16 +345,16 @@ void A5::guiLogic()
 //----------------------------------------------------------------------------------------
 // Update mesh specific shader uniforms:
 static void updateShaderUniforms(
-		const ShaderProgram & shader,
-		const GeometryNode & node,
-		const glm::mat4 & viewMatrix
+  const ShaderProgram & shader,
+  const GeometryNode & node,
+  const glm::mat4 & viewMatrix
 ) {
 
 	shader.enable();
 	{
 		//-- Set ModelView matrix:
 		GLint location = shader.getUniformLocation("ModelView");
-		mat4 modelView = viewMatrix * node.trans;
+		mat4 modelView = viewMatrix;
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
 
@@ -394,43 +397,88 @@ void A5::draw() {
 	renderArcCircle();
 }
 
+
+
 //----------------------------------------------------------------------------------------
-void A5::renderSceneGraph(const SceneNode & root) {
+void A5::renderSceneGraph(SceneNode & root) {
 
 	// Bind the VAO once here, and reuse for all GeometryNode rendering below.
 	glBindVertexArray(m_vao_meshData);
 
-	// This is emphatically *not* how you should be drawing the scene graph in
-	// your final implementation.  This is a non-hierarchical demonstration
-	// in which we assume that there is a list of GeometryNodes living directly
-	// underneath the root node, and that we can draw them in a loop.  It's
-	// just enough to demonstrate how to get geometry and materials out of
-	// a GeometryNode and onto the screen.
+  class Renderer : public Visitor {
+    std::stack<glm::mat4> transforms;
+    void visitChildren(std::list<SceneNode*>& children) {
+      for (SceneNode * child : children) {
+        child->accept(*this);
+      }
+    }
 
-	// You'll want to turn this into recursive code that walks over the tree.
-	// You can do that by putting a method in SceneNode, overridden in its
-	// subclasses, that renders the subtree rooted at every node.  Or you
-	// could put a set of mutually recursive functions in this class, which
-	// walk down the tree from nodes of different types.
+    glm::mat4 calculateM(const glm::mat4& trans) const {
+      if (transforms.size() > 0) {
+        return transforms.top() * trans;
+      }
 
-	for (const SceneNode * node : root.children) {
+      return trans;
+    }
 
-		if (node->m_nodeType != NodeType::GeometryNode)
-			continue;
+    A5& self;
 
-		const GeometryNode * geometryNode = static_cast<const GeometryNode *>(node);
+  public:
+    Renderer(A5& self) : self(self) {}
 
-		updateShaderUniforms(m_shader, *geometryNode, m_view);
+    void visit(SceneNode& node) {
+      const glm::mat4 M = calculateM(node.trans);
+      transforms.push(M);
+      visitChildren(node.children);
+      transforms.pop();
+    }
 
+    void visit(GeometryNode& node) {
+      const glm::mat4 M = calculateM(node.trans);
+      updateShaderUniforms(self.m_shader, node, M);
 
-		// Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
-		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
+      // Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
+      BatchInfo batchInfo = self.m_batchInfoMap[node.meshId];
 
-		//-- Now render the mesh:
-		m_shader.enable();
-		glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
-		m_shader.disable();
-	}
+      //-- Now render the mesh:
+      self.m_shader.enable();
+      glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+      self.m_shader.disable();
+
+      transforms.push(M);
+      visitChildren(node.children);
+      transforms.pop();
+    }
+
+    void visit(JointNode& node) {
+      glm::mat4 M = calculateM(node.trans);
+      float xRotation = glm::radians(
+        glm::clamp(
+          node.m_joint_x.init,
+          node.m_joint_x.min,
+          node.m_joint_x.max
+        )
+      );
+      float yRotation = glm::radians(
+        glm::clamp(
+          node.m_joint_y.init,
+          node.m_joint_y.min,
+          node.m_joint_y.max
+        )
+      );
+
+      M = M * glm::rotate(glm::mat4(), yRotation, glm::vec3(0, 1, 0));
+      M = M * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
+
+      transforms.push(M);
+      visitChildren(node.children);
+      transforms.pop();
+    }
+  };
+
+  Renderer renderer{*this};
+
+  root.accept(renderer);
 
 	glBindVertexArray(0);
 	CHECK_GL_ERRORS;
@@ -442,16 +490,16 @@ void A5::renderArcCircle() {
 	glBindVertexArray(m_vao_arcCircle);
 
 	m_shader_arcCircle.enable();
-		GLint m_location = m_shader_arcCircle.getUniformLocation( "M" );
-		float aspect = float(m_framebufferWidth)/float(m_framebufferHeight);
-		glm::mat4 M;
-		if( aspect > 1.0 ) {
-			M = glm::scale( glm::mat4(), glm::vec3( 0.5/aspect, 0.5, 1.0 ) );
-		} else {
-			M = glm::scale( glm::mat4(), glm::vec3( 0.5, 0.5*aspect, 1.0 ) );
-		}
-		glUniformMatrix4fv( m_location, 1, GL_FALSE, value_ptr( M ) );
-		glDrawArrays( GL_LINE_LOOP, 0, CIRCLE_PTS );
+  GLint m_location = m_shader_arcCircle.getUniformLocation( "M" );
+  float aspect = float(m_framebufferWidth)/float(m_framebufferHeight);
+  glm::mat4 M;
+  if( aspect > 1.0 ) {
+    M = glm::scale( glm::mat4(), glm::vec3( 0.5/aspect, 0.5, 1.0 ) );
+  } else {
+    M = glm::scale( glm::mat4(), glm::vec3( 0.5, 0.5*aspect, 1.0 ) );
+  }
+  glUniformMatrix4fv( m_location, 1, GL_FALSE, value_ptr( M ) );
+  glDrawArrays( GL_LINE_LOOP, 0, CIRCLE_PTS );
 	m_shader_arcCircle.disable();
 
 	glBindVertexArray(0);
@@ -472,7 +520,7 @@ void A5::cleanup()
  * Event handler.  Handles cursor entering the window area events.
  */
 bool A5::cursorEnterWindowEvent (
-		int entered
+  int entered
 ) {
 	bool eventHandled(false);
 
@@ -486,8 +534,8 @@ bool A5::cursorEnterWindowEvent (
  * Event handler.  Handles mouse cursor movement events.
  */
 bool A5::mouseMoveEvent (
-		double xPos,
-		double yPos
+  double xPos,
+  double yPos
 ) {
 	bool eventHandled(false);
 
@@ -501,9 +549,9 @@ bool A5::mouseMoveEvent (
  * Event handler.  Handles mouse button events.
  */
 bool A5::mouseButtonInputEvent (
-		int button,
-		int actions,
-		int mods
+  int button,
+  int actions,
+  int mods
 ) {
 	bool eventHandled(false);
 
@@ -517,8 +565,8 @@ bool A5::mouseButtonInputEvent (
  * Event handler.  Handles mouse scroll wheel events.
  */
 bool A5::mouseScrollEvent (
-		double xOffSet,
-		double yOffSet
+  double xOffSet,
+  double yOffSet
 ) {
 	bool eventHandled(false);
 
@@ -532,8 +580,8 @@ bool A5::mouseScrollEvent (
  * Event handler.  Handles window resize events.
  */
 bool A5::windowResizeEvent (
-		int width,
-		int height
+  int width,
+  int height
 ) {
 	bool eventHandled(false);
 	initPerspectiveMatrix();
@@ -545,9 +593,9 @@ bool A5::windowResizeEvent (
  * Event handler.  Handles key input events.
  */
 bool A5::keyInputEvent (
-		int key,
-		int action,
-		int mods
+  int key,
+  int action,
+  int mods
 ) {
 	bool eventHandled(false);
 
