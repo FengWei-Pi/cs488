@@ -11,20 +11,20 @@
 #include <iostream>
 
 enum class NodeType {
-	SceneNode,
-	GeometryNode,
-	JointNode
+  SceneNode,
+  GeometryNode,
+  JointNode
 };
 
 class SceneNode : public Element {
 public:
   SceneNode(const std::string & name);
 
-	SceneNode(const SceneNode & other);
+  SceneNode(const SceneNode & other);
 
   virtual ~SceneNode();
 
-	int totalSceneNodes() const;
+  int totalSceneNodes() const;
 
   const glm::mat4& get_transform() const;
   const glm::mat4& get_inverse() const;
@@ -35,15 +35,15 @@ public:
 
   void remove_child(SceneNode* child);
 
-	//-- Transformations:
+  //-- Transformations:
   void rotate(char axis, float angle);
   void scale(const glm::vec3& amount);
   void translate(const glm::vec3& amount);
 
 
-	friend std::ostream & operator << (std::ostream & os, const SceneNode & node);
+  friend std::ostream & operator << (std::ostream & os, const SceneNode & node);
 
-	bool isSelected;
+  bool isSelected;
 
   // Transformations
   glm::mat4 trans;
@@ -51,9 +51,9 @@ public:
 
   std::list<SceneNode*> children;
 
-	NodeType m_nodeType;
-	std::string m_name;
-	unsigned int m_nodeId;
+  NodeType m_nodeType;
+  std::string m_name;
+  unsigned int m_nodeId;
 
   /**
    * Visitor
@@ -61,6 +61,6 @@ public:
 
   virtual void accept(Visitor& v);
 private:
-	// The number of SceneNode instances.
-	static unsigned int nodeInstanceCount;
+  // The number of SceneNode instances.
+  static unsigned int nodeInstanceCount;
 };

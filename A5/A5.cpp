@@ -25,14 +25,14 @@ const size_t CIRCLE_PTS = 48;
 //----------------------------------------------------------------------------------------
 // Constructor
 A5::A5(const std::string & luaSceneFile)
-	: m_luaSceneFile(luaSceneFile),
-	  m_positionAttribLocation(0),
-	  m_normalAttribLocation(0),
-	  m_vao_meshData(0),
-	  m_vbo_vertexPositions(0),
-	  m_vbo_vertexNormals(0),
-	  m_vao_arcCircle(0),
-	  m_vbo_arcCircle(0)
+  : m_luaSceneFile(luaSceneFile),
+    m_positionAttribLocation(0),
+    m_normalAttribLocation(0),
+    m_vao_meshData(0),
+    m_vbo_vertexPositions(0),
+    m_vbo_vertexNormals(0),
+    m_vao_arcCircle(0),
+    m_vbo_arcCircle(0)
 {
 
 }
@@ -50,248 +50,248 @@ A5::~A5()
  */
 void A5::init()
 {
-	// Set the background colour.
-	glClearColor(0.35, 0.35, 0.35, 1.0);
+  // Set the background colour.
+  glClearColor(0.35, 0.35, 0.35, 1.0);
 
-	createShaderProgram();
+  createShaderProgram();
 
-	glGenVertexArrays(1, &m_vao_arcCircle);
-	glGenVertexArrays(1, &m_vao_meshData);
-	enableVertexShaderInputSlots();
+  glGenVertexArrays(1, &m_vao_arcCircle);
+  glGenVertexArrays(1, &m_vao_meshData);
+  enableVertexShaderInputSlots();
 
-	processLuaSceneFile(m_luaSceneFile);
+  processLuaSceneFile(m_luaSceneFile);
 
-	// Load and decode all .obj files at once here.  You may add additional .obj files to
-	// this list in order to support rendering additional mesh types.  All vertex
-	// positions, and normals will be extracted and stored within the MeshConsolidator
-	// class.
-	unique_ptr<MeshConsolidator> meshConsolidator (new MeshConsolidator{
-			getAssetFilePath("cube.obj"),
+  // Load and decode all .obj files at once here.  You may add additional .obj files to
+  // this list in order to support rendering additional mesh types.  All vertex
+  // positions, and normals will be extracted and stored within the MeshConsolidator
+  // class.
+  unique_ptr<MeshConsolidator> meshConsolidator (new MeshConsolidator{
+      getAssetFilePath("cube.obj"),
         getAssetFilePath("sphere.obj"),
         getAssetFilePath("suzanne.obj")
         });
 
 
-	// Acquire the BatchInfoMap from the MeshConsolidator.
-	meshConsolidator->getBatchInfoMap(m_batchInfoMap);
+  // Acquire the BatchInfoMap from the MeshConsolidator.
+  meshConsolidator->getBatchInfoMap(m_batchInfoMap);
 
-	// Take all vertex data within the MeshConsolidator and upload it to VBOs on the GPU.
-	uploadVertexDataToVbos(*meshConsolidator);
+  // Take all vertex data within the MeshConsolidator and upload it to VBOs on the GPU.
+  uploadVertexDataToVbos(*meshConsolidator);
 
-	mapVboDataToVertexShaderInputLocations();
+  mapVboDataToVertexShaderInputLocations();
 
-	initPerspectiveMatrix();
+  initPerspectiveMatrix();
 
-	initViewMatrix();
+  initViewMatrix();
 
-	initLightSources();
+  initLightSources();
 
 
-	// Exiting the current scope calls delete automatically on meshConsolidator freeing
-	// all vertex data resources.  This is fine since we already copied this data to
-	// VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
-	// this point.
+  // Exiting the current scope calls delete automatically on meshConsolidator freeing
+  // all vertex data resources.  This is fine since we already copied this data to
+  // VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
+  // this point.
 }
 
 //----------------------------------------------------------------------------------------
 void A5::processLuaSceneFile(const std::string & filename) {
-	// This version of the code treats the Lua file as an Asset,
-	// so that you'd launch the program with just the filename
-	// of a puppet in the Assets/ directory.
-	// std::string assetFilePath = getAssetFilePath(filename.c_str());
-	// m_rootNode = std::shared_ptr<SceneNode>(import_lua(assetFilePath));
+  // This version of the code treats the Lua file as an Asset,
+  // so that you'd launch the program with just the filename
+  // of a puppet in the Assets/ directory.
+  // std::string assetFilePath = getAssetFilePath(filename.c_str());
+  // m_rootNode = std::shared_ptr<SceneNode>(import_lua(assetFilePath));
 
-	// This version of the code treats the main program argument
-	// as a straightforward pathname.
-	m_rootNode = std::shared_ptr<SceneNode>(import_lua(filename));
-	if (!m_rootNode) {
-		std::cerr << "Could not open " << filename << std::endl;
-	}
+  // This version of the code treats the main program argument
+  // as a straightforward pathname.
+  m_rootNode = std::shared_ptr<SceneNode>(import_lua(filename));
+  if (!m_rootNode) {
+    std::cerr << "Could not open " << filename << std::endl;
+  }
 }
 
 //----------------------------------------------------------------------------------------
 void A5::createShaderProgram()
 {
-	m_shader.generateProgramObject();
-	m_shader.attachVertexShader( getAssetFilePath("VertexShader.vs").c_str() );
-	m_shader.attachFragmentShader( getAssetFilePath("FragmentShader.fs").c_str() );
-	m_shader.link();
+  m_shader.generateProgramObject();
+  m_shader.attachVertexShader( getAssetFilePath("VertexShader.vs").c_str() );
+  m_shader.attachFragmentShader( getAssetFilePath("FragmentShader.fs").c_str() );
+  m_shader.link();
 
-	m_shader_arcCircle.generateProgramObject();
-	m_shader_arcCircle.attachVertexShader( getAssetFilePath("arc_VertexShader.vs").c_str() );
-	m_shader_arcCircle.attachFragmentShader( getAssetFilePath("arc_FragmentShader.fs").c_str() );
-	m_shader_arcCircle.link();
+  m_shader_arcCircle.generateProgramObject();
+  m_shader_arcCircle.attachVertexShader( getAssetFilePath("arc_VertexShader.vs").c_str() );
+  m_shader_arcCircle.attachFragmentShader( getAssetFilePath("arc_FragmentShader.fs").c_str() );
+  m_shader_arcCircle.link();
 }
 
 //----------------------------------------------------------------------------------------
 void A5::enableVertexShaderInputSlots()
 {
-	//-- Enable input slots for m_vao_meshData:
-	{
-		glBindVertexArray(m_vao_meshData);
+  //-- Enable input slots for m_vao_meshData:
+  {
+    glBindVertexArray(m_vao_meshData);
 
-		// Enable the vertex shader attribute location for "position" when rendering.
-		m_positionAttribLocation = m_shader.getAttribLocation("position");
-		glEnableVertexAttribArray(m_positionAttribLocation);
+    // Enable the vertex shader attribute location for "position" when rendering.
+    m_positionAttribLocation = m_shader.getAttribLocation("position");
+    glEnableVertexAttribArray(m_positionAttribLocation);
 
-		// Enable the vertex shader attribute location for "normal" when rendering.
-		m_normalAttribLocation = m_shader.getAttribLocation("normal");
-		glEnableVertexAttribArray(m_normalAttribLocation);
+    // Enable the vertex shader attribute location for "normal" when rendering.
+    m_normalAttribLocation = m_shader.getAttribLocation("normal");
+    glEnableVertexAttribArray(m_normalAttribLocation);
 
-		CHECK_GL_ERRORS;
-	}
+    CHECK_GL_ERRORS;
+  }
 
 
-	//-- Enable input slots for m_vao_arcCircle:
-	{
-		glBindVertexArray(m_vao_arcCircle);
+  //-- Enable input slots for m_vao_arcCircle:
+  {
+    glBindVertexArray(m_vao_arcCircle);
 
-		// Enable the vertex shader attribute location for "position" when rendering.
-		m_arc_positionAttribLocation = m_shader_arcCircle.getAttribLocation("position");
-		glEnableVertexAttribArray(m_arc_positionAttribLocation);
+    // Enable the vertex shader attribute location for "position" when rendering.
+    m_arc_positionAttribLocation = m_shader_arcCircle.getAttribLocation("position");
+    glEnableVertexAttribArray(m_arc_positionAttribLocation);
 
-		CHECK_GL_ERRORS;
-	}
+    CHECK_GL_ERRORS;
+  }
 
-	// Restore defaults
-	glBindVertexArray(0);
+  // Restore defaults
+  glBindVertexArray(0);
 }
 
 //----------------------------------------------------------------------------------------
 void A5::uploadVertexDataToVbos (
   const MeshConsolidator & meshConsolidator
 ) {
-	// Generate VBO to store all vertex position data
-	{
-		glGenBuffers(1, &m_vbo_vertexPositions);
+  // Generate VBO to store all vertex position data
+  {
+    glGenBuffers(1, &m_vbo_vertexPositions);
 
-		glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
 
-		glBufferData(GL_ARRAY_BUFFER, meshConsolidator.getNumVertexPositionBytes(),
+    glBufferData(GL_ARRAY_BUFFER, meshConsolidator.getNumVertexPositionBytes(),
                  meshConsolidator.getVertexPositionDataPtr(), GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		CHECK_GL_ERRORS;
-	}
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    CHECK_GL_ERRORS;
+  }
 
-	// Generate VBO to store all vertex normal data
-	{
-		glGenBuffers(1, &m_vbo_vertexNormals);
+  // Generate VBO to store all vertex normal data
+  {
+    glGenBuffers(1, &m_vbo_vertexNormals);
 
-		glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
 
-		glBufferData(GL_ARRAY_BUFFER, meshConsolidator.getNumVertexNormalBytes(),
+    glBufferData(GL_ARRAY_BUFFER, meshConsolidator.getNumVertexNormalBytes(),
                  meshConsolidator.getVertexNormalDataPtr(), GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		CHECK_GL_ERRORS;
-	}
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    CHECK_GL_ERRORS;
+  }
 
-	// Generate VBO to store the trackball circle.
-	{
-		glGenBuffers( 1, &m_vbo_arcCircle );
-		glBindBuffer( GL_ARRAY_BUFFER, m_vbo_arcCircle );
+  // Generate VBO to store the trackball circle.
+  {
+    glGenBuffers( 1, &m_vbo_arcCircle );
+    glBindBuffer( GL_ARRAY_BUFFER, m_vbo_arcCircle );
 
-		float *pts = new float[ 2 * CIRCLE_PTS ];
-		for( size_t idx = 0; idx < CIRCLE_PTS; ++idx ) {
-			float ang = 2.0 * M_PI * float(idx) / CIRCLE_PTS;
-			pts[2*idx] = cos( ang );
-			pts[2*idx+1] = sin( ang );
-		}
+    float *pts = new float[ 2 * CIRCLE_PTS ];
+    for( size_t idx = 0; idx < CIRCLE_PTS; ++idx ) {
+      float ang = 2.0 * M_PI * float(idx) / CIRCLE_PTS;
+      pts[2*idx] = cos( ang );
+      pts[2*idx+1] = sin( ang );
+    }
 
-		glBufferData(GL_ARRAY_BUFFER, 2*CIRCLE_PTS*sizeof(float), pts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 2*CIRCLE_PTS*sizeof(float), pts, GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		CHECK_GL_ERRORS;
-	}
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    CHECK_GL_ERRORS;
+  }
 }
 
 //----------------------------------------------------------------------------------------
 void A5::mapVboDataToVertexShaderInputLocations()
 {
-	// Bind VAO in order to record the data mapping.
-	glBindVertexArray(m_vao_meshData);
+  // Bind VAO in order to record the data mapping.
+  glBindVertexArray(m_vao_meshData);
 
-	// Tell GL how to map data from the vertex buffer "m_vbo_vertexPositions" into the
-	// "position" vertex attribute location for any bound vertex shader program.
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
-	glVertexAttribPointer(m_positionAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  // Tell GL how to map data from the vertex buffer "m_vbo_vertexPositions" into the
+  // "position" vertex attribute location for any bound vertex shader program.
+  glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
+  glVertexAttribPointer(m_positionAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-	// Tell GL how to map data from the vertex buffer "m_vbo_vertexNormals" into the
-	// "normal" vertex attribute location for any bound vertex shader program.
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
-	glVertexAttribPointer(m_normalAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  // Tell GL how to map data from the vertex buffer "m_vbo_vertexNormals" into the
+  // "normal" vertex attribute location for any bound vertex shader program.
+  glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
+  glVertexAttribPointer(m_normalAttribLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-	//-- Unbind target, and restore default values:
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+  //-- Unbind target, and restore default values:
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 
-	CHECK_GL_ERRORS;
+  CHECK_GL_ERRORS;
 
-	// Bind VAO in order to record the data mapping.
-	glBindVertexArray(m_vao_arcCircle);
+  // Bind VAO in order to record the data mapping.
+  glBindVertexArray(m_vao_arcCircle);
 
-	// Tell GL how to map data from the vertex buffer "m_vbo_arcCircle" into the
-	// "position" vertex attribute location for any bound vertex shader program.
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo_arcCircle);
-	glVertexAttribPointer(m_arc_positionAttribLocation, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  // Tell GL how to map data from the vertex buffer "m_vbo_arcCircle" into the
+  // "position" vertex attribute location for any bound vertex shader program.
+  glBindBuffer(GL_ARRAY_BUFFER, m_vbo_arcCircle);
+  glVertexAttribPointer(m_arc_positionAttribLocation, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-	//-- Unbind target, and restore default values:
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+  //-- Unbind target, and restore default values:
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 
-	CHECK_GL_ERRORS;
+  CHECK_GL_ERRORS;
 }
 
 //----------------------------------------------------------------------------------------
 void A5::initPerspectiveMatrix()
 {
-	float aspect = ((float)m_windowWidth) / m_windowHeight;
-	m_perpsective = glm::perspective(degreesToRadians(60.0f), aspect, 0.1f, 100.0f);
+  float aspect = ((float)m_windowWidth) / m_windowHeight;
+  m_perpsective = glm::perspective(degreesToRadians(60.0f), aspect, 0.1f, 100.0f);
 }
 
 
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
-	m_view = glm::lookAt(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f),
+  m_view = glm::lookAt(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f),
                        vec3(0.0f, 1.0f, 0.0f));
 }
 
 //----------------------------------------------------------------------------------------
 void A5::initLightSources() {
-	// World-space position
-	m_light.position = vec3(-2.0f, 5.0f, 0.5f);
-	m_light.rgbIntensity = vec3(0.8f); // White light
+  // World-space position
+  m_light.position = vec3(-2.0f, 5.0f, 0.5f);
+  m_light.rgbIntensity = vec3(0.8f); // White light
 }
 
 //----------------------------------------------------------------------------------------
 void A5::uploadCommonSceneUniforms() {
-	m_shader.enable();
-	{
-		//-- Set Perpsective matrix uniform for the scene:
-		GLint location = m_shader.getUniformLocation("Perspective");
-		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perpsective));
-		CHECK_GL_ERRORS;
+  m_shader.enable();
+  {
+    //-- Set Perpsective matrix uniform for the scene:
+    GLint location = m_shader.getUniformLocation("Perspective");
+    glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perpsective));
+    CHECK_GL_ERRORS;
 
 
-		//-- Set LightSource uniform for the scene:
-		{
-			location = m_shader.getUniformLocation("light.position");
-			glUniform3fv(location, 1, value_ptr(m_light.position));
-			location = m_shader.getUniformLocation("light.rgbIntensity");
-			glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
-			CHECK_GL_ERRORS;
-		}
+    //-- Set LightSource uniform for the scene:
+    {
+      location = m_shader.getUniformLocation("light.position");
+      glUniform3fv(location, 1, value_ptr(m_light.position));
+      location = m_shader.getUniformLocation("light.rgbIntensity");
+      glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
+      CHECK_GL_ERRORS;
+    }
 
-		//-- Set background light ambient intensity
-		{
-			location = m_shader.getUniformLocation("ambientIntensity");
-			vec3 ambientIntensity(0.05f);
-			glUniform3fv(location, 1, value_ptr(ambientIntensity));
-			CHECK_GL_ERRORS;
-		}
-	}
-	m_shader.disable();
+    //-- Set background light ambient intensity
+    {
+      location = m_shader.getUniformLocation("ambientIntensity");
+      vec3 ambientIntensity(0.05f);
+      glUniform3fv(location, 1, value_ptr(ambientIntensity));
+      CHECK_GL_ERRORS;
+    }
+  }
+  m_shader.disable();
 }
 
 //----------------------------------------------------------------------------------------
@@ -300,9 +300,9 @@ void A5::uploadCommonSceneUniforms() {
  */
 void A5::appLogic()
 {
-	// Place per frame, application logic here ...
+  // Place per frame, application logic here ...
 
-	uploadCommonSceneUniforms();
+  uploadCommonSceneUniforms();
 }
 
 //----------------------------------------------------------------------------------------
@@ -311,21 +311,21 @@ void A5::appLogic()
  */
 void A5::guiLogic()
 {
-	if( !show_gui ) {
-		return;
-	}
+  if( !show_gui ) {
+    return;
+  }
 
-	static bool firstRun(true);
-	if (firstRun) {
-		ImGui::SetNextWindowPos(ImVec2(50, 50));
-		firstRun = false;
-	}
+  static bool firstRun(true);
+  if (firstRun) {
+    ImGui::SetNextWindowPos(ImVec2(50, 50));
+    firstRun = false;
+  }
 
-	static bool showDebugWindow(true);
-	ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
-	float opacity(0.5f);
+  static bool showDebugWindow(true);
+  ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
+  float opacity(0.5f);
 
-	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
+  ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
                windowFlags);
 
 
@@ -339,7 +339,7 @@ void A5::guiLogic()
 
   ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
-	ImGui::End();
+  ImGui::End();
 }
 
 //----------------------------------------------------------------------------------------
@@ -350,36 +350,36 @@ static void updateShaderUniforms(
   const glm::mat4 & viewMatrix
 ) {
 
-	shader.enable();
-	{
-		//-- Set ModelView matrix:
-		GLint location = shader.getUniformLocation("ModelView");
-		mat4 modelView = viewMatrix;
-		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
-		CHECK_GL_ERRORS;
+  shader.enable();
+  {
+    //-- Set ModelView matrix:
+    GLint location = shader.getUniformLocation("ModelView");
+    mat4 modelView = viewMatrix;
+    glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
+    CHECK_GL_ERRORS;
 
-		//-- Set NormMatrix:
-		location = shader.getUniformLocation("NormalMatrix");
-		mat3 normalMatrix = glm::transpose(glm::inverse(mat3(modelView)));
-		glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
-		CHECK_GL_ERRORS;
+    //-- Set NormMatrix:
+    location = shader.getUniformLocation("NormalMatrix");
+    mat3 normalMatrix = glm::transpose(glm::inverse(mat3(modelView)));
+    glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
+    CHECK_GL_ERRORS;
 
 
-		//-- Set Material values:
-		location = shader.getUniformLocation("material.kd");
-		vec3 kd = node.material.kd;
-		glUniform3fv(location, 1, value_ptr(kd));
-		CHECK_GL_ERRORS;
-		location = shader.getUniformLocation("material.ks");
-		vec3 ks = node.material.ks;
-		glUniform3fv(location, 1, value_ptr(ks));
-		CHECK_GL_ERRORS;
-		location = shader.getUniformLocation("material.shininess");
-		glUniform1f(location, node.material.shininess);
-		CHECK_GL_ERRORS;
+    //-- Set Material values:
+    location = shader.getUniformLocation("material.kd");
+    vec3 kd = node.material.kd;
+    glUniform3fv(location, 1, value_ptr(kd));
+    CHECK_GL_ERRORS;
+    location = shader.getUniformLocation("material.ks");
+    vec3 ks = node.material.ks;
+    glUniform3fv(location, 1, value_ptr(ks));
+    CHECK_GL_ERRORS;
+    location = shader.getUniformLocation("material.shininess");
+    glUniform1f(location, node.material.shininess);
+    CHECK_GL_ERRORS;
 
-	}
-	shader.disable();
+  }
+  shader.disable();
 
 }
 
@@ -389,12 +389,12 @@ static void updateShaderUniforms(
  */
 void A5::draw() {
 
-	glEnable( GL_DEPTH_TEST );
-	renderSceneGraph(*m_rootNode);
+  glEnable( GL_DEPTH_TEST );
+  renderSceneGraph(*m_rootNode);
 
 
-	glDisable( GL_DEPTH_TEST );
-	renderArcCircle();
+  glDisable( GL_DEPTH_TEST );
+  renderArcCircle();
 }
 
 
@@ -402,8 +402,8 @@ void A5::draw() {
 //----------------------------------------------------------------------------------------
 void A5::renderSceneGraph(SceneNode & root) {
 
-	// Bind the VAO once here, and reuse for all GeometryNode rendering below.
-	glBindVertexArray(m_vao_meshData);
+  // Bind the VAO once here, and reuse for all GeometryNode rendering below.
+  glBindVertexArray(m_vao_meshData);
 
   class Renderer : public Visitor {
     std::stack<glm::mat4> transforms;
@@ -480,16 +480,16 @@ void A5::renderSceneGraph(SceneNode & root) {
 
   root.accept(renderer);
 
-	glBindVertexArray(0);
-	CHECK_GL_ERRORS;
+  glBindVertexArray(0);
+  CHECK_GL_ERRORS;
 }
 
 //----------------------------------------------------------------------------------------
 // Draw the trackball circle.
 void A5::renderArcCircle() {
-	glBindVertexArray(m_vao_arcCircle);
+  glBindVertexArray(m_vao_arcCircle);
 
-	m_shader_arcCircle.enable();
+  m_shader_arcCircle.enable();
   GLint m_location = m_shader_arcCircle.getUniformLocation( "M" );
   float aspect = float(m_framebufferWidth)/float(m_framebufferHeight);
   glm::mat4 M;
@@ -500,10 +500,10 @@ void A5::renderArcCircle() {
   }
   glUniformMatrix4fv( m_location, 1, GL_FALSE, value_ptr( M ) );
   glDrawArrays( GL_LINE_LOOP, 0, CIRCLE_PTS );
-	m_shader_arcCircle.disable();
+  m_shader_arcCircle.disable();
 
-	glBindVertexArray(0);
-	CHECK_GL_ERRORS;
+  glBindVertexArray(0);
+  CHECK_GL_ERRORS;
 }
 
 //----------------------------------------------------------------------------------------
@@ -522,11 +522,11 @@ void A5::cleanup()
 bool A5::cursorEnterWindowEvent (
   int entered
 ) {
-	bool eventHandled(false);
+  bool eventHandled(false);
 
-	// Fill in with event handling code...
+  // Fill in with event handling code...
 
-	return eventHandled;
+  return eventHandled;
 }
 
 //----------------------------------------------------------------------------------------
@@ -537,11 +537,11 @@ bool A5::mouseMoveEvent (
   double xPos,
   double yPos
 ) {
-	bool eventHandled(false);
+  bool eventHandled(false);
 
-	// Fill in with event handling code...
+  // Fill in with event handling code...
 
-	return eventHandled;
+  return eventHandled;
 }
 
 //----------------------------------------------------------------------------------------
@@ -553,11 +553,11 @@ bool A5::mouseButtonInputEvent (
   int actions,
   int mods
 ) {
-	bool eventHandled(false);
+  bool eventHandled(false);
 
-	// Fill in with event handling code...
+  // Fill in with event handling code...
 
-	return eventHandled;
+  return eventHandled;
 }
 
 //----------------------------------------------------------------------------------------
@@ -568,11 +568,11 @@ bool A5::mouseScrollEvent (
   double xOffSet,
   double yOffSet
 ) {
-	bool eventHandled(false);
+  bool eventHandled(false);
 
-	// Fill in with event handling code...
+  // Fill in with event handling code...
 
-	return eventHandled;
+  return eventHandled;
 }
 
 //----------------------------------------------------------------------------------------
@@ -583,9 +583,9 @@ bool A5::windowResizeEvent (
   int width,
   int height
 ) {
-	bool eventHandled(false);
-	initPerspectiveMatrix();
-	return eventHandled;
+  bool eventHandled(false);
+  initPerspectiveMatrix();
+  return eventHandled;
 }
 
 //----------------------------------------------------------------------------------------
@@ -597,15 +597,15 @@ bool A5::keyInputEvent (
   int action,
   int mods
 ) {
-	bool eventHandled(false);
+  bool eventHandled(false);
 
-	if( action == GLFW_PRESS ) {
-		if( key == GLFW_KEY_M ) {
-			show_gui = !show_gui;
-			eventHandled = true;
-		}
-	}
-	// Fill in with event handling code...
+  if( action == GLFW_PRESS ) {
+    if( key == GLFW_KEY_M ) {
+      show_gui = !show_gui;
+      eventHandled = true;
+    }
+  }
+  // Fill in with event handling code...
 
-	return eventHandled;
+  return eventHandled;
 }

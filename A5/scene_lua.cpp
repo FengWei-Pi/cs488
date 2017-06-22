@@ -85,7 +85,7 @@ extern "C"
 int gr_node_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
-  
+
   gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
   data->node = 0;
 
@@ -140,19 +140,19 @@ int gr_joint_cmd(lua_State* L)
 extern "C"
 int gr_mesh_cmd(lua_State* L)
 {
-	GRLUA_DEBUG_CALL;
+  GRLUA_DEBUG_CALL;
 
-	gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
-	data->node = 0;
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
 
-	const char* meshId = luaL_checkstring(L, 1);
-	const char* name = luaL_checkstring(L, 2);
-	data->node = new GeometryNode(meshId, name);
+  const char* meshId = luaL_checkstring(L, 1);
+  const char* name = luaL_checkstring(L, 2);
+  data->node = new GeometryNode(meshId, name);
 
-	luaL_getmetatable(L, "gr.node");
-	lua_setmetatable(L, -2);
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
 
-	return 1;
+  return 1;
 }
 
 
@@ -161,10 +161,10 @@ extern "C"
 int gr_material_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
-  
+
   gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
   data->material = 0;
-  
+
   luaL_checktype(L, 1, LUA_TTABLE);
 
   luaL_argcheck(L, luaL_len(L, 1) == 3, 1, "Three-tuple expected");
@@ -185,16 +185,16 @@ int gr_material_cmd(lua_State* L)
   }
   double shininess = luaL_checknumber(L, 3);
 
-	data->material = new Material();
-	for(int i(0); i < 3; ++i) {
-		data->material->kd[i] = kd[i];
-		data->material->ks[i] = ks[i];
-	}
-	data->material->shininess = shininess;
+  data->material = new Material();
+  for(int i(0); i < 3; ++i) {
+    data->material->kd[i] = kd[i];
+    data->material->ks[i] = ks[i];
+  }
+  data->material->shininess = shininess;
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
-  
+
   return 1;
 }
 
@@ -203,12 +203,12 @@ extern "C"
 int gr_node_add_child_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
-  
+
   gr_node_ud* selfdata = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
   luaL_argcheck(L, selfdata != 0, 1, "Node expected");
 
   SceneNode* self = selfdata->node;
-  
+
   gr_node_ud* childdata = (gr_node_ud*)luaL_checkudata(L, 2, "gr.node");
   luaL_argcheck(L, childdata != 0, 2, "Node expected");
 
@@ -235,10 +235,10 @@ int gr_node_set_material_cmd(lua_State* L)
   gr_material_ud* matdata = (gr_material_ud*)luaL_checkudata(L, 2, "gr.material");
   luaL_argcheck(L, matdata != 0, 2, "Material expected");
 
-	Material * material = matdata->material;
-	self->material.kd = material->kd;
-	self->material.ks = material->ks;
-	self->material.shininess = material->shininess;
+  Material * material = matdata->material;
+  self->material.kd = material->kd;
+  self->material.ks = material->ks;
+  self->material.shininess = material->shininess;
 
   return 0;
 }
@@ -248,14 +248,14 @@ extern "C"
 int gr_node_scale_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
-  
+
   gr_node_ud* selfdata = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
   luaL_argcheck(L, selfdata != 0, 1, "Node expected");
 
   SceneNode* self = selfdata->node;
 
   double values[3];
-  
+
   for (int i = 0; i < 3; i++) {
     values[i] = luaL_checknumber(L, i + 2);
   }
@@ -270,14 +270,14 @@ extern "C"
 int gr_node_translate_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
-  
+
   gr_node_ud* selfdata = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
   luaL_argcheck(L, selfdata != 0, 1, "Node expected");
 
   SceneNode* self = selfdata->node;
 
   double values[3];
-  
+
   for (int i = 0; i < 3; i++) {
     values[i] = luaL_checknumber(L, i + 2);
   }
@@ -292,7 +292,7 @@ extern "C"
 int gr_node_rotate_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
-  
+
   gr_node_ud* selfdata = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
   luaL_argcheck(L, selfdata != 0, 1, "Node expected");
 
@@ -303,9 +303,9 @@ int gr_node_rotate_cmd(lua_State* L)
   luaL_argcheck(L, axis_string
                 && std::strlen(axis_string) == 1, 2, "Single character expected");
   char axis = std::tolower(axis_string[0]);
-  
+
   luaL_argcheck(L, axis >= 'x' && axis <= 'z', 2, "Axis must be x, y or z");
-  
+
   double angle = luaL_checknumber(L, 3);
 
   self->rotate(axis, angle);
@@ -318,7 +318,7 @@ extern "C"
 int gr_node_gc_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
-  
+
   gr_node_ud* data = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
   luaL_argcheck(L, data != 0, 1, "Node expected");
 
@@ -371,12 +371,12 @@ static const luaL_Reg grlib_node_methods[] = {
 SceneNode* import_lua(const std::string& filename)
 {
   GRLUA_DEBUG("Importing scene from " << filename);
-  
+
   // Start a lua interpreter
   lua_State* L = luaL_newstate();
 
   GRLUA_DEBUG("Loading base libraries");
-  
+
   // Load some base library
   luaL_openlibs(L);
 
@@ -405,7 +405,7 @@ SceneNode* import_lua(const std::string& filename)
   }
 
   GRLUA_DEBUG("Getting back the node");
-  
+
   // Pull the returned node off the stack
   gr_node_ud* data = (gr_node_ud*)luaL_checkudata(L, -1, "gr.node");
   if (!data) {
@@ -417,7 +417,7 @@ SceneNode* import_lua(const std::string& filename)
   SceneNode* node = data->node;
 
   GRLUA_DEBUG("Closing the interpreter");
-  
+
   // Close the interpreter, free up any resources not needed
   lua_close(L);
 
