@@ -77,4 +77,15 @@ protected:
 	std::string m_luaSceneFile;
 
 	std::shared_ptr<SceneNode> m_rootNode;
+
+private:
+  struct Mouse {
+    double x;
+    double y;
+    double prevX;
+    double prevY;
+    bool isRightButtonPressed = false;
+    bool isLeftButtonPressed = false;
+    bool isMiddleButtonPressed = false;
+  } mouse;
 };

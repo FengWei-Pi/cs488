@@ -57,6 +57,7 @@ void A5::init()
 
   glGenVertexArrays(1, &m_vao_arcCircle);
   glGenVertexArrays(1, &m_vao_meshData);
+
   enableVertexShaderInputSlots();
 
   processLuaSceneFile(m_luaSceneFile);
@@ -303,6 +304,8 @@ void A5::appLogic()
   // Place per frame, application logic here ...
 
   uploadCommonSceneUniforms();
+  mouse.prevX = mouse.x;
+  mouse.prevY = mouse.y;
 }
 
 //----------------------------------------------------------------------------------------
@@ -337,6 +340,7 @@ void A5::guiLogic()
     glfwSetWindowShouldClose(m_window, GL_TRUE);
   }
 
+  ImGui::Text("Cursor: (%.1f, %.1f)", mouse.x, mouse.y);
   ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
   ImGui::End();
@@ -414,11 +418,7 @@ void A5::renderSceneGraph(SceneNode & root) {
     }
 
     glm::mat4 calculateM(const glm::mat4& trans) const {
-      if (transforms.size() > 0) {
-        return transforms.top() * trans;
-      }
-
-      return trans;
+      return transforms.size() > 0 ? transforms.top() * trans : trans;
     }
 
     A5& self;
@@ -537,11 +537,11 @@ bool A5::mouseMoveEvent (
   double xPos,
   double yPos
 ) {
-  bool eventHandled(false);
-
-  // Fill in with event handling code...
-
-  return eventHandled;
+  mouse.prevX = mouse.x;
+  mouse.prevY = mouse.y;
+  mouse.x = xPos * double(m_framebufferWidth) / double(m_windowWidth);
+  mouse.y = (m_windowHeight - yPos) * double(m_framebufferHeight) / double(m_windowHeight);
+  return true;
 }
 
 //----------------------------------------------------------------------------------------
@@ -550,14 +550,46 @@ bool A5::mouseMoveEvent (
  */
 bool A5::mouseButtonInputEvent (
   int button,
-  int actions,
+  int action,
   int mods
 ) {
-  bool eventHandled(false);
 
-  // Fill in with event handling code...
+  if (action == GLFW_PRESS) {
+    switch (button) {
+      case GLFW_MOUSE_BUTTON_LEFT: {
+        mouse.isLeftButtonPressed = true;
+        return true;
+      }
+      case GLFW_MOUSE_BUTTON_RIGHT: {
+        mouse.isRightButtonPressed = true;
+        return true;
+      }
+      case GLFW_MOUSE_BUTTON_MIDDLE: {
+        mouse.isMiddleButtonPressed = true;
+        return true;
+      }
+    }
+  }
 
-  return eventHandled;
+
+  if (action == GLFW_RELEASE) {
+    switch (button) {
+      case GLFW_MOUSE_BUTTON_LEFT: {
+        mouse.isLeftButtonPressed = false;
+        return true;
+      }
+      case GLFW_MOUSE_BUTTON_RIGHT: {
+        mouse.isRightButtonPressed = false;
+        return true;
+      }
+      case GLFW_MOUSE_BUTTON_MIDDLE: {
+        mouse.isMiddleButtonPressed = false;
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 //----------------------------------------------------------------------------------------
