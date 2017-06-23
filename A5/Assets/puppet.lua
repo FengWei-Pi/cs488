@@ -3,9 +3,9 @@
 -- looks roughly humanoid.
 
 rootnode = gr.node('root')
-rootnode:rotate('y', -5.0)
+rootnode:rotate('y', 180)
 rootnode:scale( 0.5, 0.5, 0.5 )
-rootnode:translate(0.0, 0.0, -10.0)
+rootnode:translate(0.0, 0.0, 0.0)
 
 red = gr.material({1.0, 0.0, 0.0}, {0.1, 0.1, 0.1}, 10)
 blue = gr.material({0.0, 0.0, 1.0}, {0.1, 0.1, 0.1}, 10)

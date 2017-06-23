@@ -243,8 +243,11 @@ void A5::initPerspectiveMatrix()
 
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
-  m_view = glm::lookAt(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f),
-                       vec3(0.0f, 1.0f, 0.0f));
+  m_view = glm::lookAt(
+    vec3(0.0f, 0.0f, 10.0f),
+    vec3(0.0f, 0.0f, -1.0f),
+    vec3(0.0f, 1.0f, 0.0f)
+  );
 }
 
 //----------------------------------------------------------------------------------------
@@ -291,6 +294,12 @@ void A5::uploadCommonSceneUniforms() {
 void A5::appLogic()
 {
   // Place per frame, application logic here ...
+
+  if (mouse.isLeftButtonPressed) {
+    float disp = mouse.x - mouse.prevX;
+
+    m_view = m_view * glm::rotate(glm::mat4(), disp/100, glm::vec3(0, 1, 0));
+  }
 
   uploadCommonSceneUniforms();
   mouse.prevX = mouse.x;
@@ -407,13 +416,16 @@ void A5::renderSceneGraph(SceneNode & root) {
     }
 
     glm::mat4 calculateM(const glm::mat4& trans) const {
-      return transforms.size() > 0 ? transforms.top() * trans : trans;
+      assert(transforms.size() > 0);
+      return transforms.top() * trans;
     }
 
     A5& self;
 
   public:
-    Renderer(A5& self) : self(self) {}
+    Renderer(A5& self) : self(self) {
+      transforms.push(self.m_view);
+    }
 
     void visit(SceneNode& node) {
       const glm::mat4 M = calculateM(node.trans);
