@@ -38,8 +38,7 @@ A5::A5()
 
 //----------------------------------------------------------------------------------------
 // Destructor
-A5::~A5()
-{
+A5::~A5() {
 
 }
 
@@ -59,7 +58,8 @@ void A5::init()
 
   enableVertexShaderInputSlots();
 
-  m_rootNode = readLuaSceneFile(getAssetFilePath("puppet.lua"));
+  puppet = readLuaSceneFile(getAssetFilePath("puppet.lua"));
+  level1 = readLuaSceneFile(getAssetFilePath("level1.lua"));
 
   // Load and decode all .obj files at once here.  You may add additional .obj files to
   // this list in order to support rendering additional mesh types.  All vertex
@@ -383,8 +383,8 @@ static void updateShaderUniforms(
 void A5::draw() {
 
   glEnable( GL_DEPTH_TEST );
-  renderSceneGraph(*m_rootNode);
-
+  renderSceneGraph(*puppet);
+  renderSceneGraph(*level1);
 
   glDisable( GL_DEPTH_TEST );
   renderArcCircle();

@@ -76,7 +76,8 @@ protected:
 
 	std::string m_luaSceneFile;
 
-	std::shared_ptr<SceneNode> m_rootNode;
+	std::shared_ptr<SceneNode> level1;
+  std::shared_ptr<SceneNode> puppet;
 
 private:
   struct Mouse {
