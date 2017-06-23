@@ -24,9 +24,8 @@ const size_t CIRCLE_PTS = 48;
 
 //----------------------------------------------------------------------------------------
 // Constructor
-A5::A5(const std::string & luaSceneFile)
-  : m_luaSceneFile(luaSceneFile),
-    m_positionAttribLocation(0),
+A5::A5()
+  : m_positionAttribLocation(0),
     m_normalAttribLocation(0),
     m_vao_meshData(0),
     m_vbo_vertexPositions(0),
@@ -60,7 +59,7 @@ void A5::init()
 
   enableVertexShaderInputSlots();
 
-  processLuaSceneFile(m_luaSceneFile);
+  m_rootNode = readLuaSceneFile(getAssetFilePath("puppet.lua"));
 
   // Load and decode all .obj files at once here.  You may add additional .obj files to
   // this list in order to support rendering additional mesh types.  All vertex
@@ -94,20 +93,10 @@ void A5::init()
   // this point.
 }
 
-//----------------------------------------------------------------------------------------
-void A5::processLuaSceneFile(const std::string & filename) {
-  // This version of the code treats the Lua file as an Asset,
-  // so that you'd launch the program with just the filename
-  // of a puppet in the Assets/ directory.
-  // std::string assetFilePath = getAssetFilePath(filename.c_str());
-  // m_rootNode = std::shared_ptr<SceneNode>(import_lua(assetFilePath));
-
-  // This version of the code treats the main program argument
-  // as a straightforward pathname.
-  m_rootNode = std::shared_ptr<SceneNode>(import_lua(filename));
-  if (!m_rootNode) {
-    std::cerr << "Could not open " << filename << std::endl;
-  }
+std::shared_ptr<SceneNode> A5::readLuaSceneFile(const std::string& filename) {
+  SceneNode* root = import_lua(filename);
+  assert(root != NULL);
+  return std::shared_ptr<SceneNode>(root);
 }
 
 //----------------------------------------------------------------------------------------

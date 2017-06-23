@@ -18,7 +18,7 @@ struct LightSource {
 
 class A5 : public CS488Window {
 public:
-	A5(const std::string & luaSceneFile);
+	A5();
 	virtual ~A5();
 
 protected:
@@ -37,7 +37,7 @@ protected:
 	virtual bool keyInputEvent(int key, int action, int mods) override;
 
 	//-- One time initialization methods:
-	void processLuaSceneFile(const std::string & filename);
+  std::shared_ptr<SceneNode> readLuaSceneFile(const std::string& filename);
 	void createShaderProgram();
 	void enableVertexShaderInputSlots();
 	void uploadVertexDataToVbos(const MeshConsolidator & meshConsolidator);
