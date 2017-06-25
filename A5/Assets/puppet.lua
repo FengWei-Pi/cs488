@@ -4,7 +4,6 @@
 
 rootnode = gr.node('root')
 rootnode:rotate('y', 180)
-rootnode:rotate('x', -25)
 rootnode:scale( 0.5, 0.5, 0.5 )
 rootnode:translate(0.0, 0.0, 0.0)
 
@@ -30,7 +29,7 @@ NECK = {0.5, 0.5, 0.5}
 TORSO = {2, 4, 0.5}
 
 function createPuppet()
-  body = gr.node('body');
+  body = gr.joint('body', {-180, 0, 180}, {-180, 0, 180});
   torso = gr.mesh('cube', 'torso');
   head = createHead();
   rightArm = createArm('right');

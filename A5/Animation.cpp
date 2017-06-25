@@ -35,6 +35,14 @@ Keyframe Animation::get(double t) {
         interpolation.rotations[jointName] = (1 - t) * iRotation + t * jRotation;
       }
 
+      for (std::pair<std::string, glm::vec3> pair: I.positions) {
+        const std::string& jointName = pair.first;
+        const glm::vec3& iPosition = pair.second;
+        const glm::vec3& jPosition = J.positions.at(jointName);
+
+        interpolation.positions[jointName] = float(1 - t) * iPosition + float(t) * jPosition;
+      }
+
       return interpolation;
     }
   }

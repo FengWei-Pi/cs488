@@ -15,6 +15,7 @@ using namespace std;
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext.hpp>
 #include <stack>
 #include <cassert>
 #include <chrono>
@@ -36,9 +37,13 @@ A5::A5()
     m_vao_arcCircle(0),
     m_vbo_arcCircle(0),
     t_start(std::chrono::high_resolution_clock::now()),
-    playerWalkingAnimation(0.2)
+    playerWalkingAnimation(0.1)
 {
+  double bodyXRotation = 25;
+  float yDispScale = 0.5;
   Keyframe one;
+  one.rotations["body"] = bodyXRotation;
+  one.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
   one.rotations["head-joint"] = 0;
   one.rotations["neck-joint"] = 0;
 
@@ -61,6 +66,8 @@ A5::A5()
   playerWalkingAnimation.push(one);
 
   Keyframe two;
+  two.rotations["body"] = bodyXRotation;
+  two.positions["body"] = glm::vec3(0, -0.5, 0) * yDispScale;
   two.rotations["head-joint"] = 0;
   two.rotations["neck-joint"] = 0;
 
@@ -83,6 +90,8 @@ A5::A5()
   playerWalkingAnimation.push(two);
 
   Keyframe three;
+  three.rotations["body"] = bodyXRotation;
+  three.positions["body"] = glm::vec3(0, -0.25, 0) * yDispScale;
   three.rotations["head-joint"] = 0;
   three.rotations["neck-joint"] = 0;
 
@@ -105,6 +114,8 @@ A5::A5()
   playerWalkingAnimation.push(three);
 
   Keyframe four;
+  four.rotations["body"] = bodyXRotation;
+  four.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
   four.rotations["head-joint"] = 0;
   four.rotations["neck-joint"] = 0;
 
@@ -128,6 +139,8 @@ A5::A5()
 
 
   Keyframe five;
+  five.rotations["body"] = bodyXRotation;
+  five.positions["body"] = glm::vec3(0, 0.4, 0) * yDispScale;
   five.rotations["head-joint"] = 0;
   five.rotations["neck-joint"] = 0;
 
@@ -150,6 +163,8 @@ A5::A5()
   playerWalkingAnimation.push(five);
 
   Keyframe six;
+  six.rotations["body"] = bodyXRotation;
+  six.positions["body"] = glm::vec3(0, 0.25, 0) * yDispScale;
   six.rotations["head-joint"] = 0;
   six.rotations["neck-joint"] = 0;
 
@@ -169,9 +184,11 @@ A5::A5()
   six.rotations["right-lower-leg-joint"] = 60;
   six.rotations["right-foot-joint"] = 15;
 
-  playerWalkingAnimation.push(six); 
+  playerWalkingAnimation.push(six);
 
   Keyframe seven;
+  seven.rotations["body"] = bodyXRotation;
+  seven.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
   seven.rotations["head-joint"] = 0;
   seven.rotations["neck-joint"] = 0;
 
@@ -194,6 +211,8 @@ A5::A5()
   playerWalkingAnimation.push(seven);
 
   Keyframe eight;
+  eight.rotations["body"] = bodyXRotation;
+  eight.positions["body"] = glm::vec3(0, -0.5, 0) * yDispScale;
   eight.rotations["head-joint"] = 0;
   eight.rotations["neck-joint"] = 0;
 
@@ -216,6 +235,8 @@ A5::A5()
   playerWalkingAnimation.push(eight);
 
   Keyframe nine;
+  nine.rotations["body"] = bodyXRotation;
+  nine.positions["body"] = glm::vec3(0, -0.25, 0) * yDispScale;
   nine.rotations["head-joint"] = 0;
   nine.rotations["neck-joint"] = 0;
 
@@ -238,6 +259,8 @@ A5::A5()
   playerWalkingAnimation.push(nine);
 
   Keyframe ten;
+  ten.rotations["body"] = bodyXRotation;
+  ten.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
   ten.rotations["head-joint"] = 0;
   ten.rotations["neck-joint"] = 0;
 
@@ -260,6 +283,8 @@ A5::A5()
   playerWalkingAnimation.push(ten);
 
   Keyframe eleven;
+  eleven.rotations["body"] = bodyXRotation;
+  eleven.positions["body"] = glm::vec3(0, 0.4, 0) * yDispScale;
   eleven.rotations["head-joint"] = 0;
   eleven.rotations["neck-joint"] = 0;
 
@@ -282,6 +307,8 @@ A5::A5()
   playerWalkingAnimation.push(eleven);
 
   Keyframe twelve;
+  twelve.rotations["body"] = bodyXRotation;
+  twelve.positions["body"] = glm::vec3(0, 0.25, 0) * yDispScale;
   twelve.rotations["head-joint"] = 0;
   twelve.rotations["neck-joint"] = 0;
 
@@ -301,7 +328,7 @@ A5::A5()
   twelve.rotations["right-lower-leg-joint"] = 60;
   twelve.rotations["right-foot-joint"] = -10;
 
-  playerWalkingAnimation.push(twelve); 
+  playerWalkingAnimation.push(twelve);
 }
 
 double A5::getTime() {
@@ -740,6 +767,7 @@ void A5::renderSceneGraph(SceneNode & root) {
           node.m_joint_x.max
         )
       );
+
       float yRotation = glm::radians(
         glm::clamp(
           node.m_joint_y.init,
@@ -750,6 +778,10 @@ void A5::renderSceneGraph(SceneNode & root) {
 
       M = M * glm::rotate(glm::mat4(), yRotation, glm::vec3(0, 1, 0));
       M = M * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
+
+      if (frame.positions.find(node.m_name) != frame.positions.end()) {
+        M = glm::translate(glm::mat4(), frame.positions.at(node.m_name)) * M;
+      }
 
       transforms.push(M);
       visitChildren(node.children);
