@@ -396,7 +396,7 @@ void A5::draw() {
   renderSceneGraph(*level1);
 
   glDisable( GL_DEPTH_TEST );
-  renderArcCircle();
+  // renderArcCircle();
 }
 
 
