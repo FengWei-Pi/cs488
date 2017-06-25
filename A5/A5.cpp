@@ -7,6 +7,8 @@ using namespace std;
 #include "Visitor.hpp"
 #include "GeometryNode.hpp"
 #include "JointNode.hpp"
+#include "Keyframe.hpp"
+#include "Animation.hpp"
 
 #include <imgui/imgui.h>
 
@@ -15,6 +17,7 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 #include <stack>
 #include <cassert>
+#include <chrono>
 
 using namespace glm;
 
@@ -31,9 +34,279 @@ A5::A5()
     m_vbo_vertexPositions(0),
     m_vbo_vertexNormals(0),
     m_vao_arcCircle(0),
-    m_vbo_arcCircle(0)
+    m_vbo_arcCircle(0),
+    t_start(std::chrono::high_resolution_clock::now()),
+    playerWalkingAnimation(0.2)
 {
+  Keyframe one;
+  one.rotations["head-joint"] = 0;
+  one.rotations["neck-joint"] = 0;
 
+  one.rotations["left-upper-arm-joint"] = -20;
+  one.rotations["left-lower-arm-joint"] = -100;
+  one.rotations["left-hand-joint"] = 0;
+
+  one.rotations["right-upper-arm-joint"] = 60;
+  one.rotations["right-lower-arm-joint"] = -45;
+  one.rotations["right-hand-joint"] = 0;
+
+  one.rotations["left-upper-leg-joint"] = 0;
+  one.rotations["left-lower-leg-joint"] = 90;
+  one.rotations["left-foot-joint"] = 0;
+
+  one.rotations["right-upper-leg-joint"] = -45;
+  one.rotations["right-lower-leg-joint"] = 0;
+  one.rotations["right-foot-joint"] = 0;
+
+  playerWalkingAnimation.push(one);
+
+  Keyframe two;
+  two.rotations["head-joint"] = 0;
+  two.rotations["neck-joint"] = 0;
+
+  two.rotations["left-upper-arm-joint"] = -20;
+  two.rotations["left-lower-arm-joint"] = -90;
+  two.rotations["left-hand-joint"] = 0;
+
+  two.rotations["right-upper-arm-joint"] = 40;
+  two.rotations["right-lower-arm-joint"] = -15;
+  two.rotations["right-hand-joint"] = 0;
+
+  two.rotations["left-upper-leg-joint"] = -10;
+  two.rotations["left-lower-leg-joint"] = 90;
+  two.rotations["left-foot-joint"] = 20;
+
+  two.rotations["right-upper-leg-joint"] = -45;
+  two.rotations["right-lower-leg-joint"] = 45;
+  two.rotations["right-foot-joint"] = -15;
+
+  playerWalkingAnimation.push(two);
+
+  Keyframe three;
+  three.rotations["head-joint"] = 0;
+  three.rotations["neck-joint"] = 0;
+
+  three.rotations["left-upper-arm-joint"] = 0;
+  three.rotations["left-lower-arm-joint"] = -30;
+  three.rotations["left-hand-joint"] = 0;
+
+  three.rotations["right-upper-arm-joint"] = 0;
+  three.rotations["right-lower-arm-joint"] = -5;
+  three.rotations["right-hand-joint"] = 0;
+
+  three.rotations["left-upper-leg-joint"] = -30;
+  three.rotations["left-lower-leg-joint"] = 60;
+  three.rotations["left-foot-joint"] = 20;
+
+  three.rotations["right-upper-leg-joint"] = -20;
+  three.rotations["right-lower-leg-joint"] = 30;
+  three.rotations["right-foot-joint"] = -15;
+
+  playerWalkingAnimation.push(three);
+
+  Keyframe four;
+  four.rotations["head-joint"] = 0;
+  four.rotations["neck-joint"] = 0;
+
+  four.rotations["left-upper-arm-joint"] = 15;
+  four.rotations["left-lower-arm-joint"] = -20;
+  four.rotations["left-hand-joint"] = 0;
+
+  four.rotations["right-upper-arm-joint"] = 0;
+  four.rotations["right-lower-arm-joint"] = -80;
+  four.rotations["right-hand-joint"] = 0;
+
+  four.rotations["left-upper-leg-joint"] = -90;
+  four.rotations["left-lower-leg-joint"] = 90;
+  four.rotations["left-foot-joint"] = 20;
+
+  four.rotations["right-upper-leg-joint"] = -10;
+  four.rotations["right-lower-leg-joint"] = 10;
+  four.rotations["right-foot-joint"] = 0;
+
+  playerWalkingAnimation.push(four);
+
+
+  Keyframe five;
+  five.rotations["head-joint"] = 0;
+  five.rotations["neck-joint"] = 0;
+
+  five.rotations["left-upper-arm-joint"] = 30;
+  five.rotations["left-lower-arm-joint"] = -30;
+  five.rotations["left-hand-joint"] = 0;
+
+  five.rotations["right-upper-arm-joint"] = 0;
+  five.rotations["right-lower-arm-joint"] = -90;
+  five.rotations["right-hand-joint"] = 0;
+
+  five.rotations["left-upper-leg-joint"] = -90;
+  five.rotations["left-lower-leg-joint"] = 70;
+  five.rotations["left-foot-joint"] = 10;
+
+  five.rotations["right-upper-leg-joint"] = 15;
+  five.rotations["right-lower-leg-joint"] = 0;
+  five.rotations["right-foot-joint"] = 20;
+
+  playerWalkingAnimation.push(five);
+
+  Keyframe six;
+  six.rotations["head-joint"] = 0;
+  six.rotations["neck-joint"] = 0;
+
+  six.rotations["left-upper-arm-joint"] = 45;
+  six.rotations["left-lower-arm-joint"] = -30;
+  six.rotations["left-hand-joint"] = 0;
+
+  six.rotations["right-upper-arm-joint"] = -30;
+  six.rotations["right-lower-arm-joint"] = -95;
+  six.rotations["right-hand-joint"] = 0;
+
+  six.rotations["left-upper-leg-joint"] = -90;
+  six.rotations["left-lower-leg-joint"] = 60;
+  six.rotations["left-foot-joint"] = -10;
+
+  six.rotations["right-upper-leg-joint"] = 0;
+  six.rotations["right-lower-leg-joint"] = 60;
+  six.rotations["right-foot-joint"] = 15;
+
+  playerWalkingAnimation.push(six); 
+
+  Keyframe seven;
+  seven.rotations["head-joint"] = 0;
+  seven.rotations["neck-joint"] = 0;
+
+  seven.rotations["left-upper-arm-joint"] = 60;
+  seven.rotations["left-lower-arm-joint"] = -45;
+  seven.rotations["left-hand-joint"] = 0;
+
+  seven.rotations["right-upper-arm-joint"] = -20;
+  seven.rotations["right-lower-arm-joint"] = -100;
+  seven.rotations["right-hand-joint"] = 0;
+
+  seven.rotations["left-upper-leg-joint"] = -45;
+  seven.rotations["left-lower-leg-joint"] = 0;
+  seven.rotations["left-foot-joint"] = 0;
+
+  seven.rotations["right-upper-leg-joint"] = 0;
+  seven.rotations["right-lower-leg-joint"] = 90;
+  seven.rotations["right-foot-joint"] = 0;
+
+  playerWalkingAnimation.push(seven);
+
+  Keyframe eight;
+  eight.rotations["head-joint"] = 0;
+  eight.rotations["neck-joint"] = 0;
+
+  eight.rotations["left-upper-arm-joint"] = 40;
+  eight.rotations["left-lower-arm-joint"] = -15;
+  eight.rotations["left-hand-joint"] = 0;
+
+  eight.rotations["right-upper-arm-joint"] = -20;
+  eight.rotations["right-lower-arm-joint"] = -90;
+  eight.rotations["right-hand-joint"] = 0;
+
+  eight.rotations["left-upper-leg-joint"] = -45;
+  eight.rotations["left-lower-leg-joint"] = 45;
+  eight.rotations["left-foot-joint"] = -15;
+
+  eight.rotations["right-upper-leg-joint"] = -10;
+  eight.rotations["right-lower-leg-joint"] = 90;
+  eight.rotations["right-foot-joint"] = 20;
+
+  playerWalkingAnimation.push(eight);
+
+  Keyframe nine;
+  nine.rotations["head-joint"] = 0;
+  nine.rotations["neck-joint"] = 0;
+
+  nine.rotations["left-upper-arm-joint"] = 0;
+  nine.rotations["left-lower-arm-joint"] = -5;
+  nine.rotations["left-hand-joint"] = 0;
+
+  nine.rotations["right-upper-arm-joint"] = 0;
+  nine.rotations["right-lower-arm-joint"] = -30;
+  nine.rotations["right-hand-joint"] = 0;
+
+  nine.rotations["left-upper-leg-joint"] = -20;
+  nine.rotations["left-lower-leg-joint"] = 30;
+  nine.rotations["left-foot-joint"] = -15;
+
+  nine.rotations["right-upper-leg-joint"] = -30;
+  nine.rotations["right-lower-leg-joint"] = 60;
+  nine.rotations["right-foot-joint"] = 20;
+
+  playerWalkingAnimation.push(nine);
+
+  Keyframe ten;
+  ten.rotations["head-joint"] = 0;
+  ten.rotations["neck-joint"] = 0;
+
+  ten.rotations["right-upper-arm-joint"] = 15;
+  ten.rotations["right-lower-arm-joint"] = -20;
+  ten.rotations["right-hand-joint"] = 0;
+
+  ten.rotations["left-upper-arm-joint"] = 0;
+  ten.rotations["left-lower-arm-joint"] = -80;
+  ten.rotations["left-hand-joint"] = 0;
+
+  ten.rotations["right-upper-leg-joint"] = -90;
+  ten.rotations["right-lower-leg-joint"] = 90;
+  ten.rotations["right-foot-joint"] = 20;
+
+  ten.rotations["left-upper-leg-joint"] = -10;
+  ten.rotations["left-lower-leg-joint"] = 10;
+  ten.rotations["left-foot-joint"] = 0;
+
+  playerWalkingAnimation.push(ten);
+
+  Keyframe eleven;
+  eleven.rotations["head-joint"] = 0;
+  eleven.rotations["neck-joint"] = 0;
+
+  eleven.rotations["left-upper-arm-joint"] = 0;
+  eleven.rotations["left-lower-arm-joint"] = -90;
+  eleven.rotations["left-hand-joint"] = 0;
+
+  eleven.rotations["right-upper-arm-joint"] = 30;
+  eleven.rotations["right-lower-arm-joint"] = -30;
+  eleven.rotations["right-hand-joint"] = 0;
+
+  eleven.rotations["left-upper-leg-joint"] = 15;
+  eleven.rotations["left-lower-leg-joint"] = 0;
+  eleven.rotations["left-foot-joint"] = 20;
+
+  eleven.rotations["right-upper-leg-joint"] = -90;
+  eleven.rotations["right-lower-leg-joint"] = 70;
+  eleven.rotations["right-foot-joint"] = 10;
+
+  playerWalkingAnimation.push(eleven);
+
+  Keyframe twelve;
+  twelve.rotations["head-joint"] = 0;
+  twelve.rotations["neck-joint"] = 0;
+
+  twelve.rotations["left-upper-arm-joint"] = -30;
+  twelve.rotations["left-lower-arm-joint"] = -95;
+  twelve.rotations["left-hand-joint"] = 0;
+
+  twelve.rotations["right-upper-arm-joint"] = 45;
+  twelve.rotations["right-lower-arm-joint"] = -30;
+  twelve.rotations["right-hand-joint"] = 0;
+
+  twelve.rotations["left-upper-leg-joint"] = 0;
+  twelve.rotations["left-lower-leg-joint"] = 60;
+  twelve.rotations["left-foot-joint"] = 15;
+
+  twelve.rotations["right-upper-leg-joint"] = -90;
+  twelve.rotations["right-lower-leg-joint"] = 60;
+  twelve.rotations["right-foot-joint"] = -10;
+
+  playerWalkingAnimation.push(twelve); 
+}
+
+double A5::getTime() {
+  auto t_now = std::chrono::high_resolution_clock::now();
+  return std::chrono::duration_cast<std::chrono::duration<double> >(t_now - t_start).count();
 }
 
 //----------------------------------------------------------------------------------------
@@ -407,7 +680,7 @@ void A5::renderSceneGraph(SceneNode & root) {
   // Bind the VAO once here, and reuse for all GeometryNode rendering below.
   glBindVertexArray(m_vao_meshData);
 
-  class Renderer : public Visitor {
+  class AnimationRenderer : public Visitor {
     std::stack<glm::mat4> transforms;
     void visitChildren(std::list<SceneNode*>& children) {
       for (SceneNode * child : children) {
@@ -421,9 +694,10 @@ void A5::renderSceneGraph(SceneNode & root) {
     }
 
     A5& self;
+    Keyframe& frame;
 
   public:
-    Renderer(A5& self) : self(self) {
+    AnimationRenderer(A5& self, Keyframe& frame) : self(self), frame(frame) {
       transforms.push(self.m_view);
     }
 
@@ -453,9 +727,15 @@ void A5::renderSceneGraph(SceneNode & root) {
 
     void visit(JointNode& node) {
       glm::mat4 M = calculateM(node.trans);
+
+      float xAnimationRotation = 0;
+      if (frame.rotations.find(node.m_name) != frame.rotations.end()) {
+        xAnimationRotation = frame.rotations.at(node.m_name);
+      }
+
       float xRotation = glm::radians(
         glm::clamp(
-          node.m_joint_x.init,
+          node.m_joint_x.init + xAnimationRotation,
           node.m_joint_x.min,
           node.m_joint_x.max
         )
@@ -477,7 +757,8 @@ void A5::renderSceneGraph(SceneNode & root) {
     }
   };
 
-  Renderer renderer{*this};
+  Keyframe frame = playerWalkingAnimation.get(getTime());
+  AnimationRenderer renderer{*this, frame};
 
   root.accept(renderer);
 

@@ -6,9 +6,12 @@
 #include "cs488-framework/MeshConsolidator.hpp"
 
 #include "SceneNode.hpp"
+#include "Animation.hpp"
+#include "Keyframe.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
+#include <chrono>
 
 struct LightSource {
 	glm::vec3 position;
@@ -89,4 +92,9 @@ private:
     bool isLeftButtonPressed = false;
     bool isMiddleButtonPressed = false;
   } mouse;
+
+  std::chrono::high_resolution_clock::time_point t_start;
+  double getTime();
+
+  Animation playerWalkingAnimation;
 };

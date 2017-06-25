@@ -4,6 +4,7 @@
 
 rootnode = gr.node('root')
 rootnode:rotate('y', 180)
+rootnode:rotate('x', -25)
 rootnode:scale( 0.5, 0.5, 0.5 )
 rootnode:translate(0.0, 0.0, 0.0)
 
@@ -120,7 +121,7 @@ function createLeg(name)
   upperLeg = gr.mesh('cube', name .. '-upper-leg');
   lowerLegJoint = gr.joint(name .. '-lower-leg-joint', {0, 0, 130}, {-30, 0, 30});
   lowerLeg = gr.mesh('cube', name .. '-lower-leg');
-  footJoint = gr.joint(name .. '-foot-joint', {-20, 10, 20}, {-20, 0, 20});
+  footJoint = gr.joint(name .. '-foot-joint', {-15, 0, 25}, {-20, 0, 20});
   foot = gr.mesh('cube', name .. '-foot');
 
   upperLeg:set_material(red);
