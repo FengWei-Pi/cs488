@@ -1,0 +1,5 @@
+* Questions 
+  - How long should the statement of work be?
+  - What exactly goes in the Technical Outline?
+    - Suppose I have an idea for my project. From that point onwards, would I select objectives I want to achieve. Then, for each objective, describe how you're going to complete it and also cite papers/articles/books that will help you complete the objective?
+  - Can I simply list the objectives I want to complete? Or do I need to describe how my idea will enable me to complete the objective?
