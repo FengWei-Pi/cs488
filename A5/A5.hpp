@@ -12,6 +12,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <chrono>
+#include <set>
 
 struct LightSource {
 	glm::vec3 position;
@@ -51,6 +52,7 @@ protected:
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
 	void renderSceneGraph(SceneNode &node);
+  void renderAnimatedSceneGraph(SceneNode &node, Animation& animation);
 	void renderArcCircle();
 
 	glm::mat4 m_perpsective;
@@ -97,4 +99,8 @@ private:
   double getTime();
 
   Animation playerWalkingAnimation;
+  Animation playerStandingAnimation;
+  Animation* currentAnimation;
+
+  std::set<int> keysPressed;
 };

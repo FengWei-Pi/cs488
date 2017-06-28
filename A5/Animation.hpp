@@ -9,4 +9,6 @@ public:
   Animation(const double delta);
   void push(Keyframe kf);
   Keyframe get(double t);
+  static Animation getPlayerWalkingAnimation(double t);
+  static Animation getPlayerStandingAnimation();
 };
