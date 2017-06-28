@@ -313,7 +313,12 @@ void A5::appLogic()
     m_view = m_view * glm::rotate(glm::mat4(), dispX/100, glm::vec3(0, 1, 0));
   }
 
-  if (keysPressed.find(GLFW_KEY_UP) != keysPressed.end()) {
+  const bool isWalkingForward = keysPressed.find(GLFW_KEY_UP) != keysPressed.end();
+  const bool isWalkingLeft = keysPressed.find(GLFW_KEY_LEFT) != keysPressed.end();
+  const bool isWalkingRight = keysPressed.find(GLFW_KEY_RIGHT) != keysPressed.end();
+  const bool isWalkingBack = keysPressed.find(GLFW_KEY_DOWN) != keysPressed.end();
+
+  if (isWalkingBack || isWalkingRight || isWalkingForward || isWalkingLeft) {
     currentAnimation = &playerWalkingAnimation;
   } else {
     currentAnimation = &playerStandingAnimation;
@@ -419,7 +424,7 @@ void A5::draw() {
 }
 
 //----------------------------------------------------------------------------------------
-void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation) {
+void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation, glm::mat4 model) {
 
   // Bind the VAO once here, and reuse for all GeometryNode rendering below.
   glBindVertexArray(m_vao_meshData);
@@ -441,8 +446,8 @@ void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation) {
     Keyframe& frame;
 
   public:
-    AnimationRenderer(A5& self, Keyframe& frame) : self(self), frame(frame) {
-      transforms.push(self.m_view);
+    AnimationRenderer(A5& self, Keyframe& frame, glm::mat4 T) : self(self), frame(frame) {
+      transforms.push(T);
     }
 
     void visit(SceneNode& node) {
@@ -507,7 +512,7 @@ void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation) {
   };
 
   Keyframe frame = animation.get(getTime());
-  AnimationRenderer renderer{*this, frame};
+  AnimationRenderer renderer{*this, frame, m_view * model};
 
   root.accept(renderer);
 
@@ -517,7 +522,7 @@ void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation) {
 
 
 //----------------------------------------------------------------------------------------
-void A5::renderSceneGraph(SceneNode & root) {
+void A5::renderSceneGraph(SceneNode & root, glm::mat4 model) {
 
   // Bind the VAO once here, and reuse for all GeometryNode rendering below.
   glBindVertexArray(m_vao_meshData);
@@ -538,8 +543,8 @@ void A5::renderSceneGraph(SceneNode & root) {
     A5& self;
 
   public:
-    Renderer(A5& self) : self(self) {
-      transforms.push(self.m_view);
+    Renderer(A5& self, glm::mat4 T) : self(self) {
+      transforms.push(T);
     }
 
     void visit(SceneNode& node) {
@@ -594,7 +599,7 @@ void A5::renderSceneGraph(SceneNode & root) {
     }
   };
 
-  Renderer renderer{*this};
+  Renderer renderer{*this, m_view * model};
 
   root.accept(renderer);
 
