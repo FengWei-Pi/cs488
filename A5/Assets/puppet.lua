@@ -3,7 +3,6 @@
 -- looks roughly humanoid.
 
 rootnode = gr.node('root')
-rootnode:rotate('y', 180)
 rootnode:scale( 0.5, 0.5, 0.5 )
 rootnode:translate(0.0, 0.0, 0.0)
 

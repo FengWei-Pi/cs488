@@ -109,6 +109,7 @@ private:
   std::set<int> keysPressed;
 
   struct Player {
+    double direction = 3.14; // computed value of velocity for rendering purposes
     glm::vec4 position;
     glm::vec4 velocity;
     glm::vec4 acceleration;

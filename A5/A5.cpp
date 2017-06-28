@@ -327,23 +327,33 @@ void A5::appLogic()
   double vx = 0;
   double vz = 0;
 
+  double diff = 0.1;
+
   if (isWalkingLeft) {
-    vx -= 1;
+    vx -= diff;
   }
 
   if (isWalkingRight) {
-    vx += 1;
+    vx += diff;
   }
 
   if (isWalkingForward) {
-    vz += 1;
+    vz -= diff;
   }
 
   if (isWalkingBack) {
-    vz -= 1;
+    vz += diff;
   }
 
-  player.velocity = glm::vec4{vx, 0, vz, 0};
+  player.velocity = glm::vec4{vx, player.velocity.y, vz, 0};
+
+  if (glm::length(player.velocity) > 0.0001) {
+    player.direction = std::atan2(player.velocity.x, player.velocity.z);
+  }
+
+  const float t = 1;
+  player.position = 0.5f * player.acceleration * player.acceleration * t + player.velocity * t + player.position;
+  player.velocity = player.acceleration * t + player.velocity;
 
   uploadCommonSceneUniforms();
   mouse.prevX = mouse.x;
@@ -439,10 +449,10 @@ void A5::draw() {
 
   {
     // Draw player
-    float theta = std::atan2(-player.velocity.x, player.velocity.z);
-    glm::mat4 rotation = glm::rotate(glm::mat4(), theta, glm::vec3(0, 1, 0));
+    glm::mat4 rotation = glm::rotate(glm::mat4(), float(player.direction), glm::vec3(0, 1, 0));
+    glm::mat4 translation = glm::translate(glm::mat4(), glm::vec3(player.position));
 
-    renderAnimatedSceneGraph(*puppet,  *currentAnimation, rotation);
+    renderAnimatedSceneGraph(*puppet,  *currentAnimation, translation * rotation);
   }
 
   renderSceneGraph(*level1);
