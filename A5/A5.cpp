@@ -26,6 +26,8 @@ static bool show_gui = true;
 
 const size_t CIRCLE_PTS = 48;
 
+A5::Block::Block(glm::vec3 position, glm::vec3 size) : position(position), size(size) {}
+
 //----------------------------------------------------------------------------------------
 // Constructor
 A5::A5()
@@ -41,7 +43,11 @@ A5::A5()
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
     currentAnimation(&playerStandingAnimation)
 {
-  
+  const uint size = 4;
+
+  blocks.push_back(Block(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
+  blocks.push_back(Block(glm::vec3(-2, -1, -10), glm::vec3(size, 1, size)));
+  blocks.push_back(Block(glm::vec3(-2, -1, -20), glm::vec3(size, 1, size)));
 }
 
 double A5::getTime() {
@@ -71,8 +77,8 @@ void A5::init()
 
   enableVertexShaderInputSlots();
 
-  puppet = readLuaSceneFile(getAssetFilePath("puppet.lua"));
-  level1 = readLuaSceneFile(getAssetFilePath("level1.lua"));
+  puppetSceneNode = readLuaSceneFile(getAssetFilePath("puppet.lua"));
+  blockSceneNode = readLuaSceneFile(getAssetFilePath("block.lua"));
 
   // Load and decode all .obj files at once here.  You may add additional .obj files to
   // this list in order to support rendering additional mesh types.  All vertex
@@ -257,8 +263,8 @@ void A5::initPerspectiveMatrix()
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    vec3(0.0f, 0.0f, 10.0f),
-    vec3(0.0f, 0.0f, -1.0f),
+    vec3(0.0f, 5.0f, 10.0f),
+    vec3(0.0f, 3.0f, -1.0f),
     vec3(0.0f, 1.0f, 0.0f)
   );
 }
@@ -345,7 +351,7 @@ void A5::appLogic()
     vz += diff;
   }
 
-  player.velocity = glm::vec4{vx, player.velocity.y, vz, 0};
+  player.velocity = glm::vec3{vx, player.velocity.y, vz};
 
   if (glm::length(player.velocity) > 0.0001) {
     player.direction = std::atan2(player.velocity.x, player.velocity.z);
@@ -449,13 +455,20 @@ void A5::draw() {
 
   {
     // Draw player
-    glm::mat4 rotation = glm::rotate(glm::mat4(), float(player.direction), glm::vec3(0, 1, 0));
-    glm::mat4 translation = glm::translate(glm::mat4(), glm::vec3(player.position));
+    glm::mat4 rotation = glm::rotate(float(player.direction), glm::vec3(0, 1, 0));
+    glm::mat4 translation = glm::translate(glm::vec3(player.position));
 
-    renderAnimatedSceneGraph(*puppet,  *currentAnimation, translation * rotation);
+    renderAnimatedSceneGraph(*puppetSceneNode,  *currentAnimation, translation * rotation);
   }
 
-  renderSceneGraph(*level1);
+
+  {
+    for (const Block& block : blocks) {
+      glm::mat4 scale = glm::scale(block.size);
+      glm::mat4 translate = glm::translate(block.position);
+      renderSceneGraph(*blockSceneNode, translate * scale);
+    }
+  }
 
   glDisable( GL_DEPTH_TEST );
   // renderArcCircle();

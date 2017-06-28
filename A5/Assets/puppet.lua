@@ -55,6 +55,12 @@ function createPuppet()
   leftArm:translate((TORSO[1] + ARM.UPPER[1])/2, TORSO[2], 0);
   head:translate(0, TORSO[2], 0);
 
+  body:translate(
+    0,
+    LEG.UPPER[2] + LEG.LOWER[2] + LEG.FOOT[2],
+    0
+  );
+
   return body;
 end
 

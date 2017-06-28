@@ -19,7 +19,6 @@ struct LightSource {
   glm::vec3 rgbIntensity;
 };
 
-
 class A5 : public CS488Window {
 public:
   A5();
@@ -85,8 +84,8 @@ protected:
 
   std::string m_luaSceneFile;
 
-  std::shared_ptr<SceneNode> level1;
-  std::shared_ptr<SceneNode> puppet;
+  std::shared_ptr<SceneNode> blockSceneNode;
+  std::shared_ptr<SceneNode> puppetSceneNode;
 
 private:
   struct Mouse {
@@ -110,8 +109,16 @@ private:
 
   struct Player {
     double direction = 3.14; // computed value of velocity for rendering purposes
-    glm::vec4 position;
-    glm::vec4 velocity;
-    glm::vec4 acceleration;
+    glm::vec3 position;
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
   } player;
+
+  struct Block {
+    glm::vec3 position;
+    glm::vec3 size;
+    Block(glm::vec3 position, glm::vec3 size);
+  };
+
+  std::vector<Block> blocks;
 };
