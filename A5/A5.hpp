@@ -107,4 +107,10 @@ private:
   Animation* currentAnimation;
 
   std::set<int> keysPressed;
+
+  struct Player {
+    glm::vec4 position;
+    glm::vec4 velocity;
+    glm::vec4 acceleration;
+  } player;
 };

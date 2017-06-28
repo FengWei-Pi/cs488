@@ -324,6 +324,27 @@ void A5::appLogic()
     currentAnimation = &playerStandingAnimation;
   }
 
+  double vx = 0;
+  double vz = 0;
+
+  if (isWalkingLeft) {
+    vx -= 1;
+  }
+
+  if (isWalkingRight) {
+    vx += 1;
+  }
+
+  if (isWalkingForward) {
+    vz += 1;
+  }
+
+  if (isWalkingBack) {
+    vz -= 1;
+  }
+
+  player.velocity = glm::vec4{vx, 0, vz, 0};
+
   uploadCommonSceneUniforms();
   mouse.prevX = mouse.x;
   mouse.prevY = mouse.y;
@@ -416,7 +437,14 @@ void A5::draw() {
 
   glEnable( GL_DEPTH_TEST );
 
-  renderAnimatedSceneGraph(*puppet,  *currentAnimation);
+  {
+    // Draw player
+    float theta = std::atan2(-player.velocity.x, player.velocity.z);
+    glm::mat4 rotation = glm::rotate(glm::mat4(), theta, glm::vec3(0, 1, 0));
+
+    renderAnimatedSceneGraph(*puppet,  *currentAnimation, rotation);
+  }
+
   renderSceneGraph(*level1);
 
   glDisable( GL_DEPTH_TEST );
