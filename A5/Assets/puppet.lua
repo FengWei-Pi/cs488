@@ -55,6 +55,12 @@ function createPuppet()
   leftArm:translate((TORSO[1] + ARM.UPPER[1])/2, TORSO[2], 0);
   head:translate(0, TORSO[2], 0);
 
+  -- TODO:
+  -- We can scale this so that it's 1 x 1 x 1
+  -- Then, in the c++, we size it so that it matches the puppet size
+  -- Would allow us to do collisions more easily
+  -- The models would always reflect reality
+  -- Think about this.
   body:translate(
     0,
     LEG.UPPER[2] + LEG.LOWER[2] + LEG.FOOT[2],
