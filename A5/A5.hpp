@@ -101,6 +101,7 @@ private:
   std::chrono::high_resolution_clock::time_point t_start;
   double getTime();
 
+  double animationStartTime;
   Animation playerWalkingAnimation;
   Animation playerStandingAnimation;
   Animation* currentAnimation;
@@ -121,4 +122,6 @@ private:
   };
 
   std::vector<Block> blocks;
+
+  bool isKeyPressed(int key);
 };

@@ -2,7 +2,10 @@
 #include <cassert>
 #include <iostream>
 
-Animation::Animation(const double delta) : delta(delta) {
+Animation::Animation(
+  const double delta,
+  const AnimationType type
+) : delta(delta), type(type) {
 
 }
 
@@ -14,6 +17,11 @@ Keyframe Animation::get(double t) {
   assert(keyframes.size() > 0);
 
   const int n = keyframes.size();
+
+  if (type == SingleRun && t >= delta * (n - 1)) {
+    return keyframes.back();
+  }
+
   const double time = std::fmod(t, delta * n);
 
   for (int i = 0, j = 1; i < n && j < n; i += 1, j = (j + 1) % n) {
@@ -50,12 +58,12 @@ Keyframe Animation::get(double t) {
   return keyframes.back();
 }
 
-Animation Animation::getPlayerWalkingAnimation(double t) {
+Animation Animation::getPlayerWalkingAnimation(double delta) {
   double bodyXRotation = 20;
   float yDispScale = 0.5;
   Keyframe one;
 
-  Animation playerWalkingAnimation(t);
+  Animation playerWalkingAnimation{delta, Loop};
 
   one.rotations["body"] = bodyXRotation;
   one.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
@@ -349,7 +357,7 @@ Animation Animation::getPlayerWalkingAnimation(double t) {
 }
 
 Animation Animation::getPlayerStandingAnimation() {
-  Animation playerStandingAnimation{1.0};
+  Animation playerStandingAnimation{1.0, SingleRun};
 
   Keyframe one;
   one.rotations["body"] = 0;
@@ -374,6 +382,6 @@ Animation Animation::getPlayerStandingAnimation() {
   one.rotations["right-foot-joint"] = 0;
 
   playerStandingAnimation.push(one);
-  
+
   return playerStandingAnimation;
 }

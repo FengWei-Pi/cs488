@@ -39,6 +39,7 @@ A5::A5()
     m_vao_arcCircle(0),
     m_vbo_arcCircle(0),
     t_start(std::chrono::high_resolution_clock::now()),
+    animationStartTime(getTime()),
     playerWalkingAnimation(Animation::getPlayerWalkingAnimation(0.1)),
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
     currentAnimation(&playerStandingAnimation)
@@ -319,44 +320,6 @@ void A5::appLogic()
     m_view = m_view * glm::rotate(glm::mat4(), dispX/100, glm::vec3(0, 1, 0));
   }
 
-  const bool isWalkingForward = keysPressed.find(GLFW_KEY_UP) != keysPressed.end();
-  const bool isWalkingLeft = keysPressed.find(GLFW_KEY_LEFT) != keysPressed.end();
-  const bool isWalkingRight = keysPressed.find(GLFW_KEY_RIGHT) != keysPressed.end();
-  const bool isWalkingBack = keysPressed.find(GLFW_KEY_DOWN) != keysPressed.end();
-
-  if (isWalkingBack || isWalkingRight || isWalkingForward || isWalkingLeft) {
-    currentAnimation = &playerWalkingAnimation;
-  } else {
-    currentAnimation = &playerStandingAnimation;
-  }
-
-  double vx = 0;
-  double vz = 0;
-
-  double diff = 0.1;
-
-  if (isWalkingLeft) {
-    vx -= diff;
-  }
-
-  if (isWalkingRight) {
-    vx += diff;
-  }
-
-  if (isWalkingForward) {
-    vz -= diff;
-  }
-
-  if (isWalkingBack) {
-    vz += diff;
-  }
-
-  player.velocity = glm::vec3{vx, player.velocity.y, vz};
-
-  if (glm::length(player.velocity) > 0.0001) {
-    player.direction = std::atan2(player.velocity.x, player.velocity.z);
-  }
-
   const float t = 1;
   player.position = 0.5f * player.acceleration * player.acceleration * t + player.velocity * t + player.position;
   player.velocity = player.acceleration * t + player.velocity;
@@ -562,7 +525,7 @@ void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation, glm::m
     }
   };
 
-  Keyframe frame = animation.get(getTime());
+  Keyframe frame = animation.get(getTime() - animationStartTime);
   AnimationRenderer renderer{*this, frame, m_view * model};
 
   root.accept(renderer);
@@ -803,33 +766,72 @@ bool A5::keyInputEvent (
   int action,
   int mods
 ) {
-  if( action == GLFW_PRESS ) {
-    switch (key) {
-      case GLFW_KEY_M: {
+  switch (action) {
+    case GLFW_PRESS: {
+      keysPressed.insert(key);
+      if (key == GLFW_KEY_M) {
         show_gui = !show_gui;
-        return true;
       }
-      case GLFW_KEY_UP:
-      case GLFW_KEY_DOWN:
-      case GLFW_KEY_LEFT:
-      case GLFW_KEY_RIGHT: {
-        keysPressed.insert(key);
-        return true;
-      }
+      break;
+    }
+    case GLFW_RELEASE: {
+      keysPressed.erase(key);
+      break;
     }
   }
 
-  if (action == GLFW_RELEASE) {
-    switch (key) {
-      case GLFW_KEY_UP:
-      case GLFW_KEY_DOWN:
-      case GLFW_KEY_LEFT:
-      case GLFW_KEY_RIGHT: {
-        keysPressed.erase(key);
-        return true;
+  switch (key) {
+    case GLFW_KEY_DOWN:
+    case GLFW_KEY_UP:
+    case GLFW_KEY_LEFT:
+    case GLFW_KEY_RIGHT: {
+      const double epsilon = 0.0001;
+      const double dv = 0.1;
+
+      double vx = 0;
+      double vy = player.velocity.y;
+      double vz = 0;
+
+      if (isKeyPressed(GLFW_KEY_LEFT)) {
+        vx -= dv;
       }
+
+      if (isKeyPressed(GLFW_KEY_RIGHT)) {
+        vx += dv;
+      }
+
+      if (isKeyPressed(GLFW_KEY_UP)) {
+        vz -= dv;
+      }
+
+      if (isKeyPressed(GLFW_KEY_DOWN)) {
+        vz += dv;
+      }
+
+      const bool wasPuppetAlreadyWalking = glm::length(glm::vec2(player.velocity.x, player.velocity.z)) >= epsilon;
+      const bool isPuppetWalking = glm::length(glm::vec2(vx, vz)) >= epsilon;
+
+      player.velocity = glm::vec3(vx, vy, vz);
+
+      if (isPuppetWalking) {
+        if (!wasPuppetAlreadyWalking) {
+          animationStartTime = getTime();
+          currentAnimation = &playerWalkingAnimation;
+        }
+
+        player.direction = std::atan2(player.velocity.x, player.velocity.z);
+      } else {
+        animationStartTime = getTime();
+        currentAnimation = &playerStandingAnimation;
+      }
+
+      return true;
     }
   }
 
-  return false;
+  return true;
+}
+
+bool A5::isKeyPressed(int key) {
+  return keysPressed.find(key) != keysPressed.end();
 }
