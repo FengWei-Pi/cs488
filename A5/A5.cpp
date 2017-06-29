@@ -48,6 +48,8 @@ A5::A5()
   blocks.push_back(Block(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
   blocks.push_back(Block(glm::vec3(-2, -1, -10), glm::vec3(size, 1, size)));
   blocks.push_back(Block(glm::vec3(-2, -1, -20), glm::vec3(size, 1, size)));
+
+  player.acceleration = glm::vec3(0, -12, 0);
 }
 
 //----------------------------------------------------------------------------------------
@@ -314,9 +316,23 @@ void A5::appLogic()
     m_view = m_view * glm::rotate(glm::mat4(), dispX/100, glm::vec3(0, 1, 0));
   }
 
-  const float t = 1;
-  player.position = 0.5f * player.acceleration * player.acceleration * t + player.velocity * t + player.position;
+  const float t = 1 / ImGui::GetIO().Framerate;
+  player.position = 0.5f * player.acceleration * t * t + player.velocity * t + player.position;
   player.velocity = player.acceleration * t + player.velocity;
+
+  if (player.position.y < 0.0) {
+    player.position = glm::vec3(player.position.x, 0, player.position.z);
+    player.velocity = glm::vec3(player.velocity.x, 0, player.velocity.z);
+
+    if (player.isJumping) {
+      player.isJumping = false;
+      const bool isPuppetWalking = glm::length(glm::vec2(player.velocity.x, player.velocity.z)) >= 0.0001;
+      if (isPuppetWalking) {
+        currentAnimation = &playerWalkingAnimation;
+        animationStartTime = Clock::getTime();
+      }
+    }
+  }
 
   uploadCommonSceneUniforms();
   mouse.prevX = mouse.x;
@@ -763,8 +779,21 @@ bool A5::keyInputEvent (
   switch (action) {
     case GLFW_PRESS: {
       keysPressed.insert(key);
-      if (key == GLFW_KEY_M) {
-        show_gui = !show_gui;
+
+      switch (key) {
+        case GLFW_KEY_M: {
+          show_gui = !show_gui;
+          break;
+        }
+        case GLFW_KEY_SPACE: {
+          if (!player.isJumping) {
+            player.isJumping = true;
+            player.velocity = glm::vec3(player.velocity.x, 6, player.velocity.z);
+            animationStartTime = Clock::getTime();
+            currentAnimation = &playerStandingAnimation;
+          }
+          break;
+        }
       }
       break;
     }
@@ -774,16 +803,19 @@ bool A5::keyInputEvent (
     }
   }
 
+  if (player.isJumping) {
+    return true;
+  }
+
   switch (key) {
     case GLFW_KEY_DOWN:
     case GLFW_KEY_UP:
     case GLFW_KEY_LEFT:
     case GLFW_KEY_RIGHT: {
       const double epsilon = 0.0001;
-      const double dv = 0.1;
+      const double dv = 6;
 
       double vx = 0;
-      double vy = player.velocity.y;
       double vz = 0;
 
       if (isKeyPressed(GLFW_KEY_LEFT)) {
@@ -805,7 +837,7 @@ bool A5::keyInputEvent (
       const bool wasPuppetAlreadyWalking = glm::length(glm::vec2(player.velocity.x, player.velocity.z)) >= epsilon;
       const bool isPuppetWalking = glm::length(glm::vec2(vx, vz)) >= epsilon;
 
-      player.velocity = glm::vec3(vx, vy, vz);
+      player.velocity = glm::vec3(vx, player.velocity.y, vz);
 
       if (isPuppetWalking) {
         if (!wasPuppetAlreadyWalking) {
