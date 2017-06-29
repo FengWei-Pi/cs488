@@ -1,3 +1,4 @@
+#include "Util.hpp"
 #include "Animation.hpp"
 #include <cassert>
 #include <iostream>
@@ -37,13 +38,10 @@ Keyframe Animation::get(double t) {
       Keyframe interpolation;
       for (std::pair<std::string, double> pair : I.rotations) {
         const std::string& jointName = pair.first;
-        const double iRotation = glm::radians(pair.second);
-        const double jRotation = glm::radians(J.rotations.at(jointName));
+        const double iRotation = pair.second;
+        const double jRotation = J.rotations.at(jointName);
 
-        const double x = (1 - t) * std::cos(iRotation) + t * std::cos(jRotation);
-        const double y = (1 - t) * std::sin(iRotation) + t * std::sin(jRotation);
-
-        interpolation.rotations[jointName] = glm::degrees(std::atan2(y, x));
+        interpolation.rotations[jointName] = Util::mlerp(iRotation, jRotation, t, 360);;
       }
 
       for (std::pair<std::string, glm::vec3> pair: I.positions) {

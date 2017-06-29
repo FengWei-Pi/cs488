@@ -260,9 +260,9 @@ void A5::initPerspectiveMatrix()
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    vec3(0.0f, 5.0f, 10.0f),
-    vec3(0.0f, 3.0f, -1.0f),
-    vec3(0.0f, 1.0f, 0.0f)
+    vec3(0.0f, 5.0f, 10.0f), // eye
+    vec3(0.0f, 3.0f, -1.0f), // center
+    vec3(0.0f, 1.0f, 0.0f)   // up
   );
 }
 
