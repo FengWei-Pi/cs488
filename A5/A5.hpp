@@ -8,6 +8,7 @@
 #include "SceneNode.hpp"
 #include "Animation.hpp"
 #include "Keyframe.hpp"
+#include "Player.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -105,12 +106,7 @@ private:
 
   std::set<int> keysPressed;
 
-  struct Player {
-    double direction = 3.14; // computed value of velocity for rendering purposes
-    glm::vec3 position;
-    glm::vec3 velocity;
-    glm::vec3 acceleration;
-  } player;
+  Player player;
 
   struct Block {
     glm::vec3 position;

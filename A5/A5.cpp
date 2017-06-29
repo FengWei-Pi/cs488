@@ -412,7 +412,7 @@ void A5::draw() {
 
   {
     // Draw player
-    glm::mat4 rotation = glm::rotate(float(player.direction), glm::vec3(0, 1, 0));
+    glm::mat4 rotation = glm::rotate(float(player.getDirection()), glm::vec3(0, 1, 0));
     glm::mat4 translation = glm::translate(glm::vec3(player.position));
 
     renderAnimatedSceneGraph(*puppetSceneNode,  *currentAnimation, translation * rotation);
@@ -813,7 +813,7 @@ bool A5::keyInputEvent (
           currentAnimation = &playerWalkingAnimation;
         }
 
-        player.direction = std::atan2(player.velocity.x, player.velocity.z);
+        player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
       } else {
         animationStartTime = Clock::getTime();
         currentAnimation = &playerStandingAnimation;
