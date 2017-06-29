@@ -9,6 +9,7 @@ using namespace std;
 #include "JointNode.hpp"
 #include "Keyframe.hpp"
 #include "Animation.hpp"
+#include "Clock.hpp"
 
 #include <imgui/imgui.h>
 
@@ -18,7 +19,6 @@ using namespace std;
 #include <glm/ext.hpp>
 #include <stack>
 #include <cassert>
-#include <chrono>
 
 using namespace glm;
 
@@ -38,8 +38,7 @@ A5::A5()
     m_vbo_vertexNormals(0),
     m_vao_arcCircle(0),
     m_vbo_arcCircle(0),
-    t_start(std::chrono::high_resolution_clock::now()),
-    animationStartTime(getTime()),
+    animationStartTime(Clock::getTime()),
     playerWalkingAnimation(Animation::getPlayerWalkingAnimation(0.1)),
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
     currentAnimation(&playerStandingAnimation)
@@ -49,11 +48,6 @@ A5::A5()
   blocks.push_back(Block(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
   blocks.push_back(Block(glm::vec3(-2, -1, -10), glm::vec3(size, 1, size)));
   blocks.push_back(Block(glm::vec3(-2, -1, -20), glm::vec3(size, 1, size)));
-}
-
-double A5::getTime() {
-  auto t_now = std::chrono::high_resolution_clock::now();
-  return std::chrono::duration_cast<std::chrono::duration<double> >(t_now - t_start).count();
 }
 
 //----------------------------------------------------------------------------------------
@@ -525,7 +519,7 @@ void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation, glm::m
     }
   };
 
-  Keyframe frame = animation.get(getTime() - animationStartTime);
+  Keyframe frame = animation.get(Clock::getTime() - animationStartTime);
   AnimationRenderer renderer{*this, frame, m_view * model};
 
   root.accept(renderer);
@@ -815,13 +809,13 @@ bool A5::keyInputEvent (
 
       if (isPuppetWalking) {
         if (!wasPuppetAlreadyWalking) {
-          animationStartTime = getTime();
+          animationStartTime = Clock::getTime();
           currentAnimation = &playerWalkingAnimation;
         }
 
         player.direction = std::atan2(player.velocity.x, player.velocity.z);
       } else {
-        animationStartTime = getTime();
+        animationStartTime = Clock::getTime();
         currentAnimation = &playerStandingAnimation;
       }
 
