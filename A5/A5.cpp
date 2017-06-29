@@ -320,6 +320,12 @@ void A5::appLogic()
   player.position = 0.5f * player.acceleration * t * t + player.velocity * t + player.position;
   player.velocity = player.acceleration * t + player.velocity;
 
+  m_view = glm::lookAt(
+    player.position + glm::vec3(0, 5, 10.0f),
+    player.position + glm::vec3(0.0f, 3.0f, -1.0f),
+    glm::vec3(0, 1, 0)
+  );
+
   if (player.position.y < 0.0) {
     player.position = glm::vec3(player.position.x, 0, player.position.z);
     player.velocity = glm::vec3(player.velocity.x, 0, player.velocity.z);
