@@ -366,7 +366,10 @@ void A5::appLogic()
       }
 
       player.velocity = glm::vec3(vx, player.velocity.y, vz);
-      player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
+
+      if (std::fabs(vx) >= epsilon || std::fabs(vz) >= epsilon) {
+        player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
+      }
     }
   }
 
