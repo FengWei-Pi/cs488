@@ -332,11 +332,41 @@ void A5::appLogic()
 
     if (player.isJumping) {
       player.isJumping = false;
-      const bool isPuppetWalking = glm::length(glm::vec2(player.velocity.x, player.velocity.z)) >= 0.0001;
+
+      const double epsilon = 0.0001;
+      const double dv = 6;
+
+      double vx = 0;
+      double vz = 0;
+
+      if (isKeyPressed(GLFW_KEY_LEFT)) {
+        vx -= dv;
+      }
+
+      if (isKeyPressed(GLFW_KEY_RIGHT)) {
+        vx += dv;
+      }
+
+      if (isKeyPressed(GLFW_KEY_UP)) {
+        vz -= dv;
+      }
+
+      if (isKeyPressed(GLFW_KEY_DOWN)) {
+        vz += dv;
+      }
+
+      const bool isPuppetWalking = glm::length(glm::vec2(vx, vz)) >= epsilon;
+
       if (isPuppetWalking) {
         currentAnimation = &playerWalkingAnimation;
         animationStartTime = Clock::getTime();
+      } else {
+        currentAnimation = &playerStandingAnimation;
+        animationStartTime = Clock::getTime();
       }
+
+      player.velocity = glm::vec3(vx, player.velocity.y, vz);
+      player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
     }
   }
 
@@ -840,8 +870,10 @@ bool A5::keyInputEvent (
         vz += dv;
       }
 
-      const bool wasPuppetAlreadyWalking = glm::length(glm::vec2(player.velocity.x, player.velocity.z)) >= epsilon;
       const bool isPuppetWalking = glm::length(glm::vec2(vx, vz)) >= epsilon;
+      const bool wasPuppetAlreadyWalking = (
+        glm::length(glm::vec2(player.velocity.x, player.velocity.z)) >= epsilon
+      );
 
       player.velocity = glm::vec3(vx, player.velocity.y, vz);
 
