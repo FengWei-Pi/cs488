@@ -41,7 +41,8 @@ A5::A5()
     animationStartTime(Clock::getTime()),
     playerWalkingAnimation(Animation::getPlayerWalkingAnimation(0.1)),
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
-    currentAnimation(&playerStandingAnimation)
+    currentAnimation(&playerStandingAnimation),
+    cameraYAngle(0)
 {
   const uint size = 4;
 
@@ -260,8 +261,8 @@ void A5::initPerspectiveMatrix()
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    vec3(0.0f, 5.0f, 10.0f), // eye
-    vec3(0.0f, 3.0f, -1.0f), // center
+    vec3(0.0f, 5.0f, -10.0f), // eye
+    vec3(0.0f, 3.0f, 1.0f), // center
     vec3(0.0f, 1.0f, 0.0f)   // up
   );
 }
@@ -311,9 +312,10 @@ void A5::appLogic()
 {
   // Place per frame, application logic here ...
 
-  if (mouse.isLeftButtonPressed) {
+  if (mouse.isRightButtonPressed) {
     float dispX = mouse.x - mouse.prevX;
-    m_view = m_view * glm::rotate(glm::mat4(), dispX/100, glm::vec3(0, 1, 0));
+    cameraYAngle -= dispX / 200;
+    recalculatePlayerVelocity();
   }
 
   const float t = 1 / ImGui::GetIO().Framerate;
@@ -321,8 +323,8 @@ void A5::appLogic()
   player.velocity = player.acceleration * t + player.velocity;
 
   m_view = glm::lookAt(
-    player.position + glm::vec3(0, 5, 10.0f),
-    player.position + glm::vec3(0.0f, 3.0f, -1.0f),
+    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)),
+    player.position + glm::vec3(0.0f, 3.0f, 1.0f),
     glm::vec3(0, 1, 0)
   );
 
@@ -330,47 +332,8 @@ void A5::appLogic()
     player.position = glm::vec3(player.position.x, 0, player.position.z);
     player.velocity = glm::vec3(player.velocity.x, 0, player.velocity.z);
 
-    if (player.isJumping) {
-      player.isJumping = false;
-
-      const double epsilon = 0.0001;
-      const double dv = 6;
-
-      double vx = 0;
-      double vz = 0;
-
-      if (isKeyPressed(GLFW_KEY_LEFT)) {
-        vx -= dv;
-      }
-
-      if (isKeyPressed(GLFW_KEY_RIGHT)) {
-        vx += dv;
-      }
-
-      if (isKeyPressed(GLFW_KEY_UP)) {
-        vz -= dv;
-      }
-
-      if (isKeyPressed(GLFW_KEY_DOWN)) {
-        vz += dv;
-      }
-
-      const bool isPuppetWalking = glm::length(glm::vec2(vx, vz)) >= epsilon;
-
-      if (isPuppetWalking) {
-        currentAnimation = &playerWalkingAnimation;
-        animationStartTime = Clock::getTime();
-      } else {
-        currentAnimation = &playerStandingAnimation;
-        animationStartTime = Clock::getTime();
-      }
-
-      player.velocity = glm::vec3(vx, player.velocity.y, vz);
-
-      if (std::fabs(vx) >= epsilon || std::fabs(vz) >= epsilon) {
-        player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
-      }
-    }
+    recalculatePlayerVelocity();
+    player.isJumping = false;
   }
 
   uploadCommonSceneUniforms();
@@ -842,57 +805,19 @@ bool A5::keyInputEvent (
     }
   }
 
-  if (player.isJumping) {
-    return true;
-  }
-
-  switch (key) {
-    case GLFW_KEY_DOWN:
-    case GLFW_KEY_UP:
-    case GLFW_KEY_LEFT:
-    case GLFW_KEY_RIGHT: {
-      const double epsilon = 0.0001;
-      const double dv = 6;
-
-      double vx = 0;
-      double vz = 0;
-
-      if (isKeyPressed(GLFW_KEY_LEFT)) {
-        vx -= dv;
+  if (action == GLFW_PRESS || action == GLFW_RELEASE) {
+    switch (key) {
+      case GLFW_KEY_W:
+      case GLFW_KEY_A:
+      case GLFW_KEY_S:
+      case GLFW_KEY_D:
+      case GLFW_KEY_DOWN:
+      case GLFW_KEY_UP:
+      case GLFW_KEY_LEFT:
+      case GLFW_KEY_RIGHT: {
+        recalculatePlayerVelocity();
+        return true;
       }
-
-      if (isKeyPressed(GLFW_KEY_RIGHT)) {
-        vx += dv;
-      }
-
-      if (isKeyPressed(GLFW_KEY_UP)) {
-        vz -= dv;
-      }
-
-      if (isKeyPressed(GLFW_KEY_DOWN)) {
-        vz += dv;
-      }
-
-      const bool isPuppetWalking = glm::length(glm::vec2(vx, vz)) >= epsilon;
-      const bool wasPuppetAlreadyWalking = (
-        glm::length(glm::vec2(player.velocity.x, player.velocity.z)) >= epsilon
-      );
-
-      player.velocity = glm::vec3(vx, player.velocity.y, vz);
-
-      if (isPuppetWalking) {
-        if (!wasPuppetAlreadyWalking) {
-          animationStartTime = Clock::getTime();
-          currentAnimation = &playerWalkingAnimation;
-        }
-
-        player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
-      } else {
-        animationStartTime = Clock::getTime();
-        currentAnimation = &playerStandingAnimation;
-      }
-
-      return true;
     }
   }
 
@@ -901,4 +826,54 @@ bool A5::keyInputEvent (
 
 bool A5::isKeyPressed(int key) {
   return keysPressed.find(key) != keysPressed.end();
+}
+
+void A5::recalculatePlayerVelocity() {
+  if (player.isJumping) {
+    return;
+  }
+
+  const double epsilon = 0.0001;
+  const glm::vec3 v = calculatePlayerInputVelocity();
+  const bool isPuppetWalking = glm::length(glm::vec2(v.x, v.z)) >= epsilon;
+
+  player.velocity = glm::vec3(v.x, player.velocity.y, v.z);
+
+  if (isPuppetWalking) {
+    if (currentAnimation != &playerWalkingAnimation) {
+      animationStartTime = Clock::getTime();
+      currentAnimation = &playerWalkingAnimation;
+    }
+
+    player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
+  } else {
+    animationStartTime = Clock::getTime();
+    currentAnimation = &playerStandingAnimation;
+  }
+}
+
+glm::vec3 A5::calculatePlayerInputVelocity() {
+  const double epsilon = 0.0001;
+  const double dv = 6;
+
+  double vx = 0;
+  double vz = 0;
+
+  if (isKeyPressed(GLFW_KEY_LEFT) || isKeyPressed(GLFW_KEY_A)) {
+    vx += dv;
+  }
+
+  if (isKeyPressed(GLFW_KEY_RIGHT) || isKeyPressed(GLFW_KEY_D)) {
+    vx -= dv;
+  }
+
+  if (isKeyPressed(GLFW_KEY_UP) || isKeyPressed(GLFW_KEY_W)) {
+    vz += dv;
+  }
+
+  if (isKeyPressed(GLFW_KEY_DOWN) || isKeyPressed(GLFW_KEY_S)) {
+    vz -= dv;
+  }
+
+  return glm::rotateY(glm::vec3{vx, player.velocity.y, vz}, float(cameraYAngle));
 }

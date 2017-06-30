@@ -99,6 +99,7 @@ private:
     bool isMiddleButtonPressed = false;
   } mouse;
 
+  double cameraYAngle;
   double animationStartTime;
   Animation playerWalkingAnimation;
   Animation playerStandingAnimation;
@@ -117,4 +118,6 @@ private:
   std::vector<Block> blocks;
 
   bool isKeyPressed(int key);
+  glm::vec3 calculatePlayerInputVelocity();
+  void recalculatePlayerVelocity();
 };
