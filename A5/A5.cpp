@@ -47,8 +47,8 @@ A5::A5()
   const uint size = 4;
 
   blocks.push_back(Block(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
-  blocks.push_back(Block(glm::vec3(-2, -1, -10), glm::vec3(size, 1, size)));
-  blocks.push_back(Block(glm::vec3(-2, -1, -20), glm::vec3(size, 1, size)));
+  blocks.push_back(Block(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
+  blocks.push_back(Block(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
 
   player.acceleration = glm::vec3(0, -12, 0);
 }
