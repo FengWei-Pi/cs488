@@ -20,8 +20,8 @@
 \newpage
 \section{Purpose}
 \begin{enumerate}
-\item To build a fun and playable single-player ngame.
-\item To experiment with 3d Graphics (and OpenGL) techniques such as: building animations with key-frames, texture mapping, creating 3d scenes, and implementing shadows and motion blur.
+\item To build a fun and playable single-player game.
+\item To experiment with 3d Graphics and OpenGL techniques such as: building animations with key-frames, texture mapping, creating 3d scenes, and implementing shadows and motion blur.
 \item To gain an understanding of how to architect an OpenGL game.
 \end{enumerate}
 \section{Statement}
@@ -37,7 +37,7 @@ The platforms aren't necessarily stationary. They can move side to side. They ca
 
 This project will largely build on the foundations established by my solution to Assignment 3. I will re-use the  puppet I implemented in that assignment. I will animate the puppet, giving him the ability to run, and jump. The puppet will be subject to gravitational forces and air resistance. I'll use Lua to create the scene nodes that'll be used by my game objects to render themselves on to the screen. I'll start off by importing the puppet and implementing the platforms on which the puppet stands. Then, I'll implement animations and make the puppet walk and jump. After that, I'll implement collisions, texture mapping, shadow mapping, motion blur, and synchronized sound. This should allow me to meet all the objectives for this assignment. I'll then spend the rest of my time implementing the game rules and polishing the objectives. If I have time, I'll implement additional objectives.
 
-This project will be interesting and challenging because I have never implemented a 3d game before. Through implementing this game, I'll learn strengthen my foundations in OpenGL and Graphics in general. In addition to learning how 3d games can be implemented, I also hope to also gain an appreciation of the amount of effort it takes to implement 3d games in general. 
+This project will be interesting and challenging because I have never implemented a 3d game before. Through implementing this game, I'll strengthen my foundations in OpenGL and Graphics in general. In addition to learning how 3d games can be implemented, I also hope to also gain an appreciation of the amount of effort it takes to implement even small-scale 3d games. 
 
 \section{Technical Outline}
 \subsection{Texture Mapping}
@@ -102,9 +102,9 @@ The actual implementation of the Shadow Map is a bit more nuanced. In implementi
 \section{Objectives}
 \begin{enumerate}
 \item \textbf{Modeling the Scene.} - World objects are rendered on to the screen correctly.
-\item \textbf{UI.} - There exists a User Interface that allows the player to control the game in some way.
+\item \textbf{UI.} - The mouse and keyboard can be used by the player to control the game objects and camera. A GUI also exists for controlling game settings. 
 \item \textbf{Texture mapping.} - It is evident that texture mapping has been employed on at least 1 game object.
-\item \textbf{Keyframe Animation.} - When the player walks, the puppet plays a walking animation.
+\item \textbf{Keyframe Animation.} - When the player walks, the puppet plays a walking animation. The current frame is interpolated from its surrounding frames using linear interpolation.
 \item \textbf{Static collisions.} - On each stationary platform, the puppet does not fall through the platform and die.
 \item \textbf{Dynamic collisions.} - On each moving platform, the puppet does not fall through the platform and die.
 \item \textbf{Synchronized sound.} - When the player interacts with the game by moving the puppet, there is audible feedback. 
