@@ -10,6 +10,8 @@ using namespace std;
 #include "Keyframe.hpp"
 #include "Animation.hpp"
 #include "Clock.hpp"
+#include "SceneNodeFunctor.hpp"
+#include "TransformationCollector.hpp"
 
 #include <imgui/imgui.h>
 
@@ -451,6 +453,28 @@ void A5::draw() {
   const unsigned int SCR_WIDTH = m_framebufferWidth;
   const unsigned int SCR_HEIGHT = m_framebufferHeight;
 
+  class Renderer : public SceneNodeFunctor<void, glm::mat4> {
+    ShaderProgram& shader;
+    BatchInfoMap& batchInfoMap;
+  public:
+    Renderer(
+      ShaderProgram& shader, BatchInfoMap& batchInfoMap
+    ) : shader(shader), batchInfoMap(batchInfoMap) {}
+    void operator()(glm::mat4& M, SceneNode& node) {}
+    void operator()(glm::mat4& M, JointNode& node) {}
+    void operator()(glm::mat4& M, GeometryNode& node) {
+      updateShaderUniforms(shader, node, M);
+
+      // Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
+      BatchInfo batchInfo = batchInfoMap[node.meshId];
+
+      //-- Now render the mesh:
+      shader.enable();
+      glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+      shader.disable();
+    }
+  };
+
   glEnable( GL_DEPTH_TEST );
 
   // glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -464,84 +488,30 @@ void A5::draw() {
   // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   // // ConfigureShaderAndMatrices();
   // glBindTexture(GL_TEXTURE_2D, depthMap);
-  renderScene();
+
+  Renderer renderer{m_shader, m_batchInfoMap};
+  renderScene(renderer);
 
   glDisable( GL_DEPTH_TEST );
   // renderArcCircle();
 }
 
-void A5::renderScene() {
-  {
-    // Draw player
-    glm::mat4 rotation = glm::rotate(float(player.getDirection()), glm::vec3(0, 1, 0));
-    glm::mat4 translation = glm::translate(glm::vec3(player.position));
-
-    renderAnimatedSceneGraph(*puppetSceneNode,  *currentAnimation, translation * rotation);
-  }
-
-
-  {
-    for (const Block& block : blocks) {
-      glm::mat4 scale = glm::scale(block.size);
-      glm::mat4 translate = glm::translate(block.position);
-      renderSceneGraph(*blockSceneNode, translate * scale);
-    }
-  }
-}
-
-//----------------------------------------------------------------------------------------
-void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation, glm::mat4 model) {
-
-  // Bind the VAO once here, and reuse for all GeometryNode rendering below.
-  glBindVertexArray(m_vao_meshData);
-
-  class AnimationRenderer : public Visitor {
-    std::stack<glm::mat4> transforms;
-    void visitChildren(std::list<SceneNode*>& children) {
-      for (SceneNode * child : children) {
-        child->accept(*this);
-      }
-    }
-
-    glm::mat4 calculateM(const glm::mat4& trans) const {
-      assert(transforms.size() > 0);
-      return transforms.top() * trans;
-    }
-
-    A5& self;
+void A5::renderScene(SceneNodeFunctor<void, glm::mat4>& renderer) {
+  class AnimationTransformationReducer : public SceneNodeFunctor<glm::mat4, glm::mat4> {
     Keyframe& frame;
-
   public:
-    AnimationRenderer(A5& self, Keyframe& frame, glm::mat4 T) : self(self), frame(frame) {
-      transforms.push(T);
+    AnimationTransformationReducer(Keyframe& frame) : frame(frame) {}
+
+    glm::mat4 operator()(glm::mat4& m, GeometryNode& node) {
+      return m * node.trans;
     }
 
-    void visit(SceneNode& node) {
-      const glm::mat4 M = calculateM(node.trans);
-      transforms.push(M);
-      visitChildren(node.children);
-      transforms.pop();
+    glm::mat4 operator()(glm::mat4& m, SceneNode& node) {
+      return m * node.trans;
     }
 
-    void visit(GeometryNode& node) {
-      const glm::mat4 M = calculateM(node.trans);
-      updateShaderUniforms(self.m_shader, node, M);
-
-      // Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
-      BatchInfo batchInfo = self.m_batchInfoMap[node.meshId];
-
-      //-- Now render the mesh:
-      self.m_shader.enable();
-      glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
-      self.m_shader.disable();
-
-      transforms.push(M);
-      visitChildren(node.children);
-      transforms.pop();
-    }
-
-    void visit(JointNode& node) {
-      glm::mat4 M = calculateM(node.trans);
+    glm::mat4 operator()(glm::mat4& m, JointNode& node) {
+      glm::mat4 M = m * node.trans;
 
       float xAnimationRotation = 0;
       if (frame.rotations.find(node.m_name) != frame.rotations.end()) {
@@ -571,74 +541,22 @@ void A5::renderAnimatedSceneGraph(SceneNode & root, Animation& animation, glm::m
         M = glm::translate(glm::mat4(), frame.positions.at(node.m_name)) * M;
       }
 
-      transforms.push(M);
-      visitChildren(node.children);
-      transforms.pop();
+      return M;
     }
   };
 
-  Keyframe frame = animation.get(Clock::getTime() - animationStartTime);
-  AnimationRenderer renderer{*this, frame, m_view * model};
-
-  root.accept(renderer);
-
-  glBindVertexArray(0);
-  CHECK_GL_ERRORS;
-}
-
-
-//----------------------------------------------------------------------------------------
-void A5::renderSceneGraph(SceneNode & root, glm::mat4 model) {
-
-  // Bind the VAO once here, and reuse for all GeometryNode rendering below.
-  glBindVertexArray(m_vao_meshData);
-
-  class Renderer : public Visitor {
-    std::stack<glm::mat4> transforms;
-    void visitChildren(std::list<SceneNode*>& children) {
-      for (SceneNode * child : children) {
-        child->accept(*this);
-      }
-    }
-
-    glm::mat4 calculateM(const glm::mat4& trans) const {
-      assert(transforms.size() > 0);
-      return transforms.top() * trans;
-    }
-
-    A5& self;
-
+  class StaticTransformationReducer : public SceneNodeFunctor<glm::mat4, glm::mat4> {
   public:
-    Renderer(A5& self, glm::mat4 T) : self(self) {
-      transforms.push(T);
+    glm::mat4 operator()(glm::mat4& m, GeometryNode& node) {
+      return m * node.trans;
     }
 
-    void visit(SceneNode& node) {
-      const glm::mat4 M = calculateM(node.trans);
-      transforms.push(M);
-      visitChildren(node.children);
-      transforms.pop();
+    glm::mat4 operator()(glm::mat4& m, SceneNode& node) {
+      return m * node.trans;
     }
 
-    void visit(GeometryNode& node) {
-      const glm::mat4 M = calculateM(node.trans);
-      updateShaderUniforms(self.m_shader, node, M);
-
-      // Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
-      BatchInfo batchInfo = self.m_batchInfoMap[node.meshId];
-
-      //-- Now render the mesh:
-      self.m_shader.enable();
-      glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
-      self.m_shader.disable();
-
-      transforms.push(M);
-      visitChildren(node.children);
-      transforms.pop();
-    }
-
-    void visit(JointNode& node) {
-      glm::mat4 M = calculateM(node.trans);
+    glm::mat4 operator()(glm::mat4& m, JointNode& node) {
+      glm::mat4 M = m * node.trans;
 
       float xRotation = glm::radians(
         glm::clamp(
@@ -659,13 +577,41 @@ void A5::renderSceneGraph(SceneNode & root, glm::mat4 model) {
       M = M * glm::rotate(glm::mat4(), yRotation, glm::vec3(0, 1, 0));
       M = M * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
 
-      transforms.push(M);
-      visitChildren(node.children);
-      transforms.pop();
+      return M;
     }
   };
 
-  Renderer renderer{*this, m_view * model};
+  {
+    // Draw player
+    glm::mat4 rotation = glm::rotate(float(player.getDirection()), glm::vec3(0, 1, 0));
+    glm::mat4 translation = glm::translate(glm::vec3(player.position));
+    glm::mat4 modelView = m_view * translation * rotation;
+
+    Keyframe frame = currentAnimation->get(Clock::getTime() - animationStartTime);
+    AnimationTransformationReducer transformReducer{frame};
+
+    TransformationCollector dynamicRenderer{transformReducer, renderer, modelView};
+    renderSceneGraph(*puppetSceneNode, dynamicRenderer);
+  }
+
+
+  {
+    StaticTransformationReducer transformReducer;
+
+    for (const Block& block : blocks) {
+      glm::mat4 scale = glm::scale(block.size);
+      glm::mat4 translate = glm::translate(block.position);
+      glm::mat4 modelView = m_view * translate * scale;
+
+      TransformationCollector staticRenderer{transformReducer, renderer, modelView};     renderSceneGraph(*blockSceneNode, staticRenderer);
+    }
+  }
+}
+
+//----------------------------------------------------------------------------------------
+void A5::renderSceneGraph(SceneNode & root, Visitor& renderer) {
+  // Bind the VAO once here, and reuse for all GeometryNode rendering below.
+  glBindVertexArray(m_vao_meshData);
 
   root.accept(renderer);
 

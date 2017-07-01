@@ -9,6 +9,8 @@
 #include "Animation.hpp"
 #include "Keyframe.hpp"
 #include "Player.hpp"
+#include "Visitor.hpp"
+#include "SceneNodeFunctor.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -51,12 +53,7 @@ protected:
 
   void initPerspectiveMatrix();
   void uploadCommonSceneUniforms();
-  void renderSceneGraph(SceneNode &node, glm::mat4 model = glm::mat4());
-  void renderAnimatedSceneGraph(
-    SceneNode &node,
-    Animation& animation,
-    glm::mat4 model = glm::mat4()
-  );
+  void renderSceneGraph(SceneNode &node, Visitor& renderer);
   void renderArcCircle();
 
   glm::mat4 m_perpsective;
@@ -121,7 +118,7 @@ private:
   glm::vec3 calculatePlayerInputVelocity();
   void recalculatePlayerVelocity();
 
-  void renderScene();
+  void renderScene(SceneNodeFunctor<void, glm::mat4>& renderer);
   /**
    * Shadow Map
    */
