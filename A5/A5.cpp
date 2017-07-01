@@ -42,7 +42,9 @@ A5::A5()
     playerWalkingAnimation(Animation::getPlayerWalkingAnimation(0.1)),
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
     currentAnimation(&playerStandingAnimation),
-    cameraYAngle(0)
+    cameraYAngle(0),
+    SHADOW_WIDTH(1024),
+    SHADOW_HEIGHT(1024)
 {
   const uint size = 4;
 
@@ -104,6 +106,24 @@ void A5::init()
   initLightSources();
 
 
+  // Shadow Map
+  glGenFramebuffers(1, &depthMapFBO);
+
+  glGenTextures(1, &depthMap);
+  glBindTexture(GL_TEXTURE_2D, depthMap);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
+  glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+  glDrawBuffer(GL_NONE);
+  glReadBuffer(GL_NONE);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   // Exiting the current scope calls delete automatically on meshConsolidator freeing
   // all vertex data resources.  This is fine since we already copied this data to
   // VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
@@ -128,6 +148,12 @@ void A5::createShaderProgram()
   m_shader_arcCircle.attachVertexShader( getAssetFilePath("arc_VertexShader.vs").c_str() );
   m_shader_arcCircle.attachFragmentShader( getAssetFilePath("arc_FragmentShader.fs").c_str() );
   m_shader_arcCircle.link();
+
+
+  m_shader_depth.generateProgramObject();
+  m_shader_depth.attachVertexShader( getAssetFilePath("simpleDepthShader.vs").c_str() );
+  m_shader_depth.attachFragmentShader( getAssetFilePath("simpleDepthShader.fs").c_str() );
+  m_shader_depth.link();
 }
 
 //----------------------------------------------------------------------------------------
@@ -261,9 +287,9 @@ void A5::initPerspectiveMatrix()
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    vec3(0.0f, 5.0f, -10.0f), // eye
-    vec3(0.0f, 3.0f, 1.0f), // center
-    vec3(0.0f, 1.0f, 0.0f)   // up
+    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), // eye
+    player.position + glm::vec3(0.0f, 3.0f, 1.0f), // center
+    glm::vec3(0, 1, 0) // up
   );
 }
 
@@ -322,11 +348,7 @@ void A5::appLogic()
   player.position = 0.5f * player.acceleration * t * t + player.velocity * t + player.position;
   player.velocity = player.acceleration * t + player.velocity;
 
-  m_view = glm::lookAt(
-    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)),
-    player.position + glm::vec3(0.0f, 3.0f, 1.0f),
-    glm::vec3(0, 1, 0)
-  );
+  initViewMatrix();
 
   if (player.position.y < 0.0) {
     player.position = glm::vec3(player.position.x, 0, player.position.z);
@@ -426,8 +448,29 @@ static void updateShaderUniforms(
  */
 void A5::draw() {
 
+  const unsigned int SCR_WIDTH = m_framebufferWidth;
+  const unsigned int SCR_HEIGHT = m_framebufferHeight;
+
   glEnable( GL_DEPTH_TEST );
 
+  // glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+  // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+  // glClear(GL_DEPTH_BUFFER_BIT);
+  // // ConfigureShaderAndMatrices();
+  // renderScene();
+  // glBindBuffer(GL_FRAMEBUFFER, 0);
+
+  // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+  // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // // ConfigureShaderAndMatrices();
+  // glBindTexture(GL_TEXTURE_2D, depthMap);
+  renderScene();
+
+  glDisable( GL_DEPTH_TEST );
+  // renderArcCircle();
+}
+
+void A5::renderScene() {
   {
     // Draw player
     glm::mat4 rotation = glm::rotate(float(player.getDirection()), glm::vec3(0, 1, 0));
@@ -444,9 +487,6 @@ void A5::draw() {
       renderSceneGraph(*blockSceneNode, translate * scale);
     }
   }
-
-  glDisable( GL_DEPTH_TEST );
-  // renderArcCircle();
 }
 
 //----------------------------------------------------------------------------------------

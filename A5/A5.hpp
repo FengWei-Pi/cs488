@@ -120,4 +120,15 @@ private:
   bool isKeyPressed(int key);
   glm::vec3 calculatePlayerInputVelocity();
   void recalculatePlayerVelocity();
+
+  void renderScene();
+  /**
+   * Shadow Map
+   */
+
+  unsigned int depthMapFBO;
+  unsigned int depthMap;
+  const unsigned int SHADOW_WIDTH, SHADOW_HEIGHT;
+  ShaderProgram m_shader_depth;
+
 };
