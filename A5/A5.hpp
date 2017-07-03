@@ -44,7 +44,6 @@ protected:
 
   //-- One time initialization methods:
   std::shared_ptr<SceneNode> readLuaSceneFile(const std::string& filename);
-  void createShaderProgram();
   void enableVertexShaderInputSlots();
   void uploadVertexDataToVbos(const MeshConsolidator & meshConsolidator);
   void mapVboDataToVertexShaderInputLocations();
@@ -52,9 +51,7 @@ protected:
   void initLightSources();
 
   void initPerspectiveMatrix();
-  void uploadCommonSceneUniforms();
   void renderSceneGraph(SceneNode &node, Visitor& renderer);
-  void renderArcCircle();
 
   glm::mat4 m_perpsective;
   glm::mat4 m_view;
@@ -65,15 +62,7 @@ protected:
   GLuint m_vao_meshData;
   GLuint m_vbo_vertexPositions;
   GLuint m_vbo_vertexNormals;
-  GLint m_positionAttribLocation;
-  GLint m_normalAttribLocation;
   ShaderProgram m_shader;
-
-  //-- GL resources for trackball circle geometry:
-  GLuint m_vbo_arcCircle;
-  GLuint m_vao_arcCircle;
-  GLint m_arc_positionAttribLocation;
-  ShaderProgram m_shader_arcCircle;
 
   // BatchInfoMap is an associative container that maps a unique MeshId to a BatchInfo
   // object. Each BatchInfo object contains an index offset and the number of indices
@@ -123,9 +112,16 @@ private:
    * Shadow Map
    */
 
-  unsigned int depthMapFBO;
-  unsigned int depthMap;
-  const unsigned int SHADOW_WIDTH, SHADOW_HEIGHT;
+  GLuint FramebufferName;
+  GLuint renderedTexture;
+  GLuint depthTexture;
+  unsigned int SHADOW_WIDTH, SHADOW_HEIGHT;
   ShaderProgram m_shader_depth;
+  ShaderProgram m_shader_quad;
 
+  GLuint VertexArrayID;
+  GLuint quad_vertexbuffer;
+  GLuint depthrenderbuffer;
+
+  static void initShaderProgram(ShaderProgram& program, const std::string& name);
 };
