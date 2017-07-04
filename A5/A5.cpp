@@ -43,8 +43,8 @@ A5::A5()
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
     currentAnimation(&playerStandingAnimation),
     cameraYAngle(0),
-    SHADOW_WIDTH(1024),
-    SHADOW_HEIGHT(1024)
+    SHADOW_WIDTH(2048),
+    SHADOW_HEIGHT(2048)
 {
   const uint size = 4;
 
@@ -393,27 +393,29 @@ void A5::init()
   {
     // Create a texture to render to
     glGenTextures(1, &renderedTexture);
-  	glBindTexture(GL_TEXTURE_2D, renderedTexture);
-  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Initialize depth buffer
-  	glGenRenderbuffers(1, &depthrenderbuffer);
-  	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
-  	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glGenRenderbuffers(1, &depthrenderbuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
     // Initialize depth texture
     glGenTextures(1, &depthTexture);
-  	glBindTexture(GL_TEXTURE_2D, depthTexture);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -438,12 +440,12 @@ void A5::init()
 
     // // Initialize depthTexture
     // glGenTextures(1, &depthTexture);
-  	// glBindTexture(GL_TEXTURE_2D, depthTexture);
-  	// glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-  	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // glBindTexture(GL_TEXTURE_2D, depthTexture);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
     // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 
@@ -451,7 +453,7 @@ void A5::init()
     // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
 
     // GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-	  // glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+    // glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
 
     assert(
       glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
@@ -463,7 +465,7 @@ void A5::init()
   }
 
   glGenVertexArrays(1, &VertexArrayID);
-	glBindVertexArray(VertexArrayID);
+  glBindVertexArray(VertexArrayID);
 
   // The fullscreen quad's FBO
   static const GLfloat g_quad_vertex_buffer_data[] = {
@@ -548,8 +550,7 @@ void A5::initViewMatrix() {
 //----------------------------------------------------------------------------------------
 void A5::initLightSources() {
   // World-space position
-  m_light.direction = glm::vec3(-1, -1, 0.5);
-  // m_light.position = vec3(-1.0f, 5.0f, 0.0f);
+  m_light.position = vec3(-1.0f, 5.0f, -2.0f);
   m_light.rgbIntensity = vec3(0.8f); // White light
 }
 
@@ -708,7 +709,7 @@ void A5::draw() {
   float near_plane = -100000.0f, far_plane = 2000000.0f;
   glm::mat4 LightPerspective = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
   glm::mat4 LightView = glm::lookAt(
-    -m_light.direction * 10000,
+    m_light.position * 10000,
     player.position,
     glm::vec3(0, 1, 0)
   );
@@ -788,8 +789,8 @@ void A5::draw() {
 
       //-- Set LightSource uniform for the scene:
       {
-        location = m_shader.getUniformLocation("light.direction");
-        glUniform3fv(location, 1, value_ptr(m_light.direction));
+        location = m_shader.getUniformLocation("light.position");
+        glUniform3fv(location, 1, value_ptr(m_light.position));
         location = m_shader.getUniformLocation("light.rgbIntensity");
         glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
         CHECK_GL_ERRORS;
@@ -845,10 +846,10 @@ void A5::draw() {
   } else {
 
     // Render to the screen
-  	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Render on the whole framebuffer, complete from the lower left corner to the upper right
-  	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 
     // Clear the screen
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -882,10 +883,10 @@ void A5::draw() {
     );
     CHECK_GL_ERRORS;
 
-		// Draw the triangles !
-		glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
+    // Draw the triangles !
+    glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
 
-		glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
+    glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
     // glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexUV"));
     glBindVertexArray(0);
 

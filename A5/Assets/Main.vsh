@@ -5,7 +5,7 @@ in vec3 position;
 in vec3 normal;
 
 struct LightSource {
-  vec3 direction;
+  vec3 position;
   vec3 rgbIntensity;
 };
 uniform LightSource light;
@@ -15,28 +15,29 @@ uniform mat4 Model;
 uniform mat4 Perspective;
 
 out VsOutFsIn {
-	vec3 position_ES; // Eye-space position
-	vec3 normal_ES;   // Eye-space normal
-	LightSource light_ES;
-  vec4 position_LS; // Light space coordinates of current point
+  vec3 position_CameraSpace; // Eye-space position
+  vec3 normal_CameraSpace;   // Eye-space normal
+  LightSource light_CameraSpace;
+  vec4 position_LightSpace; // Light space coordinates of current point
 } vs_out;
 
 uniform mat4 LightView;
 uniform mat4 LightPerspective;
 
 void main() {
-	vec4 pos4 = vec4(position, 1.0);
+  vec4 pos4 = vec4(position, 1.0);
 
-	//-- Convert position and normal to Eye-Space:
-	vs_out.position_ES = (View * Model * pos4).xyz;
-	vs_out.normal_ES = normalize(transpose(inverse(mat3(View * Model))) * normal);
-  vs_out.position_LS = LightPerspective * LightView * Model * vec4(position, 1.0);
+  //-- Convert position and normal to Eye-Space:
+  vs_out.position_CameraSpace = (View * Model * pos4).xyz;
+  vs_out.normal_CameraSpace = normalize(transpose(inverse(mat3(View * Model))) * normal);
+  vs_out.position_LightSpace = LightPerspective * LightView * Model * vec4(position, 1.0);
 
-  LightSource light_ES;
-  light_ES.rgbIntensity = light.rgbIntensity;
-  light_ES.direction =  (View * vec4(light.direction, 0)).xyz;
+  // The light remains at a constant location in view space.
+  LightSource light_CameraSpace;
+  light_CameraSpace.rgbIntensity = light.rgbIntensity;
+  light_CameraSpace.position =  light.position;
 
-  vs_out.light_ES = light_ES;
+  vs_out.light_CameraSpace = light_CameraSpace;
 
-	gl_Position = Perspective * View * Model * vec4(position, 1.0);
+  gl_Position = Perspective * View * Model * vec4(position, 1.0);
 }
