@@ -12,6 +12,8 @@ using namespace std;
 #include "Clock.hpp"
 #include "SceneNodeFunctor.hpp"
 #include "TransformationCollector.hpp"
+#include "AnimationTransformationReducer.hpp"
+#include "StaticTransformationReducer.hpp"
 
 #include <imgui/imgui.h>
 
@@ -436,24 +438,6 @@ void A5::init()
       std::cerr << "Using depth texture" << std::endl;
       glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
     }
-
-
-    // // Initialize depthTexture
-    // glGenTextures(1, &depthTexture);
-    // glBindTexture(GL_TEXTURE_2D, depthTexture);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-    // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-
-    // // Depth texture alternative :
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
-
-    // GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-    // glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
 
     assert(
       glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
@@ -903,89 +887,6 @@ void A5::draw() {
 }
 
 void A5::renderScene(SceneNodeFunctor<void, glm::mat4>& renderer) {
-  class AnimationTransformationReducer : public SceneNodeFunctor<glm::mat4, glm::mat4> {
-    Keyframe& frame;
-  public:
-    AnimationTransformationReducer(Keyframe& frame) : frame(frame) {}
-
-    glm::mat4 operator()(glm::mat4& m, GeometryNode& node) {
-      return m * node.trans;
-    }
-
-    glm::mat4 operator()(glm::mat4& m, SceneNode& node) {
-      return m * node.trans;
-    }
-
-    glm::mat4 operator()(glm::mat4& m, JointNode& node) {
-      glm::mat4 M = m * node.trans;
-
-      float xAnimationRotation = 0;
-      if (frame.rotations.find(node.m_name) != frame.rotations.end()) {
-        xAnimationRotation = frame.rotations.at(node.m_name);
-      }
-
-      float xRotation = glm::radians(
-        glm::clamp(
-          node.m_joint_x.init + xAnimationRotation,
-          node.m_joint_x.min,
-          node.m_joint_x.max
-        )
-      );
-
-      float yRotation = glm::radians(
-        glm::clamp(
-          node.m_joint_y.init,
-          node.m_joint_y.min,
-          node.m_joint_y.max
-        )
-      );
-
-      M = M * glm::rotate(glm::mat4(), yRotation, glm::vec3(0, 1, 0));
-      M = M * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
-
-      if (frame.positions.find(node.m_name) != frame.positions.end()) {
-        M = glm::translate(glm::mat4(), frame.positions.at(node.m_name)) * M;
-      }
-
-      return M;
-    }
-  };
-
-  class StaticTransformationReducer : public SceneNodeFunctor<glm::mat4, glm::mat4> {
-  public:
-    glm::mat4 operator()(glm::mat4& m, GeometryNode& node) {
-      return m * node.trans;
-    }
-
-    glm::mat4 operator()(glm::mat4& m, SceneNode& node) {
-      return m * node.trans;
-    }
-
-    glm::mat4 operator()(glm::mat4& m, JointNode& node) {
-      glm::mat4 M = m * node.trans;
-
-      float xRotation = glm::radians(
-        glm::clamp(
-          node.m_joint_x.init,
-          node.m_joint_x.min,
-          node.m_joint_x.max
-        )
-      );
-
-      float yRotation = glm::radians(
-        glm::clamp(
-          node.m_joint_y.init,
-          node.m_joint_y.min,
-          node.m_joint_y.max
-        )
-      );
-
-      M = M * glm::rotate(glm::mat4(), yRotation, glm::vec3(0, 1, 0));
-      M = M * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
-
-      return M;
-    }
-  };
 
   {
     // Draw player
