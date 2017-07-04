@@ -26,7 +26,9 @@ in vec2 UV;
 out vec4 color;
 
 uniform sampler2D renderedTexture;
+uniform sampler2D depthTexture;
 
 void main(){
-	color = vec4(texture( renderedTexture, UV ).xyz, 1) ;
+	color = vec4(texture( renderedTexture, UV ).xyz, 1);
+	// color = vec4(vec3(texture(depthTexture, UV).r), 1);
 }
