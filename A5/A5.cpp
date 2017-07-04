@@ -384,10 +384,6 @@ void A5::init()
   // Take all vertex data within the MeshConsolidator and upload it to VBOs on the GPU.
   uploadVertexDataToVbos(*meshConsolidator);
 
-  enableVertexShaderInputSlots();
-
-  mapVboDataToVertexShaderInputLocations();
-
   initPerspectiveMatrix();
 
   initViewMatrix();
@@ -503,18 +499,6 @@ void A5::initShaderProgram(ShaderProgram& program, const std::string& name) {
 }
 
 //----------------------------------------------------------------------------------------
-void A5::enableVertexShaderInputSlots() {
-  glBindVertexArray(m_vao_meshData);
-  glEnableVertexAttribArray(m_shader.getAttribLocation("position"));
-  glEnableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
-  glEnableVertexAttribArray(m_shader.getAttribLocation("normal"));
-  CHECK_GL_ERRORS;
-
-  // Restore defaults
-  glBindVertexArray(0);
-}
-
-//----------------------------------------------------------------------------------------
 void A5::uploadVertexDataToVbos (const MeshConsolidator & meshConsolidator) {
   // Generate VBO to store all vertex position data
   {
@@ -542,30 +526,6 @@ void A5::uploadVertexDataToVbos (const MeshConsolidator & meshConsolidator) {
     CHECK_GL_ERRORS;
   }
 
-}
-
-//----------------------------------------------------------------------------------------
-void A5::mapVboDataToVertexShaderInputLocations()
-{
-  // Bind VAO in order to record the data mapping.
-  glBindVertexArray(m_vao_meshData);
-
-  // Tell GL how to map data from the vertex buffer "m_vbo_vertexPositions" into the
-  // "position" vertex attribute location for any bound vertex shader program.
-  glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
-  glVertexAttribPointer(m_shader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-  glVertexAttribPointer(m_shader_depth.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-  // Tell GL how to map data from the vertex buffer "m_vbo_vertexNormals" into the
-  // "normal" vertex attribute location for any bound vertex shader program.
-  glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
-  glVertexAttribPointer(m_shader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-  //-- Unbind target, and restore default values:
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
-  CHECK_GL_ERRORS;
 }
 
 //----------------------------------------------------------------------------------------
@@ -776,8 +736,21 @@ void A5::draw() {
     }
     m_shader_depth.disable();
 
+
+    glBindVertexArray(m_vao_meshData);
+    glEnableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
+
+    // Map Position
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
+    glVertexAttribPointer(m_shader_depth.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     DepthRenderer renderer(m_shader_depth, m_batchInfoMap);
     renderScene(renderer);
+
+    glDisableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
+    glBindVertexArray(0);
+    CHECK_GL_ERRORS;
 
     printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
   }
@@ -839,15 +812,33 @@ void A5::draw() {
     }
     m_shader.disable();
 
+    // Enable Position and Normal
+    glBindVertexArray(m_vao_meshData);
+    glEnableVertexAttribArray(m_shader.getAttribLocation("position"));
+    glEnableVertexAttribArray(m_shader.getAttribLocation("normal"));
+
+    // Map Position
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
+    glVertexAttribPointer(m_shader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // Map Normals
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
+    glVertexAttribPointer(m_shader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
     Renderer renderer{m_shader, m_batchInfoMap};
     renderScene(renderer);
+
+    glDisableVertexAttribArray(m_shader.getAttribLocation("position"));
+    glDisableVertexAttribArray(m_shader.getAttribLocation("normal"));
+    glBindVertexArray(0);
+    CHECK_GL_ERRORS;
 
     printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
 
     // glDisable(GL_CULL_FACE);
   } else {
-
-
 
     // Render to the screen
   	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1021,13 +1012,7 @@ void A5::renderScene(SceneNodeFunctor<void, glm::mat4>& renderer) {
 
 //----------------------------------------------------------------------------------------
 void A5::renderSceneGraph(SceneNode & root, Visitor& renderer) {
-  // Bind the VAO once here, and reuse for all GeometryNode rendering below.
-  glBindVertexArray(m_vao_meshData);
-
   root.accept(renderer);
-
-  glBindVertexArray(0);
-  CHECK_GL_ERRORS;
 }
 
 //----------------------------------------------------------------------------------------

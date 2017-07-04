@@ -44,9 +44,7 @@ protected:
 
   //-- One time initialization methods:
   std::shared_ptr<SceneNode> readLuaSceneFile(const std::string& filename);
-  void enableVertexShaderInputSlots();
   void uploadVertexDataToVbos(const MeshConsolidator & meshConsolidator);
-  void mapVboDataToVertexShaderInputLocations();
   void initViewMatrix();
   void initLightSources();
 
