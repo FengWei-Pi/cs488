@@ -536,6 +536,12 @@ void A5::initLightSources() {
   m_light.rgbIntensity = vec3(0.8f); // White light
 }
 
+glm::vec3 createVec3(int i, float v) {
+  float data[3] = {0, 0, 0};
+  data[i] = v;
+  return glm::vec3(data[0], data[1], data[2]);
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once per frame, before guiLogic().
@@ -561,9 +567,25 @@ void A5::appLogic()
   for (Platform& block : blocks) {
     Hitbox collision = playerHitbox.getIntersection(block.getHitbox());
     if (!collision.isTrivial()) {
-      // TODO: Figure out the smallest component and move in the other direction so as to avoid the collission.
-      player.position = glm::vec3(player.position.x, 0, player.position.z);
-      player.velocity = glm::vec3(player.velocity.x, 0, player.velocity.z);
+      /**
+       * Reject the collision.
+       */
+      uint argmin = 0;
+
+      for (uint i = 1; i < 3; i++) {
+        if (collision.size[i] < collision.size[argmin]) {
+          argmin = i;
+        }
+      }
+
+      glm::vec3 direction {
+        player.velocity.x >= 0 ? 1 : -1,
+        player.velocity.y >= 0 ? 1 : -1,
+        player.velocity.z >= 0 ? 1 : -1
+      };
+
+      player.position = player.position - direction * createVec3(argmin, collision.size[argmin]);
+      player.velocity = player.velocity - createVec3(argmin, player.velocity[argmin]);
 
       recalculatePlayerVelocity();
       player.isJumping = false;

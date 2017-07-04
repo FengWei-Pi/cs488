@@ -12,5 +12,5 @@ Hitbox Hitbox::getIntersection(const Hitbox& other) const {
 }
 
 bool Hitbox::isTrivial() const {
-  return size.x <= 0 || size.y <= 0 || size.z <= 0;
+  return !(size.x > 0 && size.y > 0 && size.z > 0);
 }
