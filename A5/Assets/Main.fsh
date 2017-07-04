@@ -1,15 +1,15 @@
 #version 330
 
 struct LightSource {
-  vec3 position;
+  vec3 direction;
   vec3 rgbIntensity;
 };
 
 in VsOutFsIn {
 	vec3 position_ES; // Eye-space position
 	vec3 normal_ES;   // Eye-space normal
-  vec4 FragPosLightSpace; // light space position of coordinate
-	LightSource light;
+  vec4 position_LS; // light space position of coordinate
+	LightSource light_ES;
 } fs_in;
 
 
@@ -27,27 +27,44 @@ uniform vec3 ambientIntensity;
 
 uniform sampler2D depthTexture;
 
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
+// https://learnopengl.com/#!Advanced-Lighting/Shadows/Shadow-Mapping
+float ShadowCalculation(vec4 fragPosLightSpace) {
   // perform perspective divide
   vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-  // transform to [0,1] range
+  // transform NDC [-1, 1] to [0,1] range
   projCoords = projCoords * 0.5 + 0.5;
-  // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-  float closestDepth = texture(depthTexture, projCoords.xy).r;
+
   // get depth of current fragment from light's perspective
   float currentDepth = projCoords.z;
-  // check whether current frag pos is in shadow
-  float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+
+  vec3 lightDir = -normalize(fs_in.light_ES.direction);
+  float bias = 0.005*tan(acos(dot(fs_in.normal_ES, lightDir)));
+
+  bias = clamp(bias, 0,0.01);
+
+  // PCF for smoother shadows
+  float shadow = 0.0;
+  vec2 texelSize = 1.0 / textureSize(depthTexture, 0);
+  for(int x = -1; x <= 1; ++x)
+  {
+      for(int y = -1; y <= 1; ++y)
+      {
+          float pcfDepth = texture(depthTexture, projCoords.xy + vec2(x, y) * texelSize).r;
+          shadow += currentDepth - 0.000001 * bias > pcfDepth ? 1.0 : 0.0;
+      }
+  }
+  shadow /= 9.0;
+
+
 
   return shadow;
 }
 
 vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
-	LightSource light = fs_in.light;
+	LightSource light = fs_in.light_ES;
 
   // Direction from fragment to light source.
-  vec3 l = normalize(light.position - fragPosition);
+  vec3 l = - normalize(light.direction);
 
   // Direction from fragment to viewer (origin - fragPosition).
   vec3 v = normalize(-fragPosition.xyz);
@@ -67,8 +84,8 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
     specular = material.ks * pow(n_dot_h, material.shininess);
   }
 
-  float shadow = ShadowCalculation(fs_in.FragPosLightSpace);
-  return ambientIntensity + light.rgbIntensity * (specular + diffuse);
+  float shadow = ShadowCalculation(fs_in.position_LS);
+  return ambientIntensity + light.rgbIntensity * (1 - shadow) * (specular + diffuse);
 }
 
 void main() {

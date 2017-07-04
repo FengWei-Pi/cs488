@@ -43,8 +43,8 @@ A5::A5()
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
     currentAnimation(&playerStandingAnimation),
     cameraYAngle(0),
-    SHADOW_WIDTH(512),
-    SHADOW_HEIGHT(512)
+    SHADOW_WIDTH(1024),
+    SHADOW_HEIGHT(1024)
 {
   const uint size = 4;
 
@@ -548,7 +548,7 @@ void A5::initViewMatrix() {
 //----------------------------------------------------------------------------------------
 void A5::initLightSources() {
   // World-space position
-  m_light.position = glm::vec3(2,1,0);
+  m_light.direction = glm::vec3(-1, -1, 0.5);
   // m_light.position = vec3(-1.0f, 5.0f, 0.0f);
   m_light.rgbIntensity = vec3(0.8f); // White light
 }
@@ -708,17 +708,14 @@ void A5::draw() {
   float near_plane = -100000.0f, far_plane = 2000000.0f;
   glm::mat4 LightPerspective = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
   glm::mat4 LightView = glm::lookAt(
-    m_light.position,
-    glm::vec3(0, 0, 0),
+    -m_light.direction * 10000,
+    player.position,
     glm::vec3(0, 1, 0)
   );
 
   {
     glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
 
     // Clear the screen
     glClearDepth(1.0);
@@ -745,14 +742,19 @@ void A5::draw() {
     glVertexAttribPointer(m_shader_depth.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
     DepthRenderer renderer(m_shader_depth, m_batchInfoMap);
     renderScene(renderer);
+
+    glDisable(GL_CULL_FACE);
 
     glDisableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
     glBindVertexArray(0);
     CHECK_GL_ERRORS;
 
-    printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
+    // printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
   }
 
   if (!isKeyPressed(GLFW_KEY_Z)) {
@@ -763,9 +765,6 @@ void A5::draw() {
 
     glClearDepth(1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
 
     m_shader.enable();
     {
@@ -789,8 +788,8 @@ void A5::draw() {
 
       //-- Set LightSource uniform for the scene:
       {
-        location = m_shader.getUniformLocation("light.position");
-        glUniform3fv(location, 1, value_ptr(m_light.position));
+        location = m_shader.getUniformLocation("light.direction");
+        glUniform3fv(location, 1, value_ptr(m_light.direction));
         location = m_shader.getUniformLocation("light.rgbIntensity");
         glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
         CHECK_GL_ERRORS;
@@ -827,15 +826,20 @@ void A5::draw() {
     glVertexAttribPointer(m_shader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
     Renderer renderer{m_shader, m_batchInfoMap};
     renderScene(renderer);
+
+    glDisable(GL_CULL_FACE);
 
     glDisableVertexAttribArray(m_shader.getAttribLocation("position"));
     glDisableVertexAttribArray(m_shader.getAttribLocation("normal"));
     glBindVertexArray(0);
     CHECK_GL_ERRORS;
 
-    printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
+    // printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
 
     // glDisable(GL_CULL_FACE);
   } else {
