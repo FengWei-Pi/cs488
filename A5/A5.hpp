@@ -11,6 +11,8 @@
 #include "Player.hpp"
 #include "Visitor.hpp"
 #include "SceneNodeFunctor.hpp"
+#include "Collidable.hpp"
+#include "Platform.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -93,13 +95,7 @@ private:
 
   Player player;
 
-  struct Block {
-    glm::vec3 position;
-    glm::vec3 size;
-    Block(glm::vec3 position, glm::vec3 size);
-  };
-
-  std::vector<Block> blocks;
+  std::vector<Platform> blocks;
 
   bool isKeyPressed(int key);
   glm::vec3 calculatePlayerInputVelocity();

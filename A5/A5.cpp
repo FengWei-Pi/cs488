@@ -32,8 +32,6 @@ static bool show_gui = true;
 
 const size_t CIRCLE_PTS = 48;
 
-A5::Block::Block(glm::vec3 position, glm::vec3 size) : position(position), size(size) {}
-
 //----------------------------------------------------------------------------------------
 // Constructor
 A5::A5()
@@ -50,9 +48,9 @@ A5::A5()
 {
   const uint size = 4;
 
-  blocks.push_back(Block(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
-  blocks.push_back(Block(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
-  blocks.push_back(Block(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
+  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
+  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
+  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
 
   player.acceleration = glm::vec3(0, -12, 0);
 }
@@ -558,14 +556,25 @@ void A5::appLogic()
 
   initViewMatrix();
 
-  if (player.position.y < 0.0) {
-    player.position = glm::vec3(player.position.x, 0, player.position.z);
-    player.velocity = glm::vec3(player.velocity.x, 0, player.velocity.z);
+  const Hitbox playerHitbox = player.getHitbox();
 
-    recalculatePlayerVelocity();
-    player.isJumping = false;
+  for (Platform& block : blocks) {
+    Hitbox collision = playerHitbox.getIntersection(block.getHitbox());
+    if (!collision.isTrivial()) {
+      // TODO: Figure out the smallest component and move in the other direction so as to avoid the collission.
+      player.position = glm::vec3(player.position.x, 0, player.position.z);
+      player.velocity = glm::vec3(player.velocity.x, 0, player.velocity.z);
+
+      recalculatePlayerVelocity();
+      player.isJumping = false;
+
+      goto UpdateCursor;
+    }
   }
 
+  player.isJumping = true;
+
+  UpdateCursor:
   mouse.prevX = mouse.x;
   mouse.prevY = mouse.y;
 }
@@ -905,7 +914,7 @@ void A5::renderScene(SceneNodeFunctor<void, glm::mat4>& renderer) {
   {
     StaticTransformationReducer transformReducer;
 
-    for (const Block& block : blocks) {
+    for (const Platform& block : blocks) {
       glm::mat4 scale = glm::scale(block.size);
       glm::mat4 translate = glm::translate(block.position);
       glm::mat4 modelView = translate * scale;
