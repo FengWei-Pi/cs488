@@ -27,7 +27,7 @@
 \section{Statement}
 For this project, I'll build a very simple game using OpenGL. In the game, the player will start off on a floating platform positioned in the sky. His objective would be to jump from one platform to the next, to eventually reach the end without falling down. The faster he reaches the end, the higher his score.
 
-The platforms aren't necessarily stationary. They can move side to side. They can also fall if the player does not jump off within a certain amount of time. A level consists of a sequence of platforms. Each level is stored on the disk in some file format. I'll leverage Lua or JSON or C++ to store the game levels. 
+The platforms aren't necessarily stationary. They can move side to side. They can also fall if the player does not jump off within a certain amount of time. A level consists of a sequence of platforms. Each level is stored on the disk in some file format. I'll leverage Lua or JSON or C++ to store the game levels.
 
 \begin{figure}[H]
 \includegraphics[width=8cm]{screenshot}
@@ -37,7 +37,7 @@ The platforms aren't necessarily stationary. They can move side to side. They ca
 
 This project will largely build on the foundations established by my solution to Assignment 3. I will re-use the  puppet I implemented in that assignment. I will animate the puppet, giving him the ability to run, and jump. The puppet will be subject to gravitational forces and air resistance. I'll use Lua to create the scene nodes that'll be used by my game objects to render themselves on to the screen. I'll start off by importing the puppet and implementing the platforms on which the puppet stands. Then, I'll implement animations and make the puppet walk and jump. After that, I'll implement collisions, texture mapping, shadow mapping, motion blur, and synchronized sound. This should allow me to meet all the objectives for this assignment. I'll then spend the rest of my time implementing the game rules and polishing the objectives. If I have time, I'll implement additional objectives.
 
-This project will be interesting and challenging because I have never implemented a 3d game before. Through implementing this game, I'll strengthen my foundations in OpenGL and Graphics in general. In addition to learning how 3d games can be implemented, I also hope to also gain an appreciation of the amount of effort it takes to implement even small-scale 3d games. 
+This project will be interesting and challenging because I have never implemented a 3d game before. Through implementing this game, I'll strengthen my foundations in OpenGL and Graphics in general. In addition to learning how 3d games can be implemented, I also hope to also gain an appreciation of the amount of effort it takes to implement even small-scale 3d games.
 
 \section{Technical Outline}
 \subsection{Texture Mapping}
@@ -79,7 +79,7 @@ Since the player will be jumping from one platform to the next, there will need 
 \subsection{Motion Blur}
 Modern graphics hardware gives access to an accumulation buffer. This is essentially the same as the colour buffer but it cannot be written to directly. Instead, OpenGL makes available 6 operations that developers can perform on the accumulation buffer. First, you can call \verb|glAccum(GL_LOAD, value)| to copy the contents of the colour buffer multiplied by \verb|value| into the accumulation buffer. Second, you can call \verb|glAccum(GL_ACCUM, value)| to add the contents of the accumulation buffer to the contents of the colour buffer multiplied by \verb|value| to the accumulation buffer. Third, you can call \verb|glAccum(GL_RETURN, value)| to copy the contents of the accumulation buffer multiplied by \verb|value| to the colour buffer. These three operations are all that's required to implement motion blur.
 
-Instead of calling \verb|glSwapBuffers()| in every turn of the OpenGL rendering loop (thereby rendering the image to the screen), you instead add the colours scaled by $\frac{1}{n}$ to the accumulation buffer. Then after the $n$'th iteration, you write copy the colours from the accumulation buffer to the colour buffer and call \verb|glSwapBuffers()| to show the blurred image on the screen. On the first iteration, you'd directly copy the colours from the colour buffer scaled by $\frac{1}{n}$, which would reset the accumulation buffer. The algorithm is more succinctly described in \cite{wikibooks-motion-blur}. 
+Instead of calling \verb|glSwapBuffers()| in every turn of the OpenGL rendering loop (thereby rendering the image to the screen), you instead add the colours scaled by $\frac{1}{n}$ to the accumulation buffer. Then after the $n$'th iteration, you write copy the colours from the accumulation buffer to the colour buffer and call \verb|glSwapBuffers()| to show the blurred image on the screen. On the first iteration, you'd directly copy the colours from the colour buffer scaled by $\frac{1}{n}$, which would reset the accumulation buffer. The algorithm is more succinctly described in \cite{wikibooks-motion-blur}.
 
 \subsection{Shadow Mapping}
 Since this game has light sources, shadows are also necessary to produce realistic imagery. There's no perfect algorithm to implement shadows---it hasn't yet been invented. So, most games today rely on shadow approximation techniques to get decent results. The approximation technique I'll be employing in this project is called Shadow Mapping. The general algorithm is described below.
@@ -94,7 +94,7 @@ Suppose that we have a singular light source and a world consisting of objects. 
 
 The algorithm for shadow mapping is really simple. For each point $P$, we view it from the perspective of the light source. In this coordinate frame, we render the entire scene, using the z-buffer algorithm. This builds a depth buffer, which lets us know for each $(x, y)$, the depth of the closest point to the light source.
 
-After the depth buffer is obtained, we render the scene properly from the perspective of the actual camera. For each fragment, we transform it to the coordinate frame of the light source. Then, before rendering the fragment, we look in the depth buffer at that fragment's transformed $(x, y)$. If the fragment we're trying to render has a depth greater than the depth stored in the depth buffer at point $(x, y)$, then the fragment must be in a shadow. Hence, we render the fragment with darker colour. If the fragment's z value is equal to the z value stored at the depth buffer, then it must be directly illuminated by the light source. In that case, we render it normally.  
+After the depth buffer is obtained, we render the scene properly from the perspective of the actual camera. For each fragment, we transform it to the coordinate frame of the light source. Then, before rendering the fragment, we look in the depth buffer at that fragment's transformed $(x, y)$. If the fragment we're trying to render has a depth greater than the depth stored in the depth buffer at point $(x, y)$, then the fragment must be in a shadow. Hence, we render the fragment with darker colour. If the fragment's z value is equal to the z value stored at the depth buffer, then it must be directly illuminated by the light source. In that case, we render it normally.
 
 The actual implementation of the Shadow Map is a bit more nuanced. In implementing the algorithm, one can run into problems such as blocky shadows, Shadow acne, or peter panning. None of these problems are insurmountable, however. The details of the algorithm's implementation are discussed in \cite{shadow-map-learn-opengl}, which I'll use as my primary source to implement the Shadow Mapping in my game.
 
@@ -102,14 +102,14 @@ The actual implementation of the Shadow Map is a bit more nuanced. In implementi
 \section{Objectives}
 \begin{enumerate}
 \item \textbf{Modeling the Scene.} - World objects are rendered on to the screen correctly.
-\item \textbf{UI.} - The mouse and keyboard can be used by the player to control the game objects and camera. A GUI also exists for controlling game settings. 
-\item \textbf{Texture mapping.} - It is evident that texture mapping has been employed on at least 1 game object.
+\item \textbf{UI.} - The mouse and keyboard can be used by the player to control the game objects and camera. A GUI also exists for controlling game settings.
+\item \textbf{Texture mapping.} - It is evident that texture mapping has been employed at least once.
 \item \textbf{Keyframe Animation.} - When the player walks, the puppet plays a walking animation. The current frame is interpolated from its surrounding frames using linear interpolation.
 \item \textbf{Static collisions.} - On each stationary platform, the puppet does not fall through the platform and die.
 \item \textbf{Dynamic collisions.} - On each moving platform, the puppet does not fall through the platform and die.
-\item \textbf{Synchronized sound.} - When the player interacts with the game by moving the puppet, there is audible feedback. 
-\item \textbf{Physics Engine} - The puppet is subject to gravitational forces (parameter: $g$) and air resistance (parameter: $b$ in $F_d = -b * v$). 
-\item \textbf{Motion blur} - When motion blur is on, the game objects subject to motion must render blurred on to the screen. Motion blur is implemented using OpenGL's accumulation buffer. Technique: Store and average the colours that would have previously been rendered to the screen. For $n$ iterations, average the colours in the accumulation buffer. After the $n$th iteration, write the accumulation buffer to the screen on the $n$ and clear the accumulation buffer.
+\item \textbf{Synchronized sound.} - When the player interacts with the game by moving the puppet, there is audible feedback.
+\item \textbf{Physics Engine} - The puppet is subject to gravitational forces (parameter: $g$) and wind force (parameter: $F_w$). The puppet is also subject to static friction when it's standing on a platform. The static friction is a function of the puppet's mass (parameter: $M$) and the platform's normal.
+\item \textbf{Transparency} - Transparency will be implemented using the alpha channel. At least one game object is transparent.
 \item \textbf{Shadows} - Shadows are implemented using shadow maps.
 \end{enumerate}
 \end{document}
