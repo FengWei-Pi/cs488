@@ -52,7 +52,7 @@ A5::A5()
   blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
   blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
 
-  player.acceleration = glm::vec3(0, -12, 0);
+  player.mass = 1;
 }
 
 //----------------------------------------------------------------------------------------
@@ -351,8 +351,6 @@ void printDepthTexture(const uint WIDTH, const uint HEIGHT) {
  */
 void A5::init()
 {
-  // SHADOW_WIDTH = m_framebufferWidth;
-  // SHADOW_HEIGHT = m_framebufferHeight;
 
   // Set the background colour.
   glClearColor(0.35, 0.35, 0.35, 1.0);
@@ -556,11 +554,36 @@ void A5::appLogic()
     recalculatePlayerVelocity();
   }
 
+  initViewMatrix();
+
+  // Friction
+  //
+  glm::vec3 FNetApp{0};
+
+  if (player.isJumping) {
+    FNetApp = world.F_wind;
+  } else {
+    double N = player.mass * (-world.g.y) - world.F_wind.y;
+    double staticForce = N * world.ufs;
+    double windXZForce = glm::length(glm::vec3(world.F_wind.x, 0, world.F_wind.z));
+
+    if (staticForce <= windXZForce) {
+      double kineticForce = N * world.ufk;
+      double netXZForce = (windXZForce - kineticForce);
+      double epsilon = 0.0001;
+
+      double scale = std::fabs(windXZForce) < epsilon ? 1 : windXZForce;
+      glm::vec3 windXZDir = glm::vec3(world.F_wind.x, 0, world.F_wind.z) / scale;
+
+      FNetApp = netXZForce * windXZDir + glm::vec3(0, world.F_wind.y, 0);
+    }
+  }
+
+  player.acceleration = world.g + FNetApp / player.mass;
+
   const float t = 1 / ImGui::GetIO().Framerate;
   player.position = 0.5f * player.acceleration * t * t + player.velocity * t + player.position;
   player.velocity = player.acceleration * t + player.velocity;
-
-  initViewMatrix();
 
   const Hitbox playerHitbox = player.getHitbox();
 

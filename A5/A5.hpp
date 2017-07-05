@@ -117,5 +117,12 @@ private:
   GLuint quad_vertexbuffer;
   GLuint depthrenderbuffer;
 
+  struct World {
+    glm::vec3 g = glm::vec3(0, -12, 0); // gravity
+    glm::vec3 F_wind = glm::vec3(5, 0, 1); // Wind force
+    double ufs = 0.005; // co-efficient of static friction
+    double ufk = 0.0005; // co-efficient of kinetic friction
+  } world;
+
   static void initShaderProgram(ShaderProgram& program, const std::string& name);
 };
