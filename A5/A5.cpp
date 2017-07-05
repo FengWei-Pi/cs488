@@ -51,8 +51,6 @@ A5::A5()
   blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
   blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
   blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
-
-  player.mass = 1;
 }
 
 //----------------------------------------------------------------------------------------
@@ -551,17 +549,16 @@ void A5::appLogic()
   if (mouse.isRightButtonPressed) {
     float dispX = mouse.x - mouse.prevX;
     cameraYAngle -= dispX / 200;
-    recalculatePlayerVelocity();
+    refreshPlayerInputVelocity();
   }
 
   initViewMatrix();
 
   // Friction
-  //
-  glm::vec3 FNetApp{0};
+  glm::vec3 netAppliedForce{0};
 
-  if (!player.isStanding) {
-    FNetApp = world.F_wind;
+  if (!player.canWalk) {
+    netAppliedForce = world.F_wind;
   } else {
     double N = player.mass * (-world.g.y) - world.F_wind.y;
     double staticForce = N * world.ufs;
@@ -575,15 +572,15 @@ void A5::appLogic()
       double scale = std::fabs(windXZForce) < epsilon ? 1 : windXZForce;
       glm::vec3 windXZDir = glm::vec3(world.F_wind.x, 0, world.F_wind.z) / scale;
 
-      FNetApp = netXZForce * windXZDir + glm::vec3(0, world.F_wind.y, 0);
+      netAppliedForce = netXZForce * windXZDir + glm::vec3(0, world.F_wind.y, 0);
     }
   }
 
-  player.acceleration = world.g + FNetApp / player.mass;
+  player.acceleration = world.g + netAppliedForce / player.mass;
 
   const float t = 1 / ImGui::GetIO().Framerate;
-  player.position = 0.5f * player.acceleration * t * t + player.velocity * t + player.position;
-  player.velocity = player.acceleration * t + player.velocity;
+  player.position = 0.5f * player.acceleration * t * t + player.getVelocity() * t + player.position;
+  player.setVelocity(player.acceleration * t + player.getVelocity());
 
   const Hitbox playerHitbox = player.getHitbox();
 
@@ -602,22 +599,24 @@ void A5::appLogic()
       }
 
       glm::vec3 direction {
-        player.velocity.x >= 0 ? 1 : -1,
-        player.velocity.y >= 0 ? 1 : -1,
-        player.velocity.z >= 0 ? 1 : -1
+        player.getVelocity().x >= 0 ? 1 : -1,
+        player.getVelocity().y >= 0 ? 1 : -1,
+        player.getVelocity().z >= 0 ? 1 : -1
       };
 
       player.position = player.position - direction * createVec3(argmin, collision.size[argmin]);
-      player.velocity = player.velocity - createVec3(argmin, player.velocity[argmin]);
+      player.setVelocity(player.getVelocity() - createVec3(argmin, player.getVelocity()[argmin]));
 
-      recalculatePlayerVelocity();
-      player.isStanding = true;
+      // After landing, your input velocity can be different than when you jumped
+      refreshPlayerInputVelocity();
+      player.clearInertialVelocity();
+      player.canWalk = true;
 
       goto UpdateCursor;
     }
   }
 
-  player.isStanding = false;
+  player.canWalk = false;
 
   UpdateCursor:
   mouse.prevX = mouse.x;
@@ -1107,9 +1106,9 @@ bool A5::keyInputEvent (
           break;
         }
         case GLFW_KEY_SPACE: {
-          if (player.isStanding) {
-            player.isStanding = false;
-            player.velocity = glm::vec3(player.velocity.x, 6, player.velocity.z);
+          if (player.canWalk) {
+            player.canWalk = false;
+            player.setVelocity(glm::vec3(player.getVelocity().x, 6, player.getVelocity().z));
             animationStartTime = Clock::getTime();
             currentAnimation = &playerStandingAnimation;
           }
@@ -1130,11 +1129,11 @@ bool A5::keyInputEvent (
       case GLFW_KEY_A:
       case GLFW_KEY_S:
       case GLFW_KEY_D:
-      case GLFW_KEY_DOWN:
       case GLFW_KEY_UP:
+      case GLFW_KEY_DOWN:
       case GLFW_KEY_LEFT:
       case GLFW_KEY_RIGHT: {
-        recalculatePlayerVelocity();
+        refreshPlayerInputVelocity();
         return true;
       }
     }
@@ -1147,24 +1146,24 @@ bool A5::isKeyPressed(int key) {
   return keysPressed.find(key) != keysPressed.end();
 }
 
-void A5::recalculatePlayerVelocity() {
-  if (!player.isStanding) {
+// Reset player's XZ velocity (based on key inputs) and update animations
+void A5::refreshPlayerInputVelocity() {
+  if (!player.canWalk) {
     return;
   }
 
   const double epsilon = 0.0001;
-  const glm::vec3 v = calculatePlayerInputVelocity();
-  const bool isPuppetWalking = glm::length(glm::vec2(v.x, v.z)) >= epsilon;
 
-  player.velocity = glm::vec3(v.x, player.velocity.y, v.z);
+  glm::vec3 inputV = calculatePlayerInputVelocity();
+  player.setInputVelocity(inputV);
 
-  if (isPuppetWalking) {
+  glm::vec3 playerV = player.getVelocity();
+
+  if (glm::length(glm::vec3(inputV.x, 0, inputV.z)) >= epsilon) {
     if (currentAnimation != &playerWalkingAnimation) {
       animationStartTime = Clock::getTime();
       currentAnimation = &playerWalkingAnimation;
     }
-
-    player.setDirection(std::atan2(player.velocity.x, player.velocity.z));
   } else {
     animationStartTime = Clock::getTime();
     currentAnimation = &playerStandingAnimation;
@@ -1172,27 +1171,35 @@ void A5::recalculatePlayerVelocity() {
 }
 
 glm::vec3 A5::calculatePlayerInputVelocity() {
-  const double epsilon = 0.0001;
-  const double dv = 6;
-
   double vx = 0;
   double vz = 0;
 
-  if (isKeyPressed(GLFW_KEY_LEFT) || isKeyPressed(GLFW_KEY_A)) {
-    vx += dv;
+  bool isMovingLeft = isKeyPressed(GLFW_KEY_LEFT) || isKeyPressed(GLFW_KEY_A);
+  bool isMovingRight = isKeyPressed(GLFW_KEY_RIGHT) || isKeyPressed(GLFW_KEY_D);
+  bool isMovingForward = isKeyPressed(GLFW_KEY_UP) || isKeyPressed(GLFW_KEY_W);
+  bool isMovingBackward = isKeyPressed(GLFW_KEY_DOWN) || isKeyPressed(GLFW_KEY_S);
+  bool isMoving = isMovingLeft || isMovingRight || isMovingForward || isMovingBackward;
+
+  if (!isMoving) {
+    return glm::vec3(0);
   }
 
-  if (isKeyPressed(GLFW_KEY_RIGHT) || isKeyPressed(GLFW_KEY_D)) {
-    vx -= dv;
+  if (isMovingLeft) {
+    vx += 1;
   }
 
-  if (isKeyPressed(GLFW_KEY_UP) || isKeyPressed(GLFW_KEY_W)) {
-    vz += dv;
+  if (isMovingRight) {
+    vx -= 1;
   }
 
-  if (isKeyPressed(GLFW_KEY_DOWN) || isKeyPressed(GLFW_KEY_S)) {
-    vz -= dv;
+  if (isMovingForward) {
+    vz += 1;
   }
 
-  return glm::rotateY(glm::vec3{vx, player.velocity.y, vz}, float(cameraYAngle));
+  if (isMovingBackward) {
+    vz -= 1;
+  }
+
+  glm::vec3 velocity = glm::normalize(glm::vec3(vx, 0, vz)) * player.speed;
+  return glm::rotateY(velocity, float(cameraYAngle));
 }

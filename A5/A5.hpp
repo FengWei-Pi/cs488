@@ -99,7 +99,7 @@ private:
 
   bool isKeyPressed(int key);
   glm::vec3 calculatePlayerInputVelocity();
-  void recalculatePlayerVelocity();
+  void refreshPlayerInputVelocity();
 
   void renderScene(SceneNodeFunctor<void, glm::mat4>& renderer);
   /**
@@ -119,9 +119,9 @@ private:
 
   struct World {
     glm::vec3 g = glm::vec3(0, -12, 0); // gravity
-    glm::vec3 F_wind = glm::vec3(5, 0, 1); // Wind force
-    double ufs = 0.005; // co-efficient of static friction
-    double ufk = 0.0005; // co-efficient of kinetic friction
+    glm::vec3 F_wind = glm::vec3(1, 0, 1); // Wind force
+    double ufs = 0.1; // co-efficient of static friction
+    double ufk = 0.05; // co-efficient of kinetic friction
   } world;
 
   static void initShaderProgram(ShaderProgram& program, const std::string& name);

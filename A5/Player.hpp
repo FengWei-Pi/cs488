@@ -7,13 +7,20 @@ class Player : public Collidable {
   double direction;
   double oldDirection;
   double t;
-public:
+  glm::vec3 inertialVelocity;
+  glm::vec3 inputVelocity;
   void setDirection(double direction);
+public:
   double getDirection();
-  bool isStanding = true;
-  double mass;
+  bool canWalk = true;
+  double mass = 2;
+  double speed = 6;
   glm::vec3 position;
-  glm::vec3 velocity;
   glm::vec3 acceleration;
   Hitbox getHitbox();
+
+  glm::vec3 getVelocity();
+  void setInputVelocity(glm::vec3);
+  void setVelocity(glm::vec3);
+  void clearInertialVelocity();
 };
