@@ -120,8 +120,8 @@ private:
   struct World {
     glm::vec3 g = glm::vec3(0, -12, 0); // gravity
     glm::vec3 F_wind = glm::vec3(1, 0, 1); // Wind force
-    double ufs = 0.1; // co-efficient of static friction
-    double ufk = 0.05; // co-efficient of kinetic friction
+    float ufs = 0.1; // co-efficient of static friction
+    float ufk = 0.05; // co-efficient of kinetic friction
   } world;
 
   static void initShaderProgram(ShaderProgram& program, const std::string& name);

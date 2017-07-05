@@ -646,6 +646,16 @@ void A5::guiLogic()
   ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
   // Add more gui elements here here ...
 
+  ImGui::Text("Environment");
+  ImGui::DragFloat("g", &world.g.y, 0.1f, -24.0f, 0.0f, "%.3f m/s^2");
+  ImGui::DragFloat("Static friction", &world.ufs, 0.01f, 0.005f, 1.0f);
+  ImGui::DragFloat("Kinetic friction", &world.ufk, 0.01f, 0.0005f, 1.0f);
+  ImGui::DragFloat3("Wind force", glm::value_ptr(world.F_wind), 0.1, -100.0, 100.0, "%.3f N");
+
+  ImGui::Text("\nPlayer");
+  ImGui::DragFloat("Mass", &player.mass, 0.1f, 0.1f, 10.0f, "%.3f kg");
+  ImGui::DragFloat("Speed", &player.speed, 0.1f, 0.1f, 10.0f, "%.3f m/s");
+
 
   // Create Button, and check if it was clicked:
   if( ImGui::Button( "Quit Application" ) ) {
