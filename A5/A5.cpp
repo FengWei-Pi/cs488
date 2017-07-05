@@ -566,7 +566,7 @@ void A5::appLogic()
 
     if (staticForce <= windXZForce) {
       double kineticForce = N * world.ufk;
-      double netXZForce = (windXZForce - kineticForce);
+      double netXZForce = std::max(windXZForce - kineticForce, 0.0);
       double epsilon = 0.0001;
 
       double scale = std::fabs(windXZForce) < epsilon ? 1 : windXZForce;
