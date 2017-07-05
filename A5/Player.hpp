@@ -10,7 +10,7 @@ class Player : public Collidable {
 public:
   void setDirection(double direction);
   double getDirection();
-  bool isJumping = false;
+  bool isStanding = true;
   double mass;
   glm::vec3 position;
   glm::vec3 velocity;

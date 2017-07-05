@@ -560,7 +560,7 @@ void A5::appLogic()
   //
   glm::vec3 FNetApp{0};
 
-  if (player.isJumping) {
+  if (!player.isStanding) {
     FNetApp = world.F_wind;
   } else {
     double N = player.mass * (-world.g.y) - world.F_wind.y;
@@ -611,13 +611,13 @@ void A5::appLogic()
       player.velocity = player.velocity - createVec3(argmin, player.velocity[argmin]);
 
       recalculatePlayerVelocity();
-      player.isJumping = false;
+      player.isStanding = true;
 
       goto UpdateCursor;
     }
   }
 
-  player.isJumping = true;
+  player.isStanding = false;
 
   UpdateCursor:
   mouse.prevX = mouse.x;
@@ -1107,8 +1107,8 @@ bool A5::keyInputEvent (
           break;
         }
         case GLFW_KEY_SPACE: {
-          if (!player.isJumping) {
-            player.isJumping = true;
+          if (player.isStanding) {
+            player.isStanding = false;
             player.velocity = glm::vec3(player.velocity.x, 6, player.velocity.z);
             animationStartTime = Clock::getTime();
             currentAnimation = &playerStandingAnimation;
@@ -1148,7 +1148,7 @@ bool A5::isKeyPressed(int key) {
 }
 
 void A5::recalculatePlayerVelocity() {
-  if (player.isJumping) {
+  if (!player.isStanding) {
     return;
   }
 
