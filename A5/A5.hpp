@@ -96,7 +96,6 @@ private:
 
   Player player;
 
-  Platform* ground;
   std::vector<Platform> blocks;
 
   bool isKeyPressed(int key);
