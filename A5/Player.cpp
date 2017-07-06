@@ -43,6 +43,10 @@ void Player::setVelocity(glm::vec3 v) {
 
 void Player::setInputVelocity(glm::vec3 inputV) {
   inputVelocity = inputV;
-  double inputDir = std::atan2(inputV.x, inputV.z);
-  setDirection(inputDir);
+  const double epsilon = 0.0001;
+
+  if (glm::length(inputV) >= epsilon) {
+    double inputDir = std::atan2(inputV.x, inputV.z);
+    setDirection(inputDir);
+  }
 }
