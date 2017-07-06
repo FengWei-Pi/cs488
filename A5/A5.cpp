@@ -49,9 +49,31 @@ A5::A5()
 {
   const uint size = 4;
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
-  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
-  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
+  const double PI = glm::radians(180.0f);
+
+  const std::function<glm::vec3(glm::vec3)> xSin0 = [PI](glm::vec3 _) -> glm::vec3 {
+    const double period = 4;
+    const double t = std::fmod(Clock::getTime(), period);
+    return 1.5 * std::sin(PI * 2 / period * t) * glm::vec3(1, 0, 0);
+  };
+
+  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), xSin0));
+
+  const std::function<glm::vec3(glm::vec3)> xSin1 = [PI](glm::vec3 _) -> glm::vec3 {
+    const double period = 4;
+    const double t = std::fmod(Clock::getTime() - 3, period);
+    return std::sin(PI * 2 / period * t) * glm::vec3(1, 0, 0);
+  };
+
+  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), xSin1));
+
+  const std::function<glm::vec3(glm::vec3)> xSin2 = [PI](glm::vec3 _) -> glm::vec3 {
+    const double period = 4;
+    const double t = std::fmod(Clock::getTime() - 1, period);
+    return 2.0 * std::sin(PI * 2 / period * t) * glm::vec3(1, 0, 0);
+  };
+
+  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), xSin2));
 
   player.canWalk = true;
   player.mass = 1;
@@ -592,6 +614,9 @@ void A5::appLogic()
   const Hitbox playerHitbox = player.getHitbox();
 
   for (Platform& block : blocks) {
+    glm::vec3 blockV = block.getVelocity();
+    block.position = blockV * t + block.position;
+
     Hitbox collision = playerHitbox.getIntersection(block.getHitbox());
     if (!collision.isTrivial()) {
       /**
@@ -616,7 +641,7 @@ void A5::appLogic()
 
       // After landing, your input velocity can be different than when you jumped
       refreshPlayerInputVelocity();
-      player.clearInertialVelocity();
+      player.setInertialVelocity(blockV);
       player.canWalk = true;
 
       goto UpdateCursor;

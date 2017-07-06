@@ -23,5 +23,5 @@ public:
   glm::vec3 getVelocity();
   void setInputVelocity(glm::vec3);
   void setVelocity(glm::vec3);
-  void clearInertialVelocity();
+  void setInertialVelocity(glm::vec3);
 };

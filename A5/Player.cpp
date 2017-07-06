@@ -29,8 +29,8 @@ Hitbox Player::getHitbox() {
   };
 }
 
-void Player::clearInertialVelocity() {
-  inertialVelocity = glm::vec3(0);
+void Player::setInertialVelocity(glm::vec3 v) {
+  inertialVelocity = v;
 }
 
 glm::vec3 Player::getVelocity() {
