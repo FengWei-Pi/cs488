@@ -27,18 +27,36 @@ uniform vec3 ambientIntensity;
 
 uniform sampler2DShadow depthTexture;
 
+vec2 poissonDisk[4] = vec2[](
+   vec2( -0.94201624, -0.39906216 ),
+   vec2( 0.94558609, -0.76890725 ),
+   vec2( -0.094184101, -0.92938870 ),
+   vec2( 0.34495938, 0.29387760 )
+);
+
 float ShadowCalculation(vec4 fragPosLightSpace) {
-  // perform perspective divide
-  vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
   // transform NDC [-1, 1] to [0,1] range
-  projCoords = projCoords * 0.5 + 0.5;
+  vec3 projCoords = fragPosLightSpace.xyz * 0.5 + 0.5;
 
   vec3 lightDir = normalize(fs_in.light_CameraSpace.position - fs_in.position_CameraSpace);
-  float bias = 0.005*tan(acos(dot(fs_in.normal_CameraSpace, lightDir)));
+  float bias = 0.005*tan(acos(clamp(dot(fs_in.normal_CameraSpace, lightDir), 0, 1)));
 
   bias = 0.00001 * clamp(bias, 0,0.01);
 
-  return 1 - texture(depthTexture, vec3(projCoords.xy, projCoords.z - bias));
+  /**
+   * Poisson disk algorithm taken from
+   * http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-16-shadow-mapping/
+   */
+
+  float visibility=1.0;
+
+  // Sample the shadow map 4 times
+  for (int i=0;i<4;i++){
+    int index = i;
+    visibility -= 0.2 * (1.0- texture(depthTexture, vec3(projCoords.xy + poissonDisk[index]/700.0, projCoords.z - bias)));
+  }
+
+  return 1 - visibility;
 }
 
 vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
@@ -50,7 +68,7 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
   // Direction from fragment to viewer (origin - fragPosition).
   vec3 v = normalize(-fragPosition.xyz);
 
-  float n_dot_l = max(dot(fragNormal, l), 0.0);
+  float n_dot_l = clamp(dot(fragNormal, l), 0, 1);
 
   vec3 diffuse;
   diffuse = material.kd * n_dot_l;
@@ -60,7 +78,7 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
   if (n_dot_l > 0.0) {
     // Halfway vector.
     vec3 h = normalize(v + l);
-    float n_dot_h = max(dot(fragNormal, h), 0.0);
+    float n_dot_h = clamp(dot(fragNormal, h), 0, 1);
 
     specular = material.ks * pow(n_dot_h, material.shininess);
   }
