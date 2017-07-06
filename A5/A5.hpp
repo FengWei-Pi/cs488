@@ -118,7 +118,7 @@ private:
   GLuint depthrenderbuffer;
 
   struct World {
-    glm::vec3 g = glm::vec3(0, -12, 0); // gravity
+    glm::vec3 F_g = glm::vec3(0, -12, 0); // Gravitational force
     glm::vec3 F_wind = glm::vec3(1, 0, 1); // Wind force
     float ufs = 0.1; // co-efficient of static friction
     float ufk = 0.05; // co-efficient of kinetic friction

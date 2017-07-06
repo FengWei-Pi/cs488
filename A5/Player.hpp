@@ -12,9 +12,10 @@ class Player : public Collidable {
   void setDirection(double direction);
 public:
   double getDirection();
-  bool canWalk = true;
-  float mass = 2;
-  float speed = 6;
+  bool canWalk;
+  float mass;
+  float speed;
+  glm::vec3 g;
   glm::vec3 position;
   glm::vec3 acceleration;
   Hitbox getHitbox();

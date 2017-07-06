@@ -51,6 +51,11 @@ A5::A5()
   blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
   blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
   blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
+
+  player.canWalk = true;
+  player.mass = 1;
+  player.speed = 6;
+  player.g = world.F_g / player.mass;
 }
 
 //----------------------------------------------------------------------------------------
@@ -560,7 +565,7 @@ void A5::appLogic()
   if (!player.canWalk) {
     netAppliedForce = world.F_wind;
   } else {
-    double N = player.mass * (-world.g.y) - world.F_wind.y;
+    double N = (-world.F_g.y) - world.F_wind.y;
     double staticForce = N * world.ufs;
     double windXZForce = glm::length(glm::vec3(world.F_wind.x, 0, world.F_wind.z));
 
@@ -576,7 +581,7 @@ void A5::appLogic()
     }
   }
 
-  player.acceleration = world.g + netAppliedForce / player.mass;
+  player.acceleration = (world.F_g + netAppliedForce) / player.mass;
 
   const float t = 1 / ImGui::GetIO().Framerate;
   player.position = 0.5f * player.acceleration * t * t + player.getVelocity() * t + player.position;
@@ -647,13 +652,33 @@ void A5::guiLogic()
   // Add more gui elements here here ...
 
   ImGui::Text("Environment");
-  ImGui::DragFloat("g", &world.g.y, 0.1f, -24.0f, 0.0f, "%.3f m/s^2");
+
+  float minFg = -24;
+  float maxFg = -0.1;
+
+  float minMass = 0.1;
+  float maxMass = 25;
+
+  float minG = minFg / minMass;
+  float maxG = maxFg / maxMass;
+
+  if (ImGui::DragFloat("Gravity", &world.F_g.y, 0.1f, minFg, maxFg, "%.3f N")) {
+    player.g.y = world.F_g.y / player.mass;
+  }
+
   ImGui::DragFloat("Static friction", &world.ufs, 0.01f, 0.005f, 1.0f);
   ImGui::DragFloat("Kinetic friction", &world.ufk, 0.01f, 0.0005f, 1.0f);
   ImGui::DragFloat3("Wind force", glm::value_ptr(world.F_wind), 0.1, -100.0, 100.0, "%.3f N");
 
   ImGui::Text("\nPlayer");
-  ImGui::DragFloat("Mass", &player.mass, 0.1f, 0.1f, 10.0f, "%.3f kg");
+  if (ImGui::DragFloat("g", &player.g.y, 0.1f, minG, maxG, "%.3f m/s^2")) {
+    player.mass = world.F_g.y / player.g.y;
+  }
+
+  if (ImGui::DragFloat("Mass", &player.mass, 0.1f, minMass, maxMass, "%.3f kg")) {
+    player.g.y = world.F_g.y / player.mass;
+  }
+
   ImGui::DragFloat("Speed", &player.speed, 0.1f, 0.1f, 10.0f, "%.3f m/s");
 
 
