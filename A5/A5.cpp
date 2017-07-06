@@ -43,6 +43,7 @@ A5::A5()
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
     currentAnimation(&playerStandingAnimation),
     cameraYAngle(0),
+    cameraZoom(1),
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048)
 {
@@ -524,7 +525,7 @@ void A5::initPerspectiveMatrix()
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), // eye
+    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f * float(cameraZoom)), float(cameraYAngle)), // eye
     player.position + glm::vec3(0.0f, 3.0f, 1.0f), // center
     glm::vec3(0, 1, 0) // up
   );
@@ -1100,14 +1101,11 @@ bool A5::mouseButtonInputEvent (
  * Event handler.  Handles mouse scroll wheel events.
  */
 bool A5::mouseScrollEvent (
-  double xOffSet,
-  double yOffSet
+  double xOffset,
+  double yOffset
 ) {
-  bool eventHandled(false);
-
-  // Fill in with event handling code...
-
-  return eventHandled;
+  cameraZoom = glm::clamp(cameraZoom + yOffset / 50, 0.1, 2.0);
+  return true;
 }
 
 //----------------------------------------------------------------------------------------
