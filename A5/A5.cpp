@@ -533,7 +533,7 @@ void A5::initViewMatrix() {
 //----------------------------------------------------------------------------------------
 void A5::initLightSources() {
   // World-space position
-  m_light.position = vec3(-1.0f, 5.0f, -2.0f);
+  m_light.position = glm::rotateY(vec3(-1.0f, 5.0f, -2.0f), float(cameraYAngle));
   m_light.rgbIntensity = vec3(0.8f); // White light
 }
 
@@ -558,6 +558,7 @@ void A5::appLogic()
   }
 
   initViewMatrix();
+  initLightSources();
 
   // Friction
   glm::vec3 netAppliedForce{0};
