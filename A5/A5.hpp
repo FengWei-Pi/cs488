@@ -145,4 +145,9 @@ private:
   GLuint skyboxTexture;
   GLuint skyboxVAO;
   GLuint skyboxVBO;
+
+  void fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& LightView);
+  void renderDepthTexture();
+  void renderSceneNormally(const glm::mat4& LightProjection, const glm::mat4& LightView);
+  void renderSkybox();
 };
