@@ -116,6 +116,7 @@ private:
   unsigned int SHADOW_WIDTH, SHADOW_HEIGHT;
   ShaderProgram m_shader_depth;
   ShaderProgram m_shader_quad;
+  ShaderProgram m_shader_skybox;
 
   GLuint VertexArrayID;
   GLuint quad_vertexbuffer;
@@ -139,4 +140,9 @@ private:
   };
 
   StateManager<PlayerState> playerStateManager;
+
+  static GLuint loadCubemap(std::vector<std::string> faces);
+  GLuint skyboxTexture;
+  GLuint skyboxVAO;
+  GLuint skyboxVBO;
 };

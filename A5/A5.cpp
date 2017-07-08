@@ -15,6 +15,7 @@ using namespace std;
 #include "AnimationTransformationReducer.hpp"
 #include "StaticTransformationReducer.hpp"
 #include "Util.hpp"
+#include "lodepng/lodepng.h"
 
 #include <imgui/imgui.h>
 
@@ -413,6 +414,7 @@ void A5::init()
   initShaderProgram(m_shader, "Main");
   initShaderProgram(m_shader_depth, "simpleDepthShader");
   initShaderProgram(m_shader_quad, "quadShader");
+  initShaderProgram(m_shader_skybox, "skybox");
 
   puppetSceneNode = readLuaSceneFile(getAssetFilePath("puppet.lua"));
   blockSceneNode = readLuaSceneFile(getAssetFilePath("block.lua"));
@@ -442,6 +444,76 @@ void A5::init()
   initViewMatrix();
 
   initLightSources();
+
+  {
+    // Skybox code
+    std::vector<std::string> faces{
+      getAssetFilePath("skybox/spires_rt.png"),
+      getAssetFilePath("skybox/spires_lf.png"),
+      getAssetFilePath("skybox/spires_up.png"),
+      getAssetFilePath("skybox/spires_dn.png"),
+      getAssetFilePath("skybox/spires_bk.png"),
+      getAssetFilePath("skybox/spires_ft.png")
+    };
+
+    skyboxTexture = loadCubemap(faces);
+
+    float skyboxVertices[] = {
+      // positions
+      -1.0f,  1.0f, -1.0f,
+      -1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+       1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+
+      -1.0f, -1.0f,  1.0f,
+      -1.0f, -1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,
+      -1.0f,  1.0f,  1.0f,
+      -1.0f, -1.0f,  1.0f,
+
+       1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+
+      -1.0f, -1.0f,  1.0f,
+      -1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f, -1.0f,  1.0f,
+      -1.0f, -1.0f,  1.0f,
+
+      -1.0f,  1.0f, -1.0f,
+       1.0f,  1.0f, -1.0f,
+       1.0f,  1.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,
+      -1.0f,  1.0f,  1.0f,
+      -1.0f,  1.0f, -1.0f,
+
+      -1.0f, -1.0f, -1.0f,
+      -1.0f, -1.0f,  1.0f,
+       1.0f, -1.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,
+      -1.0f, -1.0f,  1.0f,
+       1.0f, -1.0f,  1.0f
+    };
+
+    glGenVertexArrays(1, &skyboxVAO);
+    glBindVertexArray(skyboxVAO);
+
+    // Generate vertex buffer
+    glGenBuffers(1, &skyboxVBO);
+
+    // Upload data to vertex buffers
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    CHECK_GL_ERRORS;
+  }
 
   {
     // Create a texture to render to
@@ -520,6 +592,46 @@ void A5::init()
   glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
   CHECK_GL_ERRORS;
 
+}
+
+GLuint A5::loadCubemap(std::vector<std::string> faces) {
+  GLuint textureId;
+  glGenTextures(1, &textureId);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
+
+  for (unsigned int i = 0; i < faces.size(); i += 1) {
+    std::vector<unsigned char> image; //the raw pixels
+    unsigned int width, height;
+
+    unsigned int error = lodepng::decode(image, width, height, faces.at(i).c_str());
+
+    //if there's an error, display it
+    if(error) {
+      std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+      assert(false);
+    }
+
+    glTexImage2D(
+      GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+      0,
+      GL_RGBA,
+      width,
+      height,
+      0,
+      GL_RGBA,
+      GL_UNSIGNED_BYTE,
+      &image[0]
+    );
+    CHECK_GL_ERRORS;
+  }
+
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  return textureId;
 }
 
 std::shared_ptr<SceneNode> A5::readLuaSceneFile(const std::string& filename) {
@@ -850,189 +962,230 @@ void A5::draw() {
   );
 
   {
-    glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    // Render skybox
+    glDepthMask(GL_FALSE);
 
-    // Clear the screen
-    glClearDepth(1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glm::mat4 view = glm::mat4(glm::mat3(m_view));
+    glm::mat4 projection = m_perpsective;
 
-    m_shader_depth.enable();
-    {
-      GLuint location = m_shader_depth.getUniformLocation("Perspective");
-      glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightPerspective));
+    m_shader_skybox.enable();
+      glUniformMatrix4fv(m_shader_skybox.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(view));
       CHECK_GL_ERRORS;
 
-      location = m_shader_depth.getUniformLocation("View");
-      glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightView));
+      glUniformMatrix4fv(m_shader_skybox.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(projection));
       CHECK_GL_ERRORS;
-    }
-    m_shader_depth.disable();
 
+      glUniform1i(m_shader_skybox.getUniformLocation("skybox"), 0);
+    m_shader_skybox.disable();
 
-    glBindVertexArray(m_vao_meshData);
-    glEnableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
+    GLuint positionAttrib = m_shader_skybox.getAttribLocation("position");
 
-    // Map Position
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
-    glVertexAttribPointer(m_shader_depth.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // Enable
+    glBindVertexArray(skyboxVAO);
+    glEnableVertexAttribArray(positionAttrib);
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+    // Map VBO data to attribs
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-    DepthRenderer renderer(m_shader_depth, m_batchInfoMap);
-    renderScene(renderer);
-
-    glDisable(GL_CULL_FACE);
-
-    glDisableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
-    glBindVertexArray(0);
+    // Bind texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
     CHECK_GL_ERRORS;
 
-    // printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
+    m_shader_skybox.enable();
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    m_shader_skybox.disable();
+
+    glDisableVertexAttribArray(positionAttrib);
+    glBindVertexArray(0);
+    glDepthMask(GL_TRUE);
   }
 
-  if (!isKeyPressed(GLFW_KEY_Z)) {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-
-    glClearDepth(1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    m_shader.enable();
-    {
-      //-- Set Perpsective matrix uniform for the scene:
-      GLint location = m_shader.getUniformLocation("Perspective");
-      glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perpsective));
-      CHECK_GL_ERRORS;
-
-      location = m_shader.getUniformLocation("View");
-      glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_view));
-      CHECK_GL_ERRORS;
-
-      location = m_shader.getUniformLocation("LightPerspective");
-      glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightPerspective));
-      CHECK_GL_ERRORS;
-
-      location = m_shader.getUniformLocation("LightView");
-      glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightView));
-      CHECK_GL_ERRORS;
-
-
-      //-- Set LightSource uniform for the scene:
-      {
-        location = m_shader.getUniformLocation("light.position");
-        glUniform3fv(location, 1, value_ptr(m_light.position));
-        location = m_shader.getUniformLocation("light.rgbIntensity");
-        glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
-        CHECK_GL_ERRORS;
-      }
-
-      //-- Set background light ambient intensity
-      {
-        location = m_shader.getUniformLocation("ambientIntensity");
-        vec3 ambientIntensity(0.05f);
-        glUniform3fv(location, 1, value_ptr(ambientIntensity));
-        CHECK_GL_ERRORS;
-      }
-
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, depthTexture);
-
-      glUniform1i(m_shader.getUniformLocation("depthTexture"), 0);
-      CHECK_GL_ERRORS;
-    }
-    m_shader.disable();
-
-    // Enable Position and Normal
-    glBindVertexArray(m_vao_meshData);
-    glEnableVertexAttribArray(m_shader.getAttribLocation("position"));
-    glEnableVertexAttribArray(m_shader.getAttribLocation("normal"));
-
-    // Map Position
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
-    glVertexAttribPointer(m_shader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Map Normals
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
-    glVertexAttribPointer(m_shader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-
-    Renderer renderer{m_shader, m_batchInfoMap};
-    renderScene(renderer);
-
-    glDisable(GL_CULL_FACE);
-
-    glDisableVertexAttribArray(m_shader.getAttribLocation("position"));
-    glDisableVertexAttribArray(m_shader.getAttribLocation("normal"));
-    glBindVertexArray(0);
-    CHECK_GL_ERRORS;
-
-    // printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
-
-    // glDisable(GL_CULL_FACE);
-  } else {
-
-    // Render to the screen
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Render on the whole framebuffer, complete from the lower left corner to the upper right
-    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-
-    // Clear the screen
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    m_shader_quad.enable();
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, renderedTexture);
-    glUniform1i(m_shader_quad.getUniformLocation("renderedTexture"), 0);
-
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, depthTexture);
-    // glUniform1i(m_shader_quad.getUniformLocation("depthTexture"), 1);
-
-    glBindVertexArray(VertexArrayID);
-    // glUniform1f(m_shader_quad.getUniformLocation("time"), (float)(glfwGetTime()*10.0f) );
-
-    // Enable vertex shader input slot
-    glEnableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
-    CHECK_GL_ERRORS;
-
-    // Map vbo data to shader input
-    glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-    glVertexAttribPointer(
-      m_shader_quad.getAttribLocation("vertexPosition_modelspace"),                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-      3,                  // size
-      GL_FLOAT,           // type
-      GL_FALSE,           // normalized?
-      0,                  // stride
-      (void*)0            // array buffer offset
-    );
-    CHECK_GL_ERRORS;
-
-    // Draw the triangles !
-    glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
-
-    glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
-    // glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexUV"));
-    glBindVertexArray(0);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, 0);
-
-    m_shader_quad.disable();
-  }
+  // {
+  //   glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  //   glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+  //
+  //   // Clear the screen
+  //   glClearDepth(1.0);
+  //   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //
+  //   m_shader_depth.enable();
+  //   {
+  //     GLuint location = m_shader_depth.getUniformLocation("Perspective");
+  //     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightPerspective));
+  //     CHECK_GL_ERRORS;
+  //
+  //     location = m_shader_depth.getUniformLocation("View");
+  //     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightView));
+  //     CHECK_GL_ERRORS;
+  //   }
+  //   m_shader_depth.disable();
+  //
+  //
+  //   glBindVertexArray(m_vao_meshData);
+  //   glEnableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
+  //
+  //   // Map Position
+  //   glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
+  //   glVertexAttribPointer(m_shader_depth.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  //   glBindBuffer(GL_ARRAY_BUFFER, 0);
+  //
+  //   glEnable(GL_CULL_FACE);
+  //   glCullFace(GL_FRONT);
+  //
+  //   DepthRenderer renderer(m_shader_depth, m_batchInfoMap);
+  //   renderScene(renderer);
+  //
+  //   glDisable(GL_CULL_FACE);
+  //
+  //   glDisableVertexAttribArray(m_shader_depth.getAttribLocation("position"));
+  //   glBindVertexArray(0);
+  //   CHECK_GL_ERRORS;
+  //
+  //   // printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
+  // }
+  //
+  // if (!isKeyPressed(GLFW_KEY_Z)) {
+  //   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //   glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+  //   // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //   // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+  //
+  //   glClearDepth(1.0);
+  //   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //
+  //   m_shader.enable();
+  //   {
+  //     //-- Set Perpsective matrix uniform for the scene:
+  //     GLint location = m_shader.getUniformLocation("Perspective");
+  //     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perpsective));
+  //     CHECK_GL_ERRORS;
+  //
+  //     location = m_shader.getUniformLocation("View");
+  //     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_view));
+  //     CHECK_GL_ERRORS;
+  //
+  //     location = m_shader.getUniformLocation("LightPerspective");
+  //     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightPerspective));
+  //     CHECK_GL_ERRORS;
+  //
+  //     location = m_shader.getUniformLocation("LightView");
+  //     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightView));
+  //     CHECK_GL_ERRORS;
+  //
+  //
+  //     //-- Set LightSource uniform for the scene:
+  //     {
+  //       location = m_shader.getUniformLocation("light.position");
+  //       glUniform3fv(location, 1, value_ptr(m_light.position));
+  //       location = m_shader.getUniformLocation("light.rgbIntensity");
+  //       glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
+  //       CHECK_GL_ERRORS;
+  //     }
+  //
+  //     //-- Set background light ambient intensity
+  //     {
+  //       location = m_shader.getUniformLocation("ambientIntensity");
+  //       vec3 ambientIntensity(0.05f);
+  //       glUniform3fv(location, 1, value_ptr(ambientIntensity));
+  //       CHECK_GL_ERRORS;
+  //     }
+  //
+  //     glActiveTexture(GL_TEXTURE0);
+  //     glBindTexture(GL_TEXTURE_2D, depthTexture);
+  //
+  //     glUniform1i(m_shader.getUniformLocation("depthTexture"), 0);
+  //     CHECK_GL_ERRORS;
+  //   }
+  //   m_shader.disable();
+  //
+  //   // Enable Position and Normal
+  //   glBindVertexArray(m_vao_meshData);
+  //   glEnableVertexAttribArray(m_shader.getAttribLocation("position"));
+  //   glEnableVertexAttribArray(m_shader.getAttribLocation("normal"));
+  //
+  //   // Map Position
+  //   glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
+  //   glVertexAttribPointer(m_shader.getAttribLocation("position"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  //   glBindBuffer(GL_ARRAY_BUFFER, 0);
+  //
+  //   // Map Normals
+  //   glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
+  //   glVertexAttribPointer(m_shader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  //   glBindBuffer(GL_ARRAY_BUFFER, 0);
+  //
+  //   glEnable(GL_CULL_FACE);
+  //   glCullFace(GL_BACK);
+  //
+  //   Renderer renderer{m_shader, m_batchInfoMap};
+  //   renderScene(renderer);
+  //
+  //   glDisable(GL_CULL_FACE);
+  //
+  //   glDisableVertexAttribArray(m_shader.getAttribLocation("position"));
+  //   glDisableVertexAttribArray(m_shader.getAttribLocation("normal"));
+  //   glBindVertexArray(0);
+  //   CHECK_GL_ERRORS;
+  //
+  //   // printDepthTexture(SHADOW_WIDTH, SHADOW_HEIGHT);
+  //
+  //   // glDisable(GL_CULL_FACE);
+  // } else {
+  //
+  //   // Render to the screen
+  //   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //
+  //   // Render on the whole framebuffer, complete from the lower left corner to the upper right
+  //   glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+  //
+  //   // Clear the screen
+  //   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //
+  //   m_shader_quad.enable();
+  //
+  //   glActiveTexture(GL_TEXTURE0);
+  //   glBindTexture(GL_TEXTURE_2D, renderedTexture);
+  //   glUniform1i(m_shader_quad.getUniformLocation("renderedTexture"), 0);
+  //
+  //   // glActiveTexture(GL_TEXTURE1);
+  //   // glBindTexture(GL_TEXTURE_2D, depthTexture);
+  //   // glUniform1i(m_shader_quad.getUniformLocation("depthTexture"), 1);
+  //
+  //   glBindVertexArray(VertexArrayID);
+  //   // glUniform1f(m_shader_quad.getUniformLocation("time"), (float)(glfwGetTime()*10.0f) );
+  //
+  //   // Enable vertex shader input slot
+  //   glEnableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
+  //   CHECK_GL_ERRORS;
+  //
+  //   // Map vbo data to shader input
+  //   glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+  //   glVertexAttribPointer(
+  //     m_shader_quad.getAttribLocation("vertexPosition_modelspace"),                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+  //     3,                  // size
+  //     GL_FLOAT,           // type
+  //     GL_FALSE,           // normalized?
+  //     0,                  // stride
+  //     (void*)0            // array buffer offset
+  //   );
+  //   CHECK_GL_ERRORS;
+  //
+  //   // Draw the triangles !
+  //   glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
+  //
+  //   glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
+  //   // glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexUV"));
+  //   glBindVertexArray(0);
+  //
+  //   glActiveTexture(GL_TEXTURE0);
+  //   glBindTexture(GL_TEXTURE_2D, 0);
+  //
+  //   // glActiveTexture(GL_TEXTURE1);
+  //   // glBindTexture(GL_TEXTURE_2D, 0);
+  //
+  //   m_shader_quad.disable();
+  // }
 
   glDisable(GL_DEPTH_TEST);
 }
