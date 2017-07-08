@@ -681,14 +681,14 @@ void A5::uploadVertexDataToVbos (const MeshConsolidator & meshConsolidator) {
 void A5::initPerspectiveMatrix()
 {
   float aspect = ((float)m_windowWidth) / m_windowHeight;
-  m_perpsective = glm::perspective(degreesToRadians(60.0f), aspect, 0.1f, 100.0f);
+  m_perpsective = glm::perspective(degreesToRadians(60.0f) * float(cameraZoom), aspect, 0.1f, 100.0f);
 }
 
 
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f * float(cameraZoom)), float(cameraYAngle)), // eye
+    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), // eye
     player.position + glm::vec3(0.0f, 3.0f, 1.0f), // center
     glm::vec3(0, 1, 0) // up
   );
@@ -727,6 +727,7 @@ void A5::appLogic()
   }
 
   initViewMatrix();
+  initPerspectiveMatrix();
   initLightSources();
 
   // Friction
@@ -1333,7 +1334,7 @@ bool A5::mouseScrollEvent (
   double xOffset,
   double yOffset
 ) {
-  cameraZoom = glm::clamp(cameraZoom + yOffset / 50, 0.1, 2.0);
+  cameraZoom = glm::clamp(cameraZoom + yOffset / 50, 0.75, 1.5);
   return true;
 }
 
