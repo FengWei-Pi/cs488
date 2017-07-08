@@ -13,6 +13,7 @@
 #include "SceneNodeFunctor.hpp"
 #include "Collidable.hpp"
 #include "Platform.hpp"
+#include "StateManager.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -126,4 +127,14 @@ private:
   } world;
 
   static void initShaderProgram(ShaderProgram& program, const std::string& name);
+
+  enum PlayerState {
+    INIT,
+    WALKING,
+    PREPARING_TO_JUMP,
+    STANDING,
+    AIRBORN,
+  };
+
+  StateManager<PlayerState> playerStateManager;
 };

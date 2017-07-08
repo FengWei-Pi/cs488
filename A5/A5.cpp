@@ -14,6 +14,7 @@ using namespace std;
 #include "TransformationCollector.hpp"
 #include "AnimationTransformationReducer.hpp"
 #include "StaticTransformationReducer.hpp"
+#include "Util.hpp"
 
 #include <imgui/imgui.h>
 
@@ -45,7 +46,8 @@ A5::A5()
     cameraYAngle(0),
     cameraZoom(1),
     SHADOW_WIDTH(2048),
-    SHADOW_HEIGHT(2048)
+    SHADOW_HEIGHT(2048),
+    playerStateManager(INIT)
 {
   const uint size = 4;
 
@@ -75,10 +77,26 @@ A5::A5()
 
   blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), xSin2));
 
-  player.canWalk = true;
   player.mass = 1;
   player.speed = 6;
   player.g = world.F_g / player.mass;
+
+  playerStateManager.addState(WALKING, [this](PlayerState oldState) -> void {
+    animationStartTime = Clock::getTime();
+    currentAnimation = &playerWalkingAnimation;
+  });
+
+  playerStateManager.addState(STANDING, [this](PlayerState oldState) -> void {
+    animationStartTime = Clock::getTime();
+    currentAnimation = &playerStandingAnimation;
+  });
+
+  playerStateManager.addState(AIRBORN, [this](PlayerState oldState) -> void {
+    animationStartTime = Clock::getTime();
+    currentAnimation = &playerStandingAnimation;
+  });
+
+  playerStateManager.transition(STANDING);
 }
 
 //----------------------------------------------------------------------------------------
@@ -577,7 +595,9 @@ void A5::appLogic()
   if (mouse.isRightButtonPressed) {
     float dispX = mouse.x - mouse.prevX;
     cameraYAngle -= dispX / 200;
-    refreshPlayerInputVelocity();
+    if (playerStateManager.getCurrentState() != AIRBORN) {
+      refreshPlayerInputVelocity();
+    }
   }
 
   initViewMatrix();
@@ -586,7 +606,7 @@ void A5::appLogic()
   // Friction
   glm::vec3 netAppliedForce{0};
 
-  if (!player.canWalk) {
+  if (playerStateManager.getCurrentState() == AIRBORN) {
     netAppliedForce = world.F_wind;
   } else {
     double N = (-world.F_g.y) - world.F_wind.y;
@@ -596,10 +616,8 @@ void A5::appLogic()
     if (staticForce <= windXZForce) {
       double kineticForce = N * world.ufk;
       double netXZForce = std::max(windXZForce - kineticForce, 0.0);
-      double epsilon = 0.0001;
 
-      double scale = std::fabs(windXZForce) < epsilon ? 1 : windXZForce;
-      glm::vec3 windXZDir = glm::vec3(world.F_wind.x, 0, world.F_wind.z) / scale;
+      glm::vec3 windXZDir = Util::normalize(glm::vec3(world.F_wind.x, 0, world.F_wind.z));
 
       netAppliedForce = netXZForce * windXZDir + glm::vec3(0, world.F_wind.y, 0);
     }
@@ -642,13 +660,12 @@ void A5::appLogic()
       // After landing, your input velocity can be different than when you jumped
       refreshPlayerInputVelocity();
       player.setInertialVelocity(blockV);
-      player.canWalk = true;
 
       goto UpdateCursor;
     }
   }
 
-  player.canWalk = false;
+  playerStateManager.transition(AIRBORN);
 
   UpdateCursor:
   mouse.prevX = mouse.x;
@@ -1165,11 +1182,9 @@ bool A5::keyInputEvent (
           break;
         }
         case GLFW_KEY_SPACE: {
-          if (player.canWalk) {
-            player.canWalk = false;
+          if (playerStateManager.getCurrentState() != AIRBORN) {
+            playerStateManager.transition(AIRBORN);
             player.setVelocity(glm::vec3(player.getVelocity().x, 6, player.getVelocity().z));
-            animationStartTime = Clock::getTime();
-            currentAnimation = &playerStandingAnimation;
           }
           break;
         }
@@ -1192,7 +1207,9 @@ bool A5::keyInputEvent (
       case GLFW_KEY_DOWN:
       case GLFW_KEY_LEFT:
       case GLFW_KEY_RIGHT: {
-        refreshPlayerInputVelocity();
+        if (playerStateManager.getCurrentState() != AIRBORN) {
+          refreshPlayerInputVelocity();
+        }
         return true;
       }
     }
@@ -1207,25 +1224,14 @@ bool A5::isKeyPressed(int key) {
 
 // Reset player's XZ velocity (based on key inputs) and update animations
 void A5::refreshPlayerInputVelocity() {
-  if (!player.canWalk) {
-    return;
-  }
-
   const double epsilon = 0.0001;
-
   glm::vec3 inputV = calculatePlayerInputVelocity();
   player.setInputVelocity(inputV);
 
-  glm::vec3 playerV = player.getVelocity();
-
   if (glm::length(glm::vec3(inputV.x, 0, inputV.z)) >= epsilon) {
-    if (currentAnimation != &playerWalkingAnimation) {
-      animationStartTime = Clock::getTime();
-      currentAnimation = &playerWalkingAnimation;
-    }
+    playerStateManager.transition(WALKING);
   } else {
-    animationStartTime = Clock::getTime();
-    currentAnimation = &playerStandingAnimation;
+    playerStateManager.transition(STANDING);
   }
 }
 
@@ -1259,6 +1265,6 @@ glm::vec3 A5::calculatePlayerInputVelocity() {
     vz -= 1;
   }
 
-  glm::vec3 velocity = glm::normalize(glm::vec3(vx, 0, vz)) * player.speed;
+  glm::vec3 velocity = Util::normalize(glm::vec3(vx, 0, vz)) * player.speed;
   return glm::rotateY(velocity, float(cameraYAngle));
 }
