@@ -948,7 +948,7 @@ void A5::draw() {
   glEnable(GL_DEPTH_TEST);
 
   float near_plane = -100000.0f, far_plane = 2000000.0f;
-  glm::mat4 LightPerspective = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+  glm::mat4 LightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
   glm::mat4 LightView = glm::lookAt(
     m_light.position * 10000,
     player.position,
@@ -958,10 +958,10 @@ void A5::draw() {
   // Clear the screen
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  fillDepthTexture(LightPerspective, LightView);
+  fillDepthTexture(LightProjection, LightView);
 
   if (!isKeyPressed(GLFW_KEY_Z)) {
-    renderSceneNormally(LightPerspective, LightView);
+    renderSceneNormally(LightProjection, LightView);
     renderSkybox();
   } else {
     renderDepthTexture();
@@ -986,7 +986,7 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
 
   m_shader_depth.enable();
   {
-    GLuint location = m_shader_depth.getUniformLocation("Perspective");
+    GLuint location = m_shader_depth.getUniformLocation("Projection");
     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightProjection));
     CHECK_GL_ERRORS;
 
@@ -1088,7 +1088,7 @@ void A5::renderSceneNormally(const glm::mat4& LightProjection, const glm::mat4& 
   m_shader.enable();
   {
     //-- Set Perpsective matrix uniform for the scene:
-    GLint location = m_shader.getUniformLocation("Perspective");
+    GLint location = m_shader.getUniformLocation("Projection");
     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perpsective));
     CHECK_GL_ERRORS;
 
@@ -1096,7 +1096,7 @@ void A5::renderSceneNormally(const glm::mat4& LightProjection, const glm::mat4& 
     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_view));
     CHECK_GL_ERRORS;
 
-    location = m_shader.getUniformLocation("LightPerspective");
+    location = m_shader.getUniformLocation("LightProjection");
     glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(LightProjection));
     CHECK_GL_ERRORS;
 

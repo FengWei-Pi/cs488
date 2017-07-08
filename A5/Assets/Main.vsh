@@ -12,7 +12,7 @@ uniform LightSource light;
 
 uniform mat4 View;
 uniform mat4 Model;
-uniform mat4 Perspective;
+uniform mat4 Projection;
 
 out VsOutFsIn {
   vec3 position_CameraSpace; // Eye-space position
@@ -22,7 +22,7 @@ out VsOutFsIn {
 } vs_out;
 
 uniform mat4 LightView;
-uniform mat4 LightPerspective;
+uniform mat4 LightProjection;
 
 void main() {
   vec4 pos4 = vec4(position, 1.0);
@@ -30,7 +30,7 @@ void main() {
   //-- Convert position and normal to Eye-Space:
   vs_out.position_CameraSpace = (View * Model * pos4).xyz;
   vs_out.normal_CameraSpace = normalize(transpose(inverse(mat3(View * Model))) * normal);
-  vs_out.position_LightSpace = LightPerspective * LightView * Model * vec4(position, 1.0);
+  vs_out.position_LightSpace = LightProjection * LightView * Model * vec4(position, 1.0);
 
   // The light remains at a constant location in view space.
   LightSource light_CameraSpace;
@@ -39,5 +39,5 @@ void main() {
 
   vs_out.light_CameraSpace = light_CameraSpace;
 
-  gl_Position = Perspective * View * Model * vec4(position, 1.0);
+  gl_Position = Projection * View * Model * vec4(position, 1.0);
 }
