@@ -448,12 +448,12 @@ void A5::init()
   {
     // Skybox code
     std::vector<std::string> faces{
-      getAssetFilePath("skybox/spires_rt.png"),
-      getAssetFilePath("skybox/spires_lf.png"),
-      getAssetFilePath("skybox/spires_up.png"),
-      getAssetFilePath("skybox/spires_dn.png"),
-      getAssetFilePath("skybox/spires_bk.png"),
-      getAssetFilePath("skybox/spires_ft.png")
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_rt.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_lf.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_up.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_dn.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_bk.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_ft.png")
     };
 
     skyboxTexture = loadCubemap(faces);
