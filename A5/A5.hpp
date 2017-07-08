@@ -91,6 +91,8 @@ private:
   double animationStartTime;
   Animation playerWalkingAnimation;
   Animation playerStandingAnimation;
+  Animation playerPreparingToJumpAnimation;
+  Animation playerJumpingAnimation;
   Animation* currentAnimation;
 
   std::set<int> keysPressed;

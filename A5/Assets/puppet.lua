@@ -131,7 +131,7 @@ function createLeg(name)
   upperLeg = gr.mesh('cube', name .. '-upper-leg');
   lowerLegJoint = gr.joint(name .. '-lower-leg-joint', {0, 0, 130}, {-30, 0, 30});
   lowerLeg = gr.mesh('cube', name .. '-lower-leg');
-  footJoint = gr.joint(name .. '-foot-joint', {-15, 0, 25}, {-20, 0, 20});
+  footJoint = gr.joint(name .. '-foot-joint', {-50, 0, 40}, {-20, 0, 20});
   foot = gr.mesh('cube', name .. '-foot');
 
   upperLeg:set_material(red);

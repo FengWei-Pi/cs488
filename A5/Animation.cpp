@@ -14,6 +14,10 @@ void Animation::push(Keyframe kf) {
   keyframes.push_back(kf);
 }
 
+Keyframe Animation::back() {
+  return keyframes.back();
+}
+
 Keyframe Animation::get(double t) {
   assert(keyframes.size() > 0);
 
@@ -59,7 +63,8 @@ Keyframe Animation::get(double t) {
   return keyframes.back();
 }
 
-Animation Animation::getPlayerWalkingAnimation(double delta) {
+Animation Animation::getPlayerWalkingAnimation() {
+  double delta = 0.1;
   double bodyXRotation = 20;
   float yDispScale = 0.5;
   Keyframe one;
@@ -385,4 +390,296 @@ Animation Animation::getPlayerStandingAnimation() {
   playerStandingAnimation.push(one);
 
   return playerStandingAnimation;
+}
+
+Animation Animation::getPlayerPreparingToJumpAnimation() {
+  Animation playerPreparingToJumpAnimation{0.05, SingleRun};
+
+  Keyframe one;
+  one.rotations["body"] = 0;
+  one.positions["body"] = glm::vec3(0, 0, 0);
+  one.rotations["head-joint"] = 0;
+  one.rotations["neck-joint"] = 0;
+
+  one.rotations["left-upper-arm-joint"] = 0;
+  one.rotations["left-lower-arm-joint"] = 0;
+  one.rotations["left-hand-joint"] = 0;
+
+  one.rotations["right-upper-arm-joint"] = 0;
+  one.rotations["right-lower-arm-joint"] = 0;
+  one.rotations["right-hand-joint"] = 0;
+
+  one.rotations["left-upper-leg-joint"] = 0;
+  one.rotations["left-lower-leg-joint"] = 0;
+  one.rotations["left-foot-joint"] = 0;
+
+  one.rotations["right-upper-leg-joint"] = 0;
+  one.rotations["right-lower-leg-joint"] = 0;
+  one.rotations["right-foot-joint"] = 0;
+
+  playerPreparingToJumpAnimation.push(one);
+
+  Keyframe two;
+  {
+    const double theta = 20;
+    const double alpha = theta + 30;
+    two.rotations["body"] = theta;
+    two.positions["body"] = glm::vec3(0, -0.55, -0.2);
+    two.rotations["head-joint"] = 0;
+    two.rotations["neck-joint"] = 0;
+
+    two.rotations["left-upper-arm-joint"] = -20;
+    two.rotations["left-lower-arm-joint"] = -30;
+    two.rotations["left-hand-joint"] = -10;
+
+    two.rotations["right-upper-arm-joint"] = -20;
+    two.rotations["right-lower-arm-joint"] = -30;
+    two.rotations["right-hand-joint"] = -10;
+
+    two.rotations["left-upper-leg-joint"] = -alpha;
+    two.rotations["left-lower-leg-joint"] = alpha;
+    two.rotations["left-foot-joint"] = -theta;
+
+    two.rotations["right-upper-leg-joint"] = -alpha;
+    two.rotations["right-lower-leg-joint"] = alpha;
+    two.rotations["right-foot-joint"] = -theta;
+  }
+
+  playerPreparingToJumpAnimation.push(two);
+
+  Keyframe three;
+  {
+    const double theta = 20;
+    const double alpha = 75;
+    three.rotations["body"] = theta;
+    three.positions["body"] = glm::vec3(0, -1.5, -0.55);
+    three.rotations["head-joint"] = 0;
+    three.rotations["neck-joint"] = 0;
+
+    three.rotations["left-upper-arm-joint"] = -20;
+    three.rotations["left-lower-arm-joint"] = -50;
+    three.rotations["left-hand-joint"] = -10;
+
+    three.rotations["right-upper-arm-joint"] = -20;
+    three.rotations["right-lower-arm-joint"] = -50;
+    three.rotations["right-hand-joint"] = -10;
+
+    three.rotations["left-upper-leg-joint"] = -alpha;
+    three.rotations["left-lower-leg-joint"] = alpha;
+    three.rotations["left-foot-joint"] = -theta;
+
+    three.rotations["right-upper-leg-joint"] = -alpha;
+    three.rotations["right-lower-leg-joint"] = alpha;
+    three.rotations["right-foot-joint"] = -theta;
+  }
+
+  playerPreparingToJumpAnimation.push(three);
+
+  Keyframe four;
+  {
+    const double theta = 30;
+    const double alpha = 100;
+    four.rotations["body"] = theta;
+    four.positions["body"] = glm::vec3(0, -2.15, 0.1);
+    four.rotations["head-joint"] = 0;
+    four.rotations["neck-joint"] = 0;
+
+    four.rotations["left-upper-arm-joint"] = 10;
+    four.rotations["left-lower-arm-joint"] = -10;
+    four.rotations["left-hand-joint"] = -10;
+
+    four.rotations["right-upper-arm-joint"] = 10;
+    four.rotations["right-lower-arm-joint"] = -10;
+    four.rotations["right-hand-joint"] = -10;
+
+    four.rotations["left-upper-leg-joint"] = -alpha;
+    four.rotations["left-lower-leg-joint"] = alpha;
+    four.rotations["left-foot-joint"] = -theta;
+
+    four.rotations["right-upper-leg-joint"] = -alpha;
+    four.rotations["right-lower-leg-joint"] = alpha;
+    four.rotations["right-foot-joint"] = -theta;
+  }
+
+  playerPreparingToJumpAnimation.push(four);
+
+  Keyframe five;
+  {
+    const double theta = 30;
+    const double alpha = 100;
+    five.rotations["body"] = theta;
+    five.positions["body"] = glm::vec3(0, -2.15, 0.1);
+    five.rotations["head-joint"] = 0;
+    five.rotations["neck-joint"] = 0;
+
+    five.rotations["left-upper-arm-joint"] = 50;
+    five.rotations["left-lower-arm-joint"] = -30;
+    five.rotations["left-hand-joint"] = -10;
+
+    five.rotations["right-upper-arm-joint"] = 50;
+    five.rotations["right-lower-arm-joint"] = -30;
+    five.rotations["right-hand-joint"] = -10;
+
+    five.rotations["left-upper-leg-joint"] = -alpha;
+    five.rotations["left-lower-leg-joint"] = alpha;
+    five.rotations["left-foot-joint"] = -theta;
+
+    five.rotations["right-upper-leg-joint"] = -alpha;
+    five.rotations["right-lower-leg-joint"] = alpha;
+    five.rotations["right-foot-joint"] = -theta;
+  }
+
+  playerPreparingToJumpAnimation.push(five);
+
+  return playerPreparingToJumpAnimation;
+}
+
+Animation Animation::getPlayerJumpingAnimation() {
+  Animation playerJumpingAnimation{0.15, SingleRun};
+
+  Keyframe one = getPlayerPreparingToJumpAnimation().back();
+  playerJumpingAnimation.push(one);
+
+  Keyframe two;
+  {
+    const double theta = 30;
+    const double alpha = 100;
+    two.rotations["body"] = theta;
+    two.positions["body"] = glm::vec3(0, -2.15, 0.1);
+    two.rotations["head-joint"] = 0;
+    two.rotations["neck-joint"] = 0;
+
+    two.rotations["left-upper-arm-joint"] = -10;
+    two.rotations["left-lower-arm-joint"] = -30;
+    two.rotations["left-hand-joint"] = -10;
+
+    two.rotations["right-upper-arm-joint"] = -10;
+    two.rotations["right-lower-arm-joint"] = -30;
+    two.rotations["right-hand-joint"] = -10;
+
+    two.rotations["left-upper-leg-joint"] = -alpha;
+    two.rotations["left-lower-leg-joint"] = alpha;
+    two.rotations["left-foot-joint"] = -theta;
+
+    two.rotations["right-upper-leg-joint"] = -alpha;
+    two.rotations["right-lower-leg-joint"] = alpha;
+    two.rotations["right-foot-joint"] = -theta;
+  }
+
+  playerJumpingAnimation.push(two);
+
+  Keyframe three;
+  {
+    const double theta = 15;
+    const double alpha = 60;
+    three.rotations["body"] = theta;
+    three.positions["body"] = glm::vec3(0, -0.9, -0.4);
+    three.rotations["head-joint"] = 0;
+    three.rotations["neck-joint"] = 0;
+
+    three.rotations["left-upper-arm-joint"] = -10;
+    three.rotations["left-lower-arm-joint"] = -40;
+    three.rotations["left-hand-joint"] = -10;
+
+    three.rotations["right-upper-arm-joint"] = -10;
+    three.rotations["right-lower-arm-joint"] = -40;
+    three.rotations["right-hand-joint"] = -10;
+
+    three.rotations["left-upper-leg-joint"] = -alpha;
+    three.rotations["left-lower-leg-joint"] = alpha;
+    three.rotations["left-foot-joint"] = -theta;
+
+    three.rotations["right-upper-leg-joint"] = -alpha;
+    three.rotations["right-lower-leg-joint"] = alpha;
+    three.rotations["right-foot-joint"] = -theta;
+  }
+
+  playerJumpingAnimation.push(three);
+
+  Keyframe four;
+  {
+    const double theta = 12.5;
+    const double alpha = 30;
+    four.rotations["body"] = theta;
+    four.positions["body"] = glm::vec3(0, 0.25, 0);
+    four.rotations["head-joint"] = 0;
+    four.rotations["neck-joint"] = 0;
+
+    four.rotations["left-upper-arm-joint"] = -120;
+    four.rotations["left-lower-arm-joint"] = -50;
+    four.rotations["left-hand-joint"] = -10;
+
+    four.rotations["right-upper-arm-joint"] = -110;
+    four.rotations["right-lower-arm-joint"] = -60;
+    four.rotations["right-hand-joint"] = -10;
+
+    four.rotations["left-upper-leg-joint"] = -alpha;
+    four.rotations["left-lower-leg-joint"] = alpha;
+    four.rotations["left-foot-joint"] = 10;
+
+    four.rotations["right-upper-leg-joint"] = -alpha;
+    four.rotations["right-lower-leg-joint"] = alpha;
+    four.rotations["right-foot-joint"] = 10;
+  }
+
+  playerJumpingAnimation.push(four);
+
+  Keyframe five;
+  {
+    const double theta = 12.5;
+    const double alpha = 30;
+    five.rotations["body"] = theta;
+    five.positions["body"] = glm::vec3(0, 0.25, 0);
+    five.rotations["head-joint"] = 0;
+    five.rotations["neck-joint"] = 0;
+
+    five.rotations["left-upper-arm-joint"] = -60;
+    five.rotations["left-lower-arm-joint"] = -90;
+    five.rotations["left-hand-joint"] = -10;
+
+    five.rotations["right-upper-arm-joint"] = -80;
+    five.rotations["right-lower-arm-joint"] = -90;
+    five.rotations["right-hand-joint"] = -10;
+
+    five.rotations["left-upper-leg-joint"] = -alpha;
+    five.rotations["left-lower-leg-joint"] = alpha;
+    five.rotations["left-foot-joint"] = 10;
+
+    five.rotations["right-upper-leg-joint"] = -alpha;
+    five.rotations["right-lower-leg-joint"] = alpha;
+    five.rotations["right-foot-joint"] = 30;
+  }
+
+  playerJumpingAnimation.push(five);
+
+
+  Keyframe six;
+  {
+    const double theta = 15;
+    const double alpha = 10;
+    six.rotations["body"] = theta;
+    six.positions["body"] = glm::vec3(0, 1.5, 0);
+    six.rotations["head-joint"] = 0;
+    six.rotations["neck-joint"] = 0;
+
+    six.rotations["left-upper-arm-joint"] = -40;
+    six.rotations["left-lower-arm-joint"] = -130;
+    six.rotations["left-hand-joint"] = -10;
+
+    six.rotations["right-upper-arm-joint"] = -50;
+    six.rotations["right-lower-arm-joint"] = -120;
+    six.rotations["right-hand-joint"] = -10;
+
+    six.rotations["left-upper-leg-joint"] = -alpha;
+    six.rotations["left-lower-leg-joint"] = alpha;
+    six.rotations["left-foot-joint"] = 50;
+
+    six.rotations["right-upper-leg-joint"] = -alpha;
+    six.rotations["right-lower-leg-joint"] = alpha;
+    six.rotations["right-foot-joint"] = 50;
+  }
+
+  playerJumpingAnimation.push(six);
+
+  return playerJumpingAnimation;
 }

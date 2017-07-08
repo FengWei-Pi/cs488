@@ -44,7 +44,7 @@ public:
     M = M * glm::rotate(glm::mat4(), xRotation, glm::vec3(1, 0, 0));
 
     if (frame.positions.find(node.m_name) != frame.positions.end()) {
-      M = glm::translate(glm::mat4(), frame.positions.at(node.m_name)) * M;
+      M = M * glm::translate(glm::mat4(), frame.positions.at(node.m_name));
     }
 
     return M;

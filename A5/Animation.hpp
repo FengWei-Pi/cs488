@@ -15,7 +15,10 @@ private:
 public:
   Animation(const double delta, const AnimationType type);
   void push(Keyframe kf);
+  Keyframe back();
   Keyframe get(double t);
-  static Animation getPlayerWalkingAnimation(double t);
+  static Animation getPlayerWalkingAnimation();
   static Animation getPlayerStandingAnimation();
+  static Animation getPlayerPreparingToJumpAnimation();
+  static Animation getPlayerJumpingAnimation();
 };

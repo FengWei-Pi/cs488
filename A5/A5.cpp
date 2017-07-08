@@ -40,11 +40,13 @@ A5::A5()
     m_vbo_vertexPositions(0),
     m_vbo_vertexNormals(0),
     animationStartTime(Clock::getTime()),
-    playerWalkingAnimation(Animation::getPlayerWalkingAnimation(0.1)),
+    playerWalkingAnimation(Animation::getPlayerWalkingAnimation()),
     playerStandingAnimation(Animation::getPlayerStandingAnimation()),
-    currentAnimation(&playerStandingAnimation),
-    cameraYAngle(0),
-    cameraZoom(1),
+    playerPreparingToJumpAnimation(Animation::getPlayerPreparingToJumpAnimation()),
+    playerJumpingAnimation(Animation::getPlayerJumpingAnimation()),
+    currentAnimation(nullptr),
+    cameraYAngle(glm::radians(0.0f)),
+    cameraZoom(1.0),
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048),
     playerStateManager(INIT)
@@ -91,9 +93,18 @@ A5::A5()
     currentAnimation = &playerStandingAnimation;
   });
 
+  playerStateManager.addState(PREPARING_TO_JUMP, [this](PlayerState oldState) -> void {
+    animationStartTime = Clock::getTime();
+    currentAnimation = &playerPreparingToJumpAnimation;
+  });
+
   playerStateManager.addState(AIRBORN, [this](PlayerState oldState) -> void {
     animationStartTime = Clock::getTime();
-    currentAnimation = &playerStandingAnimation;
+    if (oldState == PREPARING_TO_JUMP) {
+      currentAnimation = &playerJumpingAnimation;
+    } else {
+      currentAnimation = &playerStandingAnimation;
+    }
   });
 
   playerStateManager.transition(STANDING);
@@ -595,7 +606,10 @@ void A5::appLogic()
   if (mouse.isRightButtonPressed) {
     float dispX = mouse.x - mouse.prevX;
     cameraYAngle -= dispX / 200;
-    if (playerStateManager.getCurrentState() != AIRBORN) {
+    if (
+         playerStateManager.getCurrentState() != AIRBORN
+      && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
+    ) {
       refreshPlayerInputVelocity();
     }
   }
@@ -657,8 +671,13 @@ void A5::appLogic()
       player.position = player.position - direction * createVec3(argmin, collision.size[argmin]);
       player.setVelocity(player.getVelocity() - createVec3(argmin, player.getVelocity()[argmin]));
 
-      // After landing, your input velocity can be different than when you jumped
-      refreshPlayerInputVelocity();
+      // Case 1: You just landed
+      //   Your state is airborn, so you refresh your input verlocity
+      // Case 2: You're preparing to jump
+      //   Don't refresh input velocity
+      if (playerStateManager.getCurrentState() != PREPARING_TO_JUMP) {
+        refreshPlayerInputVelocity();
+      }
       player.setInertialVelocity(blockV);
 
       goto UpdateCursor;
@@ -1182,9 +1201,10 @@ bool A5::keyInputEvent (
           break;
         }
         case GLFW_KEY_SPACE: {
-          if (playerStateManager.getCurrentState() != AIRBORN) {
-            playerStateManager.transition(AIRBORN);
-            player.setVelocity(glm::vec3(player.getVelocity().x, 6, player.getVelocity().z));
+          PlayerState currentState = playerStateManager.getCurrentState();
+          if (currentState != AIRBORN) {
+            playerStateManager.transition(PREPARING_TO_JUMP);
+            player.setInputVelocity(glm::vec3(0));
           }
           break;
         }
@@ -1193,6 +1213,17 @@ bool A5::keyInputEvent (
     }
     case GLFW_RELEASE: {
       keysPressed.erase(key);
+
+      switch (key) {
+        case GLFW_KEY_SPACE: {
+          if (playerStateManager.getCurrentState() == PREPARING_TO_JUMP) {
+            playerStateManager.transition(AIRBORN);
+            player.setInputVelocity(calculatePlayerInputVelocity());
+            player.setVelocity(glm::vec3(player.getVelocity().x, 6, player.getVelocity().z));
+          }
+          break;
+        }
+      }
       break;
     }
   }
@@ -1207,7 +1238,10 @@ bool A5::keyInputEvent (
       case GLFW_KEY_DOWN:
       case GLFW_KEY_LEFT:
       case GLFW_KEY_RIGHT: {
-        if (playerStateManager.getCurrentState() != AIRBORN) {
+        if (
+             playerStateManager.getCurrentState() != AIRBORN
+          && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
+        ) {
           refreshPlayerInputVelocity();
         }
         return true;
