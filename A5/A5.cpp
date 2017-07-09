@@ -961,12 +961,44 @@ void A5::draw() {
 
   fillDepthTexture(LightProjection, LightView);
 
-  if (!isKeyPressed(GLFW_KEY_Z)) {
-    renderSceneNormally(LightProjection, LightView);
-    renderSkybox();
-  } else {
-    renderDepthTexture();
-  }
+  // Bind offscreen framebuffer
+  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+
+  // Cleanup from fillDepthTexture
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // Resize render texture to screen dimensions
+  glBindTexture(GL_TEXTURE_2D, renderedTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_framebufferWidth, m_framebufferHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // Resize depth renderbuffer to screen dimensions
+  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_framebufferWidth, m_framebufferHeight);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
+  renderSkybox();
+
+  // Reset framebuffer to default
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
+  renderSkybox();
+
+  renderDepthTexture(20, 256);
+
+  // Reset the size of the render texture
+  glBindTexture(GL_TEXTURE_2D, renderedTexture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // Reset the size of the render depth buffer
+  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
   glDisable(GL_DEPTH_TEST);
 }
@@ -1022,7 +1054,7 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
   glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
-void A5::renderDepthTexture() {
+void A5::renderDepthTexture(const unsigned int offset, const unsigned int size) {
   GLint m_viewport[4];
   glGetIntegerv(GL_VIEWPORT, m_viewport);
 
@@ -1030,7 +1062,7 @@ void A5::renderDepthTexture() {
   const GLint SCR_HEIGHT = m_viewport[3];
 
   // Render on the whole framebuffer, complete from the lower left corner to the upper right
-  glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+  glViewport(offset, offset, (1.0 * SCR_WIDTH) / SCR_HEIGHT * size, size);
 
   // Clear the screen
   glClear(GL_DEPTH_BUFFER_BIT);
@@ -1082,7 +1114,12 @@ void A5::renderDepthTexture() {
   glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
-void A5::renderSceneNormally(const glm::mat4& LightProjection, const glm::mat4& LightView) {
+void A5::renderSceneNormally(
+  const glm::mat4& Projection,
+  const glm::mat4& View,
+  const glm::mat4& LightProjection,
+  const glm::mat4& LightView
+) {
   glClearDepth(1.0);
   glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -1090,11 +1127,11 @@ void A5::renderSceneNormally(const glm::mat4& LightProjection, const glm::mat4& 
   {
     //-- Set Perpsective matrix uniform for the scene:
     GLint location = m_shader.getUniformLocation("Projection");
-    glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perpsective));
+    glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(Projection));
     CHECK_GL_ERRORS;
 
     location = m_shader.getUniformLocation("View");
-    glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_view));
+    glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(View));
     CHECK_GL_ERRORS;
 
     location = m_shader.getUniformLocation("LightProjection");
