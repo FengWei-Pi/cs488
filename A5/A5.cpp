@@ -701,6 +701,22 @@ void A5::initLightSources() {
   m_light.rgbIntensity = vec3(0.8f); // White light
 }
 
+//----------------------------------------------------------------------------------------
+glm::mat4 A5::createMinimapPerspectiveMatrix()
+{
+  float aspect = ((float)m_windowWidth) / m_windowHeight;
+  return glm::perspective(degreesToRadians(60.0f), aspect, 0.1f, 100.0f);
+}
+
+//----------------------------------------------------------------------------------------
+glm::mat4 A5::createMinimapViewMatrix() {
+  return glm::lookAt(
+    player.position + glm::rotateY(glm::vec3(-10, 5, 10.0f), float(cameraYAngle)), // eye
+    player.position +  glm::vec3(0.0f, 3.0f, 1.0f), // center
+    glm::vec3(0, 1, 0) // up
+  );
+}
+
 glm::vec3 createVec3(int i, float v) {
   float data[3] = {0, 0, 0};
   data[i] = v;
@@ -978,17 +994,21 @@ void A5::draw() {
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_framebufferWidth, m_framebufferHeight);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-  renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
-  renderSkybox();
+  // Render minimap
+  glm::mat4 minimapProjection = createMinimapPerspectiveMatrix();
+  glm::mat4 minimapView = createMinimapViewMatrix();
+
+  renderSceneNormally(minimapProjection, minimapView, LightProjection, LightView);
+  renderSkybox(minimapProjection, minimapView);
 
   // Reset framebuffer to default
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
-  renderSkybox();
+  renderSkybox(m_perpsective, m_view);
 
-  renderDepthTexture(20, 256);
+  renderRenderTexture(20, std::min(m_framebufferWidth, m_framebufferHeight) / 4);
 
   // Reset the size of the render texture
   glBindTexture(GL_TEXTURE_2D, renderedTexture);
@@ -1054,7 +1074,7 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
   glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
-void A5::renderDepthTexture(const unsigned int offset, const unsigned int size) {
+void A5::renderRenderTexture(const unsigned int offset, const unsigned int size) {
   GLint m_viewport[4];
   glGetIntegerv(GL_VIEWPORT, m_viewport);
 
@@ -1197,12 +1217,12 @@ void A5::renderSceneNormally(
   CHECK_GL_ERRORS;
 }
 
-void A5::renderSkybox() {
+void A5::renderSkybox(const glm::mat4& Projection, const glm::mat4& View) {
   // Render skybox
   glDepthMask(GL_FALSE);
 
-  glm::mat4 view = glm::mat4(glm::mat3(m_view));
-  glm::mat4 projection = m_perpsective;
+  glm::mat4 view = glm::mat4(glm::mat3(View));
+  glm::mat4 projection = Projection;
 
   glDepthFunc(GL_LEQUAL);
 

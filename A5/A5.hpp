@@ -147,12 +147,14 @@ private:
   GLuint skyboxVBO;
 
   void fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& LightView);
-  void renderDepthTexture(const unsigned int offset, const unsigned int size);
+  void renderRenderTexture(const unsigned int offset, const unsigned int size);
   void renderSceneNormally(
     const glm::mat4& Projection,
     const glm::mat4& View,
     const glm::mat4& LightProjection,
     const glm::mat4& LightView
   );
-  void renderSkybox();
+  void renderSkybox(const glm::mat4& Projection, const glm::mat4& View);
+  glm::mat4 createMinimapPerspectiveMatrix();
+  glm::mat4 createMinimapViewMatrix();
 };
