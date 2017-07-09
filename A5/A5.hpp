@@ -157,4 +157,10 @@ private:
   void renderSkybox(const glm::mat4& Projection, const glm::mat4& View);
   glm::mat4 createMinimapPerspectiveMatrix();
   glm::mat4 createMinimapViewMatrix();
+
+
+  struct GameState {
+    bool isPlaying = false;
+    int lives = 1;
+  } gameState;
 };

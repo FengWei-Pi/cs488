@@ -730,6 +730,9 @@ glm::vec3 createVec3(int i, float v) {
 void A5::appLogic()
 {
   // Place per frame, application logic here ...
+  if (!gameState.isPlaying || gameState.lives <= 0) {
+    return;
+  }
 
   if (mouse.isRightButtonPressed) {
     float dispX = mouse.x - mouse.prevX;
@@ -873,6 +876,15 @@ void A5::guiLogic()
 
   ImGui::DragFloat("Speed", &player.speed, 0.1f, 0.1f, 10.0f, "%.3f m/s");
 
+  if (!gameState.isPlaying) {
+    if (ImGui::Button("Start")) {
+      gameState.isPlaying = true;
+    }
+  } else {
+    if (ImGui::Button("Pause")) {
+      gameState.isPlaying = false;
+    }
+  }
 
   // Create Button, and check if it was clicked:
   if( ImGui::Button( "Quit Application" ) ) {
