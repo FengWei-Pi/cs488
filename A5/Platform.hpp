@@ -5,12 +5,19 @@
 #include <functional>
 
 class Platform : public Collidable {
-  glm::vec3 velocity;
-  const std::function<glm::vec3(glm::vec3)> updateV;
+  glm::vec3 inertialVelocity;
+  glm::vec3 inputVelocity;
+  static unsigned int counter;
 public:
-  glm::vec3 getVelocity();
-  glm::vec3 position;
   const glm::vec3 size;
-  Platform(glm::vec3 position, glm::vec3 size, std::function<glm::vec3(glm::vec3)> fn);
+  const unsigned int id;
+  Platform(glm::vec3 position, glm::vec3 size);
+  glm::vec3 position;
+  glm::vec3 acceleration;
   Hitbox getHitbox();
+
+  glm::vec3 getVelocity();
+  void setVelocity(glm::vec3);
+  void setInputVelocity(glm::vec3);
+  void setInertialVelocity(glm::vec3);
 };

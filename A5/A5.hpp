@@ -158,6 +158,13 @@ private:
   glm::mat4 createMinimapPerspectiveMatrix();
   glm::mat4 createMinimapViewMatrix();
 
+  std::map<unsigned int, std::function<glm::vec3(double)>> platformUpdateVFns;
+  static std::function<glm::vec3(double)> createSinusoid(
+    const double A,
+    const double period,
+    const double k,
+    const double offset
+  );
 
   struct GameState {
     bool isPlaying = false;

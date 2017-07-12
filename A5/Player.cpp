@@ -29,10 +29,6 @@ Hitbox Player::getHitbox() {
   };
 }
 
-void Player::setInertialVelocity(glm::vec3 v) {
-  inertialVelocity = v;
-}
-
 glm::vec3 Player::getVelocity() {
   return inertialVelocity + inputVelocity;
 }
@@ -49,4 +45,8 @@ void Player::setInputVelocity(glm::vec3 inputV) {
     double inputDir = std::atan2(inputV.x, inputV.z);
     setDirection(inputDir);
   }
+}
+
+void Player::setInertialVelocity(glm::vec3 v) {
+  inertialVelocity = v;
 }

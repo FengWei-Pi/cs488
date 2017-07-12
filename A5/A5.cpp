@@ -54,31 +54,14 @@ A5::A5()
 {
   const uint size = 4;
 
-  const double PI = glm::radians(180.0f);
+  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
+  platformUpdateVFns[blocks.back().id] = createSinusoid(1.5, 4, 0, 0);
 
-  const std::function<glm::vec3(glm::vec3)> xSin0 = [PI](glm::vec3 _) -> glm::vec3 {
-    const double period = 4;
-    const double t = std::fmod(Clock::getTime(), period);
-    return 1.5 * std::sin(PI * 2 / period * t) * glm::vec3(1, 0, 0);
-  };
+  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
+  platformUpdateVFns[blocks.back().id] = createSinusoid(2j, 4, 2, 0);
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), xSin0));
-
-  const std::function<glm::vec3(glm::vec3)> xSin1 = [PI](glm::vec3 _) -> glm::vec3 {
-    const double period = 4;
-    const double t = std::fmod(Clock::getTime() - 3, period);
-    return std::sin(PI * 2 / period * t) * glm::vec3(1, 0, 0);
-  };
-
-  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), xSin1));
-
-  const std::function<glm::vec3(glm::vec3)> xSin2 = [PI](glm::vec3 _) -> glm::vec3 {
-    const double period = 4;
-    const double t = std::fmod(Clock::getTime() - 1, period);
-    return 2.0 * std::sin(PI * 2 / period * t) * glm::vec3(1, 0, 0);
-  };
-
-  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), xSin2));
+  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
+  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
 
   player.mass = 1;
   player.speed = 6;
@@ -109,6 +92,18 @@ A5::A5()
   });
 
   playerStateManager.transition(STANDING);
+}
+
+std::function<glm::vec3(double)> A5::createSinusoid(
+  const double A,
+  const double period,
+  const double k,
+  const double offset
+) {
+  const double PI = glm::radians(180.0f);
+  return [PI, A, k, period, offset](double t) -> glm::vec3 {
+    return (A * std::sin(2 * PI / period * (t - k)) + offset) * glm::vec3(1, 0, 0);
+  };
 }
 
 //----------------------------------------------------------------------------------------
@@ -775,12 +770,15 @@ void A5::appLogic()
   player.position = 0.5f * player.acceleration * t * t + player.getVelocity() * t + player.position;
   player.setVelocity(player.acceleration * t + player.getVelocity());
 
+  for (Platform& block: blocks) {
+    block.setInputVelocity(platformUpdateVFns.at(block.id)(Clock::getTime()));
+    block.position = 0.5 * t * t * block.acceleration + t * block.getVelocity() + block.position;
+    block.setVelocity(block.getVelocity() + t * block.acceleration);
+  }
+
   const Hitbox playerHitbox = player.getHitbox();
 
   for (Platform& block : blocks) {
-    glm::vec3 blockV = block.getVelocity();
-    block.position = blockV * t + block.position;
-
     Hitbox collision = playerHitbox.getIntersection(block.getHitbox());
     if (!collision.isTrivial()) {
       /**
@@ -810,7 +808,7 @@ void A5::appLogic()
       if (playerStateManager.getCurrentState() != PREPARING_TO_JUMP) {
         refreshPlayerInputVelocity();
       }
-      player.setInertialVelocity(blockV);
+      player.setInertialVelocity(block.getVelocity());
 
       goto UpdateCursor;
     }
