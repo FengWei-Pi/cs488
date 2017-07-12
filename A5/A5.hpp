@@ -166,8 +166,10 @@ private:
     const double offset
   );
 
+  Platform* ground = nullptr;
+
   struct GameState {
-    bool isPlaying = false;
+    bool isPlaying = true;
     int lives = 1;
   } gameState;
 };

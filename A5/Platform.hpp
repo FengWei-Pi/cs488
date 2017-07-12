@@ -11,7 +11,9 @@ class Platform : public Collidable {
 public:
   const glm::vec3 size;
   const unsigned int id;
-  Platform(glm::vec3 position, glm::vec3 size);
+  const double mass;
+  double ttl;
+  Platform(glm::vec3 position, glm::vec3 size, double mass, double ttl);
   glm::vec3 position;
   glm::vec3 acceleration;
   Hitbox getHitbox();

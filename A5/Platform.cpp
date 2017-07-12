@@ -3,10 +3,12 @@
 
 unsigned Platform::counter = 0;
 
-Platform::Platform(glm::vec3 position, glm::vec3 size)
+Platform::Platform(glm::vec3 position, glm::vec3 size, double mass, double ttl)
   : position(position),
     id(counter++),
-    size(size) {}
+    size(size),
+    mass(mass),
+    ttl(ttl) {}
 
 Hitbox Platform::getHitbox() {
   return Hitbox{position, size};

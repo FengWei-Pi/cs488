@@ -54,13 +54,13 @@ A5::A5()
 {
   const uint size = 4;
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size)));
+  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 10));
   platformUpdateVFns[blocks.back().id] = createSinusoid(1.5, 4, 0, 0);
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size)));
+  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), 1, 10));
   platformUpdateVFns[blocks.back().id] = createSinusoid(2j, 4, 2, 0);
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size)));
+  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), 1, 10));
   platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
 
   player.mass = 1;
@@ -91,7 +91,7 @@ A5::A5()
     }
   });
 
-  playerStateManager.transition(STANDING);
+  playerStateManager.transition(AIRBORN);
 }
 
 std::function<glm::vec3(double)> A5::createSinusoid(
@@ -770,6 +770,15 @@ void A5::appLogic()
   player.position = 0.5f * player.acceleration * t * t + player.getVelocity() * t + player.position;
   player.setVelocity(player.acceleration * t + player.getVelocity());
 
+  if (playerStateManager.getCurrentState() != AIRBORN) {
+    assert(ground != nullptr);
+    if (ground->ttl >= 0) {
+      ground->acceleration = glm::vec3(0);
+    } else {
+      ground->acceleration = (world.F_g + world.F_wind) / ground->mass;
+    }
+  }
+
   for (Platform& block: blocks) {
     block.setInputVelocity(platformUpdateVFns.at(block.id)(Clock::getTime()));
     block.position = 0.5 * t * t * block.acceleration + t * block.getVelocity() + block.position;
@@ -781,6 +790,10 @@ void A5::appLogic()
   for (Platform& block : blocks) {
     Hitbox collision = playerHitbox.getIntersection(block.getHitbox());
     if (!collision.isTrivial()) {
+      ground = &block;
+
+      block.ttl -= t;
+
       /**
        * Reject the collision.
        */
@@ -813,6 +826,8 @@ void A5::appLogic()
       goto UpdateCursor;
     }
   }
+
+  ground = nullptr;
 
   playerStateManager.transition(AIRBORN);
 
@@ -882,6 +897,10 @@ void A5::guiLogic()
     if (ImGui::Button("Pause")) {
       gameState.isPlaying = false;
     }
+  }
+
+  if (ground != nullptr) {
+    ImGui::Text("Platform Life: %.3f\n", ground->ttl);
   }
 
   // Create Button, and check if it was clicked:
