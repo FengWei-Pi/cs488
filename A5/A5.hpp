@@ -52,7 +52,6 @@ protected:
   void initLightSources();
 
   void initPerspectiveMatrix();
-  void renderSceneGraph(SceneNode &node, Visitor& renderer);
 
   glm::mat4 m_perpsective;
   glm::mat4 m_view;
@@ -105,7 +104,6 @@ private:
   glm::vec3 calculatePlayerInputVelocity();
   void refreshPlayerInputVelocity();
 
-  void renderScene(SceneNodeFunctor<void, glm::mat4>& renderer);
   /**
    * Shadow Map
    */
@@ -154,6 +152,9 @@ private:
     const glm::mat4& LightProjection,
     const glm::mat4& LightView
   );
+  void renderPuppet(SceneNodeFunctor<void, glm::mat4>& renderer);
+  void renderPlatform(Platform& block, SceneNodeFunctor<void, glm::mat4>& renderer);
+
   void renderSkybox(const glm::mat4& Projection, const glm::mat4& View);
   glm::mat4 createMinimapPerspectiveMatrix();
   glm::mat4 createMinimapViewMatrix();

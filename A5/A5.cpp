@@ -1091,7 +1091,10 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
   glCullFace(GL_FRONT);
 
   DepthRenderer renderer(m_shader_depth, m_batchInfoMap);
-  renderScene(renderer);
+  renderPuppet(renderer);
+  for (Platform& block : blocks) {
+    renderPlatform(block, renderer);
+  }
 
   glDisable(GL_CULL_FACE);
 
@@ -1236,7 +1239,11 @@ void A5::renderSceneNormally(
   glCullFace(GL_BACK);
 
   Renderer renderer{m_shader, m_batchInfoMap};
-  renderScene(renderer);
+
+  renderPuppet(renderer);
+  for (Platform& block : blocks) {
+    renderPlatform(block, renderer);
+  }
 
   glDisable(GL_CULL_FACE);
 
@@ -1292,39 +1299,28 @@ void A5::renderSkybox(const glm::mat4& Projection, const glm::mat4& View) {
   glDepthMask(GL_TRUE);
 }
 
-void A5::renderScene(SceneNodeFunctor<void, glm::mat4>& renderer) {
+void A5::renderPuppet(SceneNodeFunctor<void, glm::mat4>& renderer) {
+  // Draw player
+  glm::mat4 rotation = glm::rotate(float(player.getDirection()), glm::vec3(0, 1, 0));
+  glm::mat4 translation = glm::translate(glm::vec3(player.position));
+  glm::mat4 modelView = translation * rotation;
 
-  {
-    // Draw player
-    glm::mat4 rotation = glm::rotate(float(player.getDirection()), glm::vec3(0, 1, 0));
-    glm::mat4 translation = glm::translate(glm::vec3(player.position));
-    glm::mat4 modelView = translation * rotation;
+  Keyframe frame = currentAnimation->get(Clock::getTime() - animationStartTime);
+  AnimationTransformationReducer transformReducer{frame};
 
-    Keyframe frame = currentAnimation->get(Clock::getTime() - animationStartTime);
-    AnimationTransformationReducer transformReducer{frame};
-
-    TransformationCollector dynamicRenderer{transformReducer, renderer, modelView};
-    renderSceneGraph(*puppetSceneNode, dynamicRenderer);
-  }
-
-
-  {
-    StaticTransformationReducer transformReducer;
-
-    for (const Platform& block : blocks) {
-      glm::mat4 scale = glm::scale(block.size);
-      glm::mat4 translate = glm::translate(block.position);
-      glm::mat4 modelView = translate * scale;
-
-      TransformationCollector staticRenderer{transformReducer, renderer, modelView};
-      renderSceneGraph(*blockSceneNode, staticRenderer);
-    }
-  }
+  TransformationCollector dynamicRenderer{transformReducer, renderer, modelView};
+  puppetSceneNode->accept(dynamicRenderer);
 }
 
-//----------------------------------------------------------------------------------------
-void A5::renderSceneGraph(SceneNode & root, Visitor& renderer) {
-  root.accept(renderer);
+void A5::renderPlatform(Platform& block, SceneNodeFunctor<void, glm::mat4>& renderer) {
+  static StaticTransformationReducer transformReducer;
+
+  glm::mat4 scale = glm::scale(block.size);
+  glm::mat4 translate = glm::translate(block.position);
+  glm::mat4 modelView = translate * scale;
+
+  TransformationCollector staticRenderer{transformReducer, renderer, modelView};
+  blockSceneNode->accept(staticRenderer);
 }
 
 //----------------------------------------------------------------------------------------
