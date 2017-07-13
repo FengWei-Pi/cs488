@@ -49,21 +49,24 @@ A5::A5()
     cameraYAngle(glm::radians(0.0f)),
     cameraXAngle(glm::radians(0.0f)),
     cameraZoom(1.0),
+    minimapCameraYAngle(glm::radians(135.0f)),
+    minimapCameraXAngle(glm::radians(0.0f)),
+    minimapCameraZoom(1.0),
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048),
     playerStateManager(INIT)
 {
   const uint size = 4;
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 10));
+  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 1000));
   platformUpdateVFns[blocks.back().id] = createSinusoid(1.5, 4, 0, 0);
   platformTimes[blocks.back().id] = 0;
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), 1, 10));
+  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), 1, 1000));
   platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 2, 0);
   platformTimes[blocks.back().id] = 0;
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), 1, 10));
+  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), 1, 1000));
   platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
   platformTimes[blocks.back().id] = 0;
 
@@ -704,13 +707,13 @@ void A5::initLightSources() {
 glm::mat4 A5::createMinimapPerspectiveMatrix()
 {
   float aspect = ((float)m_windowWidth) / m_windowHeight;
-  return glm::perspective(degreesToRadians(60.0f), aspect, 0.1f, 100.0f);
+  return glm::perspective(degreesToRadians(60.0f) * float(minimapCameraZoom), aspect, 0.1f, 100.0f);
 }
 
 //----------------------------------------------------------------------------------------
 glm::mat4 A5::createMinimapViewMatrix() {
   return glm::lookAt(
-    player.position + glm::rotateY(glm::vec3(-10, 5, 10.0f), float(cameraYAngle)), // eye
+    player.position + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(minimapCameraYAngle)), float(minimapCameraXAngle)), // eye
     player.position +  glm::vec3(0.0f, 3.0f, 1.0f), // center
     glm::vec3(0, 1, 0) // up
   );
@@ -735,16 +738,22 @@ void A5::appLogic()
 
   if (mouse.isRightButtonPressed) {
     float dispX = mouse.x - mouse.prevX;
-    cameraYAngle -= dispX / 200;
-    if (
-         playerStateManager.getCurrentState() != AIRBORN
-      && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
-    ) {
-      refreshPlayerInputVelocity();
-    }
-
     float dispY = mouse.y - mouse.prevY;
-    cameraXAngle = glm::clamp(cameraXAngle - dispY / 200, glm::radians(-20.0), glm::radians(20.0));
+    const double PI = glm::radians(180.0f);
+
+    if (mouse.isControllingMinimap) {
+      minimapCameraYAngle -= dispX / 200;
+      minimapCameraXAngle = glm::clamp(minimapCameraXAngle - dispY / 200, -PI/9, PI/9);
+    } else {
+      cameraYAngle -= dispX / 200;
+      cameraXAngle = glm::clamp(cameraXAngle - dispY / 200, -PI/9, PI/9);
+      if (
+           playerStateManager.getCurrentState() != AIRBORN
+        && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
+      ) {
+        refreshPlayerInputVelocity();
+      }
+    }
   }
 
   initViewMatrix();
@@ -1047,7 +1056,7 @@ void A5::draw() {
   renderSkybox(m_perpsective, m_view);
   renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
 
-  renderRenderTexture(20, std::min(m_framebufferWidth, m_framebufferHeight) / 4);
+  renderRenderTexture(getMinimapMargin(), getMinimapSize());
 
   // Reset the size of the render texture
   glBindTexture(GL_TEXTURE_2D, renderedTexture);
@@ -1389,6 +1398,14 @@ bool A5::mouseMoveEvent (
   return true;
 }
 
+double A5::getMinimapMargin() const {
+  return 20;
+}
+
+double A5::getMinimapSize() const {
+  return std::min(m_framebufferWidth, m_framebufferHeight) / 4;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles mouse button events.
@@ -1400,6 +1417,16 @@ bool A5::mouseButtonInputEvent (
 ) {
 
   if (action == GLFW_PRESS) {
+    switch (button) {
+      case GLFW_MOUSE_BUTTON_LEFT:
+      case GLFW_MOUSE_BUTTON_RIGHT:
+      case GLFW_MOUSE_BUTTON_MIDDLE: {
+        if (isMouseOnMinimap()) {
+          mouse.isControllingMinimap = true;
+        }
+      }
+    }
+
     switch (button) {
       case GLFW_MOUSE_BUTTON_LEFT: {
         mouse.isLeftButtonPressed = true;
@@ -1418,6 +1445,7 @@ bool A5::mouseButtonInputEvent (
 
 
   if (action == GLFW_RELEASE) {
+    mouse.isControllingMinimap = false;
     switch (button) {
       case GLFW_MOUSE_BUTTON_LEFT: {
         mouse.isLeftButtonPressed = false;
@@ -1437,6 +1465,15 @@ bool A5::mouseButtonInputEvent (
   return false;
 }
 
+bool A5::isMouseOnMinimap() const {
+  const double mouseX = mouse.x * double(m_windowWidth) / double(m_framebufferWidth);
+  const double mouseY = mouse.y * double(m_windowHeight) / double(m_framebufferHeight);
+  const double minimapMargin = getMinimapMargin();
+  const double minimapSize = getMinimapSize();
+  return minimapMargin <= mouseX && mouseX <= minimapMargin + minimapSize
+    && minimapMargin <= mouseY && mouseY <= minimapMargin + minimapSize;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles mouse scroll wheel events.
@@ -1445,7 +1482,11 @@ bool A5::mouseScrollEvent (
   double xOffset,
   double yOffset
 ) {
-  cameraZoom = glm::clamp(cameraZoom + yOffset / 50, 0.75, 1.5);
+  if (isMouseOnMinimap()) {
+    minimapCameraZoom = glm::clamp(minimapCameraZoom + yOffset / 50, 0.75, 1.5);
+  } else {
+    cameraZoom = glm::clamp(cameraZoom + yOffset / 50, 0.75, 1.5);
+  }
   return true;
 }
 

@@ -80,6 +80,7 @@ private:
     double y;
     double prevX;
     double prevY;
+    bool isControllingMinimap = false;
     bool isRightButtonPressed = false;
     bool isLeftButtonPressed = false;
     bool isMiddleButtonPressed = false;
@@ -88,6 +89,12 @@ private:
   double cameraYAngle;
   double cameraXAngle;
   double cameraZoom;
+
+
+  double minimapCameraYAngle;
+  double minimapCameraXAngle;
+  double minimapCameraZoom;
+
   double animationStartTime;
   Animation playerWalkingAnimation;
   Animation playerStandingAnimation;
@@ -175,4 +182,8 @@ private:
     bool isPlaying = true;
     int lives = 1;
   } gameState;
+
+  double getMinimapMargin() const;
+  double getMinimapSize() const;
+  bool isMouseOnMinimap() const;
 };
