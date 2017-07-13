@@ -153,7 +153,7 @@ private:
   GLuint skyboxVBO;
 
   void fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& LightView);
-  void renderRenderTexture(const unsigned int offset, const unsigned int size);
+  void renderRenderTexture(const glm::vec2& position, const glm::vec2& size);
   void renderSceneNormally(
     const glm::mat4& Projection,
     const glm::mat4& View,
@@ -183,7 +183,11 @@ private:
     int lives = 1;
   } gameState;
 
-  double getMinimapMargin() const;
-  double getMinimapSize() const;
   bool isMouseOnMinimap() const;
+  void refreshMinimapViewportDimensions();
+
+  struct Viewport {
+    glm::vec2 position{20, 20};
+    glm::vec2 size;
+  } minimapViewport;
 };

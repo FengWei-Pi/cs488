@@ -594,6 +594,7 @@ void A5::init()
   glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
   CHECK_GL_ERRORS;
 
+  refreshMinimapViewportDimensions();
 }
 
 GLuint A5::loadCubemap(std::vector<std::string> faces) {
@@ -837,9 +838,11 @@ void A5::appLogic()
       //   Your state is airborn, so you refresh your input verlocity
       // Case 2: You're preparing to jump
       //   Don't refresh input velocity
+
       if (playerStateManager.getCurrentState() != PREPARING_TO_JUMP) {
         refreshPlayerInputVelocity();
       }
+
       player.setInertialVelocity(block.getVelocity());
 
       goto UpdateCursor;
@@ -1056,7 +1059,7 @@ void A5::draw() {
   renderSkybox(m_perpsective, m_view);
   renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
 
-  renderRenderTexture(getMinimapMargin(), getMinimapSize());
+  renderRenderTexture(minimapViewport.position, minimapViewport.size);
 
   // Reset the size of the render texture
   glBindTexture(GL_TEXTURE_2D, renderedTexture);
@@ -1127,7 +1130,7 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
   glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
-void A5::renderRenderTexture(const unsigned int offset, const unsigned int size) {
+void A5::renderRenderTexture(const glm::vec2& position, const glm::vec2& size) {
   GLint m_viewport[4];
   glGetIntegerv(GL_VIEWPORT, m_viewport);
 
@@ -1135,7 +1138,7 @@ void A5::renderRenderTexture(const unsigned int offset, const unsigned int size)
   const GLint SCR_HEIGHT = m_viewport[3];
 
   // Render on the whole framebuffer, complete from the lower left corner to the upper right
-  glViewport(offset, offset, (1.0 * SCR_WIDTH) / SCR_HEIGHT * size, size);
+  glViewport(position.x, position.y, size.x, size.y);
 
   // Clear the screen
   glClear(GL_DEPTH_BUFFER_BIT);
@@ -1398,14 +1401,6 @@ bool A5::mouseMoveEvent (
   return true;
 }
 
-double A5::getMinimapMargin() const {
-  return 20;
-}
-
-double A5::getMinimapSize() const {
-  return std::min(m_framebufferWidth, m_framebufferHeight) / 4;
-}
-
 //----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles mouse button events.
@@ -1466,12 +1461,10 @@ bool A5::mouseButtonInputEvent (
 }
 
 bool A5::isMouseOnMinimap() const {
-  const double mouseX = mouse.x * double(m_windowWidth) / double(m_framebufferWidth);
-  const double mouseY = mouse.y * double(m_windowHeight) / double(m_framebufferHeight);
-  const double minimapMargin = getMinimapMargin();
-  const double minimapSize = getMinimapSize();
-  return minimapMargin <= mouseX && mouseX <= minimapMargin + minimapSize
-    && minimapMargin <= mouseY && mouseY <= minimapMargin + minimapSize;
+  const double mouseX = mouse.x;
+  const double mouseY = mouse.y;
+  return minimapViewport.position.x <= mouseX && mouseX <= (minimapViewport.size + minimapViewport.position).x
+    && minimapViewport.position.y <= mouseY && mouseY <= (minimapViewport.size + minimapViewport.position).y;
 }
 
 //----------------------------------------------------------------------------------------
@@ -1500,7 +1493,15 @@ bool A5::windowResizeEvent (
 ) {
   bool eventHandled(false);
   initPerspectiveMatrix();
+  refreshMinimapViewportDimensions();
+
   return eventHandled;
+}
+
+void A5::refreshMinimapViewportDimensions() {
+  const double width = m_framebufferWidth / 4;
+  const double height = m_framebufferHeight / 4;
+  minimapViewport.size = glm::vec2{width, height};
 }
 
 //----------------------------------------------------------------------------------------
