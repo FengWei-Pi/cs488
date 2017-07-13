@@ -595,6 +595,71 @@ void A5::init()
   CHECK_GL_ERRORS;
 
   refreshMinimapViewportDimensions();
+
+  /**
+   * Create device and context
+   */
+
+   device = alcOpenDevice(NULL);
+   assert(device);
+   checkOpenALErrors();
+
+   context = alcCreateContext(device, NULL);
+   assert(alcMakeContextCurrent(context));
+   checkOpenALErrors();
+
+   // One listener in the application. Refresh position and velocity of listener.
+   refreshListener();
+
+   // Init sources
+   alGenSources((ALuint)1, &playerSource);
+   checkOpenALErrors();
+
+   refreshPlayerSource();
+
+   /**
+    * Load the sounds
+    */
+
+   playerStepBuffer = alutCreateBufferFromFile(getAssetFilePath("step.wav").c_str());
+   alSourcei(playerSource, AL_BUFFER, playerStepBuffer);
+   checkOpenALErrors();
+}
+
+
+void A5::refreshListener() {
+  glm::vec3 cameraLookFrom = player.position + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), float(cameraXAngle));
+  glm::vec3 cameraLookAt = player.position + glm::vec3(0.0f, 3.0f, 1.0f);
+  glm::vec3 up = glm::vec3{0, 1, 0};
+
+  alListenerfv(AL_POSITION, glm::value_ptr(cameraLookFrom));
+  checkOpenALErrors();
+
+  alListenerfv(AL_VELOCITY, glm::value_ptr(player.getVelocity()));
+  checkOpenALErrors();
+
+  ALfloat orientation[] = {cameraLookAt.x, cameraLookAt.y, cameraLookAt.z, up.x, up.y, up.z};
+  alListenerfv(AL_ORIENTATION, orientation);
+  checkOpenALErrors();
+}
+
+void A5::refreshPlayerSource() {
+  alSourcefv(playerSource, AL_POSITION, glm::value_ptr(player.position));
+  checkOpenALErrors();
+
+  alSourcefv(playerSource, AL_VELOCITY, glm::value_ptr(player.getVelocity()));
+  checkOpenALErrors();
+
+  alSourcei(playerSource, AL_LOOPING, AL_FALSE);
+  checkOpenALErrors();
+}
+
+void A5::checkOpenALErrors() {
+  int error = alGetError();
+  if (error) {
+    printf("%s\n", alutGetErrorString(error));
+    exit(1);
+  }
 }
 
 GLuint A5::loadCubemap(std::vector<std::string> faces) {
@@ -732,6 +797,9 @@ glm::vec3 createVec3(int i, float v) {
  */
 void A5::appLogic()
 {
+
+  alSourcePlay(playerSource);
+  checkOpenALErrors();
   // Place per frame, application logic here ...
   if (!gameState.isPlaying || gameState.lives <= 0) {
     return;
@@ -757,6 +825,8 @@ void A5::appLogic()
     }
   }
 
+  refreshListener();
+  refreshPlayerSource();
   initViewMatrix();
   initPerspectiveMatrix();
   initLightSources();

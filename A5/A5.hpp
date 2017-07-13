@@ -19,6 +19,9 @@
 #include <memory>
 #include <chrono>
 #include <set>
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
+#include <AL/alut.h>
 
 struct LightSource {
   glm::vec3 position;
@@ -190,4 +193,13 @@ private:
     glm::vec2 position{20, 20};
     glm::vec2 size;
   } minimapViewport;
+
+  /** OpenAL stuff */
+  ALCdevice *device;
+  ALCcontext *context;
+  ALuint playerSource;
+  ALuint playerStepBuffer;
+  void refreshListener();
+  void checkOpenALErrors();
+  void refreshPlayerSource();
 };

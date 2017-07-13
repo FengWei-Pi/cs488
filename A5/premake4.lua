@@ -20,7 +20,8 @@ if os.get() == "macosx" then
         "imgui",
         "glfw3",
         "lua",
-        "lodepng"
+        "lodepng",
+        "alut"
     }
 end
 
@@ -40,13 +41,15 @@ if os.get() == "linux" then
         "X11",
         "stdc++",
         "dl",
-        "pthread"
+        "pthread",
+        "openal",
+        "alut"
     }
 end
 
 -- Build Options:
 if os.get() == "macosx" then
-    linkOptionList = { "-framework IOKit", "-framework Cocoa", "-framework CoreVideo", "-framework OpenGL" }
+    linkOptionList = { "-framework IOKit", "-framework Cocoa", "-framework CoreVideo", "-framework OpenGL", "-framework OpenAL" }
 end
 
 buildOptions = {"-std=c++11"}
