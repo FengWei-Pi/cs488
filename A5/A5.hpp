@@ -86,6 +86,7 @@ private:
   } mouse;
 
   double cameraYAngle;
+  double cameraXAngle;
   double cameraZoom;
   double animationStartTime;
   Animation playerWalkingAnimation;

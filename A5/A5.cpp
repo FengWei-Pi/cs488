@@ -47,6 +47,7 @@ A5::A5()
     playerJumpingAnimation(Animation::getPlayerJumpingAnimation()),
     currentAnimation(nullptr),
     cameraYAngle(glm::radians(0.0f)),
+    cameraXAngle(glm::radians(0.0f)),
     cameraZoom(1.0),
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048),
@@ -686,7 +687,7 @@ void A5::initPerspectiveMatrix()
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    player.position + glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), // eye
+    player.position + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), float(cameraXAngle)), // eye
     player.position + glm::vec3(0.0f, 3.0f, 1.0f), // center
     glm::vec3(0, 1, 0) // up
   );
@@ -741,6 +742,9 @@ void A5::appLogic()
     ) {
       refreshPlayerInputVelocity();
     }
+
+    float dispY = mouse.y - mouse.prevY;
+    cameraXAngle = glm::clamp(cameraXAngle - dispY / 200, glm::radians(-20.0), glm::radians(20.0));
   }
 
   initViewMatrix();
@@ -783,7 +787,8 @@ void A5::appLogic()
   }
 
   for (Platform& block: blocks) {
-    platformTimes.at(block.id) += t * (1 + block.getInitTTL() - block.getTTL());
+    const double blink = (1 - block.getTTL()/block.getInitTTL());
+    platformTimes.at(block.id) += t * (1 + 9 * blink);
 
     block.setInputVelocity(platformUpdateVFns.at(block.id)(Clock::getTime()));
     block.position = 0.5 * t * t * block.acceleration + t * block.getVelocity() + block.position;
@@ -1097,8 +1102,10 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
 
   DepthRenderer renderer(m_shader_depth, m_batchInfoMap);
   renderPuppet(renderer);
-  for (Platform& block : blocks) {
-    renderPlatform(block, renderer);
+
+  // Sort these from increasing
+  for (auto it = blocks.rbegin(); it != blocks.rend(); it++) {
+    renderPlatform(*it, renderer);
   }
 
   glDisable(GL_CULL_FACE);
@@ -1251,7 +1258,9 @@ void A5::renderSceneNormally(
 
   renderPuppet(renderer);
 
-  for (Platform& block : blocks) {
+  // Sort these from increasing
+  for (auto it = blocks.rbegin(); it != blocks.rend(); it++) {
+    Platform& block = *it;
     m_shader.enable();
       const double period = 4;
       const double PI = glm::radians(180.0f);
