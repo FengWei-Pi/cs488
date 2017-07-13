@@ -1032,15 +1032,15 @@ void A5::draw() {
   glm::mat4 minimapProjection = createMinimapPerspectiveMatrix();
   glm::mat4 minimapView = createMinimapViewMatrix();
 
-  renderSceneNormally(minimapProjection, minimapView, LightProjection, LightView);
   renderSkybox(minimapProjection, minimapView);
+  renderSceneNormally(minimapProjection, minimapView, LightProjection, LightView);
 
   // Reset framebuffer to default
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
   renderSkybox(m_perpsective, m_view);
+  renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
 
   renderRenderTexture(20, std::min(m_framebufferWidth, m_framebufferHeight) / 4);
 
@@ -1253,10 +1253,10 @@ void A5::renderSceneNormally(
 
   for (Platform& block : blocks) {
     m_shader.enable();
-      const double period = 2;
+      const double period = 4;
       const double PI = glm::radians(180.0f);
       const double t = platformTimes.at(block.id);
-      const float alpha = 0.5 * std::sin(2 * PI / period * t) + 0.5;
+      const float alpha = 0.25 * std::sin(2 * PI / period * t) + 0.5;
       glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
     m_shader.disable();
 
@@ -1273,6 +1273,8 @@ void A5::renderSceneNormally(
 
 void A5::renderSkybox(const glm::mat4& Projection, const glm::mat4& View) {
   // Render skybox
+  glClearDepth(1.0);
+  glClear(GL_DEPTH_BUFFER_BIT);
   glDepthMask(GL_FALSE);
 
   glm::mat4 view = glm::mat4(glm::mat3(View));
