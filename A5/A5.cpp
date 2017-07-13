@@ -798,8 +798,7 @@ glm::vec3 createVec3(int i, float v) {
 void A5::appLogic()
 {
 
-  alSourcePlay(playerSource);
-  checkOpenALErrors();
+
   // Place per frame, application logic here ...
   if (!gameState.isPlaying || gameState.lives <= 0) {
     return;
@@ -1416,7 +1415,17 @@ void A5::renderPuppet(SceneNodeFunctor<void, glm::mat4>& renderer) {
   glm::mat4 translation = glm::translate(glm::vec3(player.position));
   glm::mat4 modelView = translation * rotation;
 
-  Keyframe frame = currentAnimation->get(Clock::getTime() - animationStartTime);
+  std::tuple<Keyframe, Frame> animationFrames = currentAnimation->get(Clock::getTime() - animationStartTime);
+  Keyframe keyframe = std::get<0>(animationFrames);
+  Frame frame = std::get<1>(animationFrames);
+
+  if (oldKeyframeId != keyframe.id) {
+    alSourcePlay(playerSource);
+    checkOpenALErrors();
+  }
+
+  oldKeyframeId = keyframe.id;
+
   AnimationTransformationReducer transformReducer{frame};
 
   TransformationCollector dynamicRenderer{transformReducer, renderer, modelView};

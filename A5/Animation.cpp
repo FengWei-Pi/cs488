@@ -18,13 +18,13 @@ Keyframe Animation::back() {
   return keyframes.back();
 }
 
-Keyframe Animation::get(double t) {
+std::tuple<Keyframe, Frame> Animation::get(double t) {
   assert(keyframes.size() > 0);
 
   const int n = keyframes.size();
 
   if (type == SingleRun && t >= delta * (n - 1)) {
-    return keyframes.back();
+    return std::tuple<Keyframe, Frame>{keyframes.back(), keyframes.back()};
   }
 
   const double time = std::fmod(t, delta * n);
@@ -35,11 +35,11 @@ Keyframe Animation::get(double t) {
     const double t = (time/delta - i);
 
     if (std::fabs(t) < 0.001) {
-      return I;
+      return std::tuple<Keyframe, Frame>{I, I};
     }
 
     if (t < 1.0) {
-      Keyframe interpolation;
+      Frame interpolation;
       for (std::pair<std::string, double> pair : I.rotations) {
         const std::string& jointName = pair.first;
         const double iRotation = pair.second;
@@ -56,11 +56,11 @@ Keyframe Animation::get(double t) {
         interpolation.positions[jointName] = float(1 - t) * iPosition + float(t) * jPosition;
       }
 
-      return interpolation;
+      return std::tuple<Keyframe, Frame>{I, interpolation};
     }
   }
 
-  return keyframes.back();
+  return std::tuple<Keyframe, Frame>{keyframes.back(), keyframes.back()};
 }
 
 Animation Animation::getPlayerWalkingAnimation() {

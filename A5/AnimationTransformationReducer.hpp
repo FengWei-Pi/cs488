@@ -3,10 +3,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Frame.hpp"
+
 class AnimationTransformationReducer : public SceneNodeFunctor<glm::mat4, glm::mat4> {
-  Keyframe& frame;
+  Frame& frame;
 public:
-  AnimationTransformationReducer(Keyframe& frame) : frame(frame) {}
+  AnimationTransformationReducer(Frame& frame) : frame(frame) {}
 
   glm::mat4 operator()(glm::mat4& m, GeometryNode& node) {
     return m * node.trans;

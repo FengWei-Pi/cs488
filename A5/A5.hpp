@@ -202,4 +202,6 @@ private:
   void refreshListener();
   void checkOpenALErrors();
   void refreshPlayerSource();
+
+  int oldKeyframeId = -1;
 };
