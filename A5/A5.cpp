@@ -56,12 +56,15 @@ A5::A5()
 
   blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 10));
   platformUpdateVFns[blocks.back().id] = createSinusoid(1.5, 4, 0, 0);
+  platformTimes[blocks.back().id] = 0;
 
   blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), 1, 10));
-  platformUpdateVFns[blocks.back().id] = createSinusoid(2j, 4, 2, 0);
+  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 2, 0);
+  platformTimes[blocks.back().id] = 0;
 
   blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), 1, 10));
   platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
+  platformTimes[blocks.back().id] = 0;
 
   player.mass = 1;
   player.speed = 6;
@@ -772,7 +775,7 @@ void A5::appLogic()
 
   if (playerStateManager.getCurrentState() != AIRBORN) {
     assert(ground != nullptr);
-    if (ground->ttl >= 0) {
+    if (ground->getTTL() > 0) {
       ground->acceleration = glm::vec3(0);
     } else {
       ground->acceleration = (world.F_g + world.F_wind) / ground->mass;
@@ -780,6 +783,8 @@ void A5::appLogic()
   }
 
   for (Platform& block: blocks) {
+    platformTimes.at(block.id) += t * (1 + block.getInitTTL() - block.getTTL());
+
     block.setInputVelocity(platformUpdateVFns.at(block.id)(Clock::getTime()));
     block.position = 0.5 * t * t * block.acceleration + t * block.getVelocity() + block.position;
     block.setVelocity(block.getVelocity() + t * block.acceleration);
@@ -792,7 +797,7 @@ void A5::appLogic()
     if (!collision.isTrivial()) {
       ground = &block;
 
-      block.ttl -= t;
+      block.decreaseTTL(t);
 
       /**
        * Reject the collision.
@@ -900,7 +905,7 @@ void A5::guiLogic()
   }
 
   if (ground != nullptr) {
-    ImGui::Text("Platform Life: %.3f\n", ground->ttl);
+    ImGui::Text("Platform Life: %.3f\n", ground->getTTL());
   }
 
   // Create Button, and check if it was clicked:
@@ -1212,6 +1217,10 @@ void A5::renderSceneNormally(
       CHECK_GL_ERRORS;
     }
 
+    // Ensure transparency is 1
+    glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
+
+    // Bind depth texture
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthTexture);
 
@@ -1241,7 +1250,16 @@ void A5::renderSceneNormally(
   Renderer renderer{m_shader, m_batchInfoMap};
 
   renderPuppet(renderer);
+
   for (Platform& block : blocks) {
+    m_shader.enable();
+      const double period = 2;
+      const double PI = glm::radians(180.0f);
+      const double t = platformTimes.at(block.id);
+      const float alpha = 0.5 * std::sin(2 * PI / period * t) + 0.5;
+      glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
+    m_shader.disable();
+
     renderPlatform(block, renderer);
   }
 

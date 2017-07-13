@@ -22,6 +22,8 @@ struct Material {
 };
 uniform Material material;
 
+uniform float alpha;
+
 // Ambient light intensity for each RGB component.
 uniform vec3 ambientIntensity;
 
@@ -88,5 +90,5 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
 }
 
 void main() {
-  fragColour = vec4(phongModel(fs_in.position_CameraSpace, fs_in.normal_CameraSpace), 1.0);
+  fragColour = vec4(phongModel(fs_in.position_CameraSpace, fs_in.normal_CameraSpace), alpha);
 }

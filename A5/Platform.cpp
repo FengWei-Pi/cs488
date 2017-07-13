@@ -1,14 +1,18 @@
 #include "Platform.hpp"
+#include <algorithm>
 #include <iostream>
 
 unsigned Platform::counter = 0;
 
-Platform::Platform(glm::vec3 position, glm::vec3 size, double mass, double ttl)
+Platform::Platform(glm::vec3 position, glm::vec3 size, double mass, double TTL)
   : position(position),
     id(counter++),
     size(size),
     mass(mass),
-    ttl(ttl) {}
+    TTL(TTL),
+    initTTL(TTL) {
+      assert(TTL > 0);
+    }
 
 Hitbox Platform::getHitbox() {
   return Hitbox{position, size};
@@ -28,4 +32,21 @@ void Platform::setInputVelocity(glm::vec3 inputV) {
 
 void Platform::setInertialVelocity(glm::vec3 v) {
   inertialVelocity = v;
+}
+
+void Platform::decreaseTTL(double dTTL) {
+  assert(dTTL > 0);
+  TTL = std::max(TTL - dTTL, 0.0);
+}
+
+double Platform::getTTL() const{
+  return TTL;
+}
+
+double Platform::getInitTTL() const{
+  return initTTL;
+}
+
+void Platform::resetTTL() {
+  TTL = initTTL;
 }

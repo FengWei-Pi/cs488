@@ -8,15 +8,21 @@ class Platform : public Collidable {
   glm::vec3 inertialVelocity;
   glm::vec3 inputVelocity;
   static unsigned int counter;
+  double TTL;
+  const double initTTL;
 public:
   const glm::vec3 size;
   const unsigned int id;
   const double mass;
-  double ttl;
   Platform(glm::vec3 position, glm::vec3 size, double mass, double ttl);
   glm::vec3 position;
   glm::vec3 acceleration;
   Hitbox getHitbox();
+
+  void decreaseTTL(double t);
+  double getTTL() const;
+  double getInitTTL() const;
+  void resetTTL();
 
   glm::vec3 getVelocity();
   void setVelocity(glm::vec3);
