@@ -63,13 +63,15 @@ std::tuple<Keyframe, Frame> Animation::get(double t) {
   return std::tuple<Keyframe, Frame>{keyframes.back(), keyframes.back()};
 }
 
+// https://s-media-cache-ak0.pinimg.com/736x/11/b4/da/11b4daabf95ac95e7bf433a4fc2be918--animation-reference-art-reference.jpg
 Animation Animation::getPlayerWalkingAnimation() {
   double delta = 0.1;
   double bodyXRotation = 20;
   float yDispScale = 0.5;
-  Keyframe one;
 
   Animation playerWalkingAnimation{delta, Loop};
+
+  Keyframe one{"step.wav"};
 
   one.rotations["body"] = bodyXRotation;
   one.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
@@ -215,7 +217,7 @@ Animation Animation::getPlayerWalkingAnimation() {
 
   playerWalkingAnimation.push(six);
 
-  Keyframe seven;
+  Keyframe seven{"step.wav"};
   seven.rotations["body"] = bodyXRotation;
   seven.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
   seven.rotations["head-joint"] = 0;

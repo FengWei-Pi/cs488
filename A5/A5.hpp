@@ -14,6 +14,7 @@
 #include "Collidable.hpp"
 #include "Platform.hpp"
 #include "StateManager.hpp"
+#include "Camera.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -89,14 +90,8 @@ private:
     bool isMiddleButtonPressed = false;
   } mouse;
 
-  double cameraYAngle;
-  double cameraXAngle;
-  double cameraZoom;
-
-
-  double minimapCameraYAngle;
-  double minimapCameraXAngle;
-  double minimapCameraZoom;
+  Camera gameCamera;
+  Camera minimapCamera;
 
   double animationStartTime;
   Animation playerWalkingAnimation;
@@ -204,4 +199,7 @@ private:
   void refreshPlayerSource();
 
   int oldKeyframeId = -1;
+
+  std::map<std::string, ALuint> soundBuffers;
+  void playSoundWithSource(ALuint source, std::string filename);
 };

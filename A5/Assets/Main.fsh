@@ -37,8 +37,15 @@ vec2 poissonDisk[4] = vec2[](
 );
 
 float ShadowCalculation(vec4 fragPosLightSpace) {
-  // transform NDC [-1, 1] to [0,1] range
-  vec3 projCoords = fragPosLightSpace.xyz * 0.5 + 0.5;
+  // perform perspective divide
+  vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+
+// transform NDC [-1, 1] to [0,1] range
+  projCoords = fragPosLightSpace.xyz * 0.5 + 0.5;
+
+  if(projCoords.z > 1.0) {
+    return 0;
+  }
 
   vec3 lightDir = normalize(fs_in.light_CameraSpace.position - fs_in.position_CameraSpace);
   float bias = 0.005*tan(acos(clamp(dot(fs_in.normal_CameraSpace, lightDir), 0, 1)));

@@ -46,29 +46,25 @@ A5::A5()
     playerPreparingToJumpAnimation(Animation::getPlayerPreparingToJumpAnimation()),
     playerJumpingAnimation(Animation::getPlayerJumpingAnimation()),
     currentAnimation(nullptr),
-    cameraYAngle(glm::radians(0.0f)),
-    cameraXAngle(glm::radians(0.0f)),
-    cameraZoom(1.0),
-    minimapCameraYAngle(glm::radians(135.0f)),
-    minimapCameraXAngle(glm::radians(0.0f)),
-    minimapCameraZoom(1.0),
+    gameCamera(glm::radians(0.0f), glm::radians(0.0f), 1),
+    minimapCamera(glm::radians(135.0f), glm::radians(0.0f), 1),
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048),
     playerStateManager(INIT)
 {
-  const uint size = 4;
+  const uint size = 100;
 
   blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 1000));
   platformUpdateVFns[blocks.back().id] = createSinusoid(1.5, 4, 0, 0);
   platformTimes[blocks.back().id] = 0;
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), 1, 1000));
-  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 2, 0);
-  platformTimes[blocks.back().id] = 0;
-
-  blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), 1, 1000));
-  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
-  platformTimes[blocks.back().id] = 0;
+  // blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), 1, 1000));
+  // platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 2, 0);
+  // platformTimes[blocks.back().id] = 0;
+  //
+  // blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), 1, 1000));
+  // platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
+  // platformTimes[blocks.back().id] = 0;
 
   player.mass = 1;
   player.speed = 6;
@@ -539,8 +535,13 @@ void A5::init()
     glBindTexture(GL_TEXTURE_2D, depthTexture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Make samples outside the border be equal to the border
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
@@ -616,20 +617,12 @@ void A5::init()
    checkOpenALErrors();
 
    refreshPlayerSource();
-
-   /**
-    * Load the sounds
-    */
-
-   playerStepBuffer = alutCreateBufferFromFile(getAssetFilePath("step.wav").c_str());
-   alSourcei(playerSource, AL_BUFFER, playerStepBuffer);
-   checkOpenALErrors();
 }
 
 
 void A5::refreshListener() {
-  glm::vec3 cameraLookFrom = player.position + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), float(cameraXAngle));
-  glm::vec3 cameraLookAt = player.position + glm::vec3(0.0f, 3.0f, 1.0f);
+  glm::vec3 cameraLookFrom = player.position;// + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), float(cameraXAngle));
+  glm::vec3 cameraLookAt = player.position;// + glm::vec3(0.0f, 3.0f, 1.0f);
   glm::vec3 up = glm::vec3{0, 1, 0};
 
   alListenerfv(AL_POSITION, glm::value_ptr(cameraLookFrom));
@@ -749,14 +742,14 @@ void A5::uploadVertexDataToVbos (const MeshConsolidator & meshConsolidator) {
 void A5::initPerspectiveMatrix()
 {
   float aspect = ((float)m_windowWidth) / m_windowHeight;
-  m_perpsective = glm::perspective(degreesToRadians(60.0f) * float(cameraZoom), aspect, 0.1f, 100.0f);
+  m_perpsective = glm::perspective(degreesToRadians(60.0f) * float(gameCamera.zoom), aspect, 0.1f, 100.0f);
 }
 
 
 //----------------------------------------------------------------------------------------
 void A5::initViewMatrix() {
   m_view = glm::lookAt(
-    player.position + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), float(cameraXAngle)), // eye
+    player.position + gameCamera.getXYRotationMatrix() * glm::vec3(0, 5, -10.0f), // eye
     player.position + glm::vec3(0.0f, 3.0f, 1.0f), // center
     glm::vec3(0, 1, 0) // up
   );
@@ -765,7 +758,7 @@ void A5::initViewMatrix() {
 //----------------------------------------------------------------------------------------
 void A5::initLightSources() {
   // World-space position
-  m_light.position = glm::rotateY(vec3(-1.0f, 5.0f, -2.0f), float(cameraYAngle));
+  m_light.position = gameCamera.getYRotationMatrix() * vec3(-1.0f, 5.0f, -2.0f);
   m_light.rgbIntensity = vec3(0.8f); // White light
 }
 
@@ -773,13 +766,13 @@ void A5::initLightSources() {
 glm::mat4 A5::createMinimapPerspectiveMatrix()
 {
   float aspect = ((float)m_windowWidth) / m_windowHeight;
-  return glm::perspective(degreesToRadians(60.0f) * float(minimapCameraZoom), aspect, 0.1f, 100.0f);
+  return glm::perspective(degreesToRadians(60.0f) * float(minimapCamera.zoom), aspect, 0.1f, 100.0f);
 }
 
 //----------------------------------------------------------------------------------------
 glm::mat4 A5::createMinimapViewMatrix() {
   return glm::lookAt(
-    player.position + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(minimapCameraYAngle)), float(minimapCameraXAngle)), // eye
+    player.position + minimapCamera.getXYRotationMatrix() * glm::vec3(0, 5, -10.0f), // eye
     player.position +  glm::vec3(0.0f, 3.0f, 1.0f), // center
     glm::vec3(0, 1, 0) // up
   );
@@ -795,9 +788,7 @@ glm::vec3 createVec3(int i, float v) {
 /*
  * Called once per frame, before guiLogic().
  */
-void A5::appLogic()
-{
-
+void A5::appLogic() {
 
   // Place per frame, application logic here ...
   if (!gameState.isPlaying || gameState.lives <= 0) {
@@ -810,11 +801,11 @@ void A5::appLogic()
     const double PI = glm::radians(180.0f);
 
     if (mouse.isControllingMinimap) {
-      minimapCameraYAngle -= dispX / 200;
-      minimapCameraXAngle = glm::clamp(minimapCameraXAngle - dispY / 200, -PI/9, PI/9);
+      minimapCamera.yAngle -= dispX / 200;
+      minimapCamera.xAngle = glm::clamp(minimapCamera.xAngle - dispY / 200, -PI/9, PI/9);
     } else {
-      cameraYAngle -= dispX / 200;
-      cameraXAngle = glm::clamp(cameraXAngle - dispY / 200, -PI/9, PI/9);
+      gameCamera.yAngle -= dispX / 200;
+      gameCamera.xAngle = glm::clamp(gameCamera.xAngle - dispY / 200, -PI/9, PI/9);
       if (
            playerStateManager.getCurrentState() != AIRBORN
         && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
@@ -1419,9 +1410,8 @@ void A5::renderPuppet(SceneNodeFunctor<void, glm::mat4>& renderer) {
   Keyframe keyframe = std::get<0>(animationFrames);
   Frame frame = std::get<1>(animationFrames);
 
-  if (oldKeyframeId != keyframe.id) {
-    alSourcePlay(playerSource);
-    checkOpenALErrors();
+  if (oldKeyframeId != keyframe.id && keyframe.sound != "") {
+    playSoundWithSource(playerSource, keyframe.sound);
   }
 
   oldKeyframeId = keyframe.id;
@@ -1430,6 +1420,17 @@ void A5::renderPuppet(SceneNodeFunctor<void, glm::mat4>& renderer) {
 
   TransformationCollector dynamicRenderer{transformReducer, renderer, modelView};
   puppetSceneNode->accept(dynamicRenderer);
+}
+
+void A5::playSoundWithSource(ALuint source, std::string filename) {
+  if (soundBuffers.find(filename) == soundBuffers.end()) {
+    ALuint buffer = alutCreateBufferFromFile(getAssetFilePath(filename.c_str()).c_str());
+    soundBuffers[filename] = buffer;
+  }
+
+  alSourcei(source, AL_BUFFER, soundBuffers[filename]);
+  alSourcePlay(source);
+  checkOpenALErrors();
 }
 
 void A5::renderPlatform(Platform& block, SceneNodeFunctor<void, glm::mat4>& renderer) {
@@ -1555,9 +1556,9 @@ bool A5::mouseScrollEvent (
   double yOffset
 ) {
   if (isMouseOnMinimap()) {
-    minimapCameraZoom = glm::clamp(minimapCameraZoom + yOffset / 50, 0.75, 1.5);
+    minimapCamera.zoom = glm::clamp(minimapCamera.zoom + yOffset / 50, 0.75, 1.5);
   } else {
-    cameraZoom = glm::clamp(cameraZoom + yOffset / 50, 0.75, 1.5);
+    gameCamera.zoom = glm::clamp(gameCamera.zoom + yOffset / 50, 0.75, 1.5);
   }
   return true;
 }
@@ -1701,5 +1702,5 @@ glm::vec3 A5::calculatePlayerInputVelocity() {
   }
 
   glm::vec3 velocity = Util::normalize(glm::vec3(vx, 0, vz)) * player.speed;
-  return glm::rotateY(velocity, float(cameraYAngle));
+  return gameCamera.getYRotationMatrix() * velocity;
 }

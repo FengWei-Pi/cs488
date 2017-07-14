@@ -2,4 +2,6 @@
 
 int Keyframe::counter = 0;
 
-Keyframe::Keyframe() : id(counter++) {}
+Keyframe::Keyframe() : id(counter++), sound("") {}
+
+Keyframe::Keyframe(std::string sound) : id(counter++), sound(sound) {}
