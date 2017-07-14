@@ -52,19 +52,19 @@ A5::A5()
     SHADOW_HEIGHT(2048),
     playerStateManager(INIT)
 {
-  const uint size = 100;
+  const uint size = 6;
 
-  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 1000));
-  platformUpdateVFns[blocks.back().id] = createSinusoid(1.5, 4, 0, 0);
+  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 100));
+  platformUpdateVFns[blocks.back().id] = createSinusoid(0.0, 4, 0, 0);
   platformTimes[blocks.back().id] = 0;
 
-  // blocks.push_back(Platform(glm::vec3(-2, -1, 6), glm::vec3(size, 1, size), 1, 1000));
-  // platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 2, 0);
-  // platformTimes[blocks.back().id] = 0;
-  //
-  // blocks.push_back(Platform(glm::vec3(-2, -1, 14), glm::vec3(size, 1, size), 1, 1000));
-  // platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
-  // platformTimes[blocks.back().id] = 0;
+  blocks.push_back(Platform(glm::vec3(-2, -1, -2 + (size + 3)), glm::vec3(size, 1, size), 1, 100));
+  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 2, 0);
+  platformTimes[blocks.back().id] = 0;
+
+  blocks.push_back(Platform(glm::vec3(-2, -1, + (size + 3) * 2), glm::vec3(size, 1, size), 1, 100));
+  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
+  platformTimes[blocks.back().id] = 0;
 
   player.mass = 1;
   player.speed = 6;
@@ -610,40 +610,72 @@ void A5::init()
    checkOpenALErrors();
 
    // One listener in the application. Refresh position and velocity of listener.
-   refreshListener();
+   repositionAndReorientListener();
 
-   // Init sources
-   alGenSources((ALuint)1, &playerSource);
+   alDistanceModel(AL_EXPONENT_DISTANCE_CLAMPED);
    checkOpenALErrors();
 
-   refreshPlayerSource();
+   // Player source
+   alGenSources((ALuint)1, &playerSource);
+   checkOpenALErrors();
+   repositionPlayerSource();
+
+   // Player's noises don't loop
+   alSourcei(playerSource, AL_LOOPING, AL_FALSE);
+   checkOpenALErrors();
+
+   alSourcef(playerSource, AL_ROLLOFF_FACTOR, 1);
+   alSourcef(playerSource, AL_REFERENCE_DISTANCE, 10);
+
+   // Wind source
+   alGenSources(1, &windSource);
+   checkOpenALErrors();
+   repositionWindSource();
+
+   // Wind sound loops
+   alSourcei(windSource, AL_LOOPING, AL_TRUE);
+   checkOpenALErrors();
+
+   alSourcef(windSource, AL_ROLLOFF_FACTOR, 1);
+   alSourcef(windSource, AL_REFERENCE_DISTANCE, 10);
+
+   // https://www.zapsplat.com/music/strong-howling-wind-internal-recording/
+   playSoundWithSource(windSource, "wind.wav");
 }
 
 
-void A5::refreshListener() {
-  glm::vec3 cameraLookFrom = player.position;// + glm::rotateX(glm::rotateY(glm::vec3(0, 5, -10.0f), float(cameraYAngle)), float(cameraXAngle));
-  glm::vec3 cameraLookAt = player.position;// + glm::vec3(0.0f, 3.0f, 1.0f);
+void A5::repositionAndReorientListener() {
+  glm::vec3 lookAt = -(gameCamera.getXYRotationMatrix() * glm::vec3(0, 5, -10));
+  glm::vec3 lookFrom = player.position - lookAt;
   glm::vec3 up = glm::vec3{0, 1, 0};
 
-  alListenerfv(AL_POSITION, glm::value_ptr(cameraLookFrom));
+  // OpenAL expects the lookAt and up vectors to be linearly independent
+  assert(glm::length(glm::cross(lookAt, up)) >= 0.0001);
+
+  alListenerfv(AL_POSITION, glm::value_ptr(lookFrom));
   checkOpenALErrors();
 
   alListenerfv(AL_VELOCITY, glm::value_ptr(player.getVelocity()));
   checkOpenALErrors();
 
-  ALfloat orientation[] = {cameraLookAt.x, cameraLookAt.y, cameraLookAt.z, up.x, up.y, up.z};
+  ALfloat orientation[] = {lookAt.x, lookAt.y, lookAt.z, up.x, up.y, up.z};
   alListenerfv(AL_ORIENTATION, orientation);
   checkOpenALErrors();
 }
 
-void A5::refreshPlayerSource() {
+void A5::repositionWindSource() {
+  alSourcefv(windSource, AL_POSITION, glm::value_ptr(player.position));
+  checkOpenALErrors();
+
+  alSourcefv(windSource, AL_VELOCITY, glm::value_ptr(player.getVelocity()));
+  checkOpenALErrors();
+}
+
+void A5::repositionPlayerSource() {
   alSourcefv(playerSource, AL_POSITION, glm::value_ptr(player.position));
   checkOpenALErrors();
 
   alSourcefv(playerSource, AL_VELOCITY, glm::value_ptr(player.getVelocity()));
-  checkOpenALErrors();
-
-  alSourcei(playerSource, AL_LOOPING, AL_FALSE);
   checkOpenALErrors();
 }
 
@@ -815,8 +847,9 @@ void A5::appLogic() {
     }
   }
 
-  refreshListener();
-  refreshPlayerSource();
+  repositionAndReorientListener();
+  repositionPlayerSource();
+  repositionWindSource();
   initViewMatrix();
   initPerspectiveMatrix();
   initLightSources();
@@ -1426,6 +1459,13 @@ void A5::playSoundWithSource(ALuint source, std::string filename) {
   if (soundBuffers.find(filename) == soundBuffers.end()) {
     ALuint buffer = alutCreateBufferFromFile(getAssetFilePath(filename.c_str()).c_str());
     soundBuffers[filename] = buffer;
+  }
+
+  ALint source_state;
+  alGetSourcei(source, AL_SOURCE_STATE, &source_state);
+
+  if (source_state == AL_PLAYING) {
+    return;
   }
 
   alSourcei(source, AL_BUFFER, soundBuffers[filename]);

@@ -193,10 +193,11 @@ private:
   ALCdevice *device;
   ALCcontext *context;
   ALuint playerSource;
-  ALuint playerStepBuffer;
-  void refreshListener();
+  ALuint windSource;
+  void repositionAndReorientListener();
   void checkOpenALErrors();
-  void refreshPlayerSource();
+  void repositionPlayerSource();
+  void repositionWindSource();
 
   int oldKeyframeId = -1;
 

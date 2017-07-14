@@ -71,7 +71,8 @@ Animation Animation::getPlayerWalkingAnimation() {
 
   Animation playerWalkingAnimation{delta, Loop};
 
-  Keyframe one{"step.wav"};
+  // https://freesound.org/people/RonaldVanWonderen/sounds/110099/
+  Keyframe one{"footstep.wav"};
 
   one.rotations["body"] = bodyXRotation;
   one.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
@@ -217,7 +218,7 @@ Animation Animation::getPlayerWalkingAnimation() {
 
   playerWalkingAnimation.push(six);
 
-  Keyframe seven{"step.wav"};
+  Keyframe seven{"footstep.wav"};
   seven.rotations["body"] = bodyXRotation;
   seven.positions["body"] = glm::vec3(0, 0, 0) * yDispScale;
   seven.rotations["head-joint"] = 0;
