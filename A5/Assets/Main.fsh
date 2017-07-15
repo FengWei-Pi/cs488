@@ -10,6 +10,7 @@ in VsOutFsIn {
   vec3 normal_CameraSpace;   // Eye-space normal
   vec4 position_LightSpace; // light space position of coordinate
   LightSource light_CameraSpace;
+  vec2 uv;
 } fs_in;
 
 
@@ -28,6 +29,7 @@ uniform float alpha;
 uniform vec3 ambientIntensity;
 
 uniform sampler2DShadow depthTexture;
+uniform sampler2D picture;
 
 vec2 poissonDisk[4] = vec2[](
    vec2( -0.94201624, -0.39906216 ),
@@ -97,5 +99,7 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
 }
 
 void main() {
-  fragColour = vec4(phongModel(fs_in.position_CameraSpace, fs_in.normal_CameraSpace), alpha);
+  vec3 lighting = phongModel(fs_in.position_CameraSpace, fs_in.normal_CameraSpace);
+  vec3 texCoord = texture(picture, fs_in.uv).rgb;
+  fragColour = vec4(lighting * texCoord, alpha);
 }

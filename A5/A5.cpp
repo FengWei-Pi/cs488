@@ -423,9 +423,7 @@ void A5::init()
   // positions, and normals will be extracted and stored within the MeshConsolidator
   // class.
   unique_ptr<MeshConsolidator> meshConsolidator (new MeshConsolidator{
-    getAssetFilePath("cube.obj"),
-    getAssetFilePath("sphere.obj"),
-    getAssetFilePath("suzanne.obj")
+    getAssetFilePath("cube.obj")
   });
 
 
@@ -642,6 +640,9 @@ void A5::init()
 
    // https://www.zapsplat.com/music/strong-howling-wind-internal-recording/
    playSoundWithSource(windSource, "wind.wav");
+
+   // Texture
+   tileTexture = createTexture2D(getAssetFilePath("tiles.png"));
 }
 
 
@@ -728,6 +729,44 @@ GLuint A5::loadCubemap(std::vector<std::string> faces) {
   return textureId;
 }
 
+GLuint A5::createTexture2D(std::string filename) {
+  GLuint textureId;
+  glGenTextures(1, &textureId);
+  glBindTexture(GL_TEXTURE_2D, textureId);
+
+  std::vector<unsigned char> image; //the raw pixels
+  unsigned int width, height;
+
+  unsigned int error = lodepng::decode(image, width, height, filename.c_str());
+
+  //if there's an error, display it
+  if(error) {
+    std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+    assert(false);
+  }
+
+  glTexImage2D(
+    GL_TEXTURE_2D,
+    0,
+    GL_RGBA,
+    width,
+    height,
+    0,
+    GL_RGBA,
+    GL_UNSIGNED_BYTE,
+    &image[0]
+  );
+  CHECK_GL_ERRORS;
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  return textureId;
+}
+
 std::shared_ptr<SceneNode> A5::readLuaSceneFile(const std::string& filename) {
   SceneNode* root = import_lua(filename);
   assert(root != NULL);
@@ -769,6 +808,18 @@ void A5::uploadVertexDataToVbos (const MeshConsolidator & meshConsolidator) {
     CHECK_GL_ERRORS;
   }
 
+  // Generate VBO to store all vertex normal data
+  {
+    glGenBuffers(1, &m_vbo_uvCoords);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo_uvCoords);
+
+    glBufferData(GL_ARRAY_BUFFER, meshConsolidator.getNumUVBytes(),
+                 meshConsolidator.getUVDataPtr(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    CHECK_GL_ERRORS;
+  }
 }
 
 //----------------------------------------------------------------------------------------
@@ -1073,6 +1124,7 @@ public:
     //-- Now render the mesh:
     shader.enable();
     glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+    CHECK_GL_ERRORS;
     shader.disable();
   }
 };
@@ -1100,6 +1152,7 @@ public:
 
     shader.enable();
     glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+    CHECK_GL_ERRORS;
     shader.disable();
   }
 };
@@ -1341,6 +1394,14 @@ void A5::renderSceneNormally(
 
     glUniform1i(m_shader.getUniformLocation("depthTexture"), 0);
     CHECK_GL_ERRORS;
+
+    // Bind tile texture
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, tileTexture);
+
+    glUniform1i(m_shader.getUniformLocation("picture"), 1);
+    CHECK_GL_ERRORS;
+
   }
   m_shader.disable();
 
@@ -1348,6 +1409,7 @@ void A5::renderSceneNormally(
   glBindVertexArray(m_vao_meshData);
   glEnableVertexAttribArray(m_shader.getAttribLocation("position"));
   glEnableVertexAttribArray(m_shader.getAttribLocation("normal"));
+  glEnableVertexAttribArray(m_shader.getAttribLocation("uv"));
 
   // Map Position
   glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexPositions);
@@ -1357,6 +1419,11 @@ void A5::renderSceneNormally(
   // Map Normals
   glBindBuffer(GL_ARRAY_BUFFER, m_vbo_vertexNormals);
   glVertexAttribPointer(m_shader.getAttribLocation("normal"), 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // Map uv
+  glBindBuffer(GL_ARRAY_BUFFER, m_vbo_uvCoords);
+  glVertexAttribPointer(m_shader.getAttribLocation("uv"), 2, GL_FLOAT, GL_FALSE, 0, nullptr);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   glEnable(GL_CULL_FACE);
@@ -1384,6 +1451,7 @@ void A5::renderSceneNormally(
 
   glDisableVertexAttribArray(m_shader.getAttribLocation("position"));
   glDisableVertexAttribArray(m_shader.getAttribLocation("normal"));
+  glDisableVertexAttribArray(m_shader.getAttribLocation("uv"));
   glBindVertexArray(0);
   CHECK_GL_ERRORS;
 }

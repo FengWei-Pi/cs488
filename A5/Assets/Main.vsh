@@ -3,6 +3,7 @@
 // Model-Space coordinates
 in vec3 position;
 in vec3 normal;
+in vec2 uv;
 
 struct LightSource {
   vec3 position;
@@ -19,6 +20,7 @@ out VsOutFsIn {
   vec3 normal_CameraSpace;   // Eye-space normal
   LightSource light_CameraSpace;
   vec4 position_LightSpace; // Light space coordinates of current point
+  vec2 uv;
 } vs_out;
 
 uniform mat4 LightView;
@@ -38,6 +40,7 @@ void main() {
   light_CameraSpace.position =  light.position;
 
   vs_out.light_CameraSpace = light_CameraSpace;
+  vs_out.uv = uv;
 
   gl_Position = Projection * View * Model * vec4(position, 1.0);
 }

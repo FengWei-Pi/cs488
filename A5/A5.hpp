@@ -66,6 +66,7 @@ protected:
   GLuint m_vao_meshData;
   GLuint m_vbo_vertexPositions;
   GLuint m_vbo_vertexNormals;
+  GLuint m_vbo_uvCoords;
   ShaderProgram m_shader;
 
   // BatchInfoMap is an associative container that maps a unique MeshId to a BatchInfo
@@ -204,4 +205,8 @@ private:
 
   std::map<std::string, ALuint> soundBuffers;
   void playSoundWithSource(ALuint source, std::string filename);
+
+  // Texture mapping
+  GLuint tileTexture;
+  static GLuint createTexture2D(std::string filename);
 };
