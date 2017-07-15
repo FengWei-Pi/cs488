@@ -7,11 +7,11 @@ namespace Util {
   double mlerp(double from, double to, double t, double n);
   double mShortDist(double from, double to, double n);
   template <typename T> T normalize(T v);
-  std::function<glm::vec3(float)> createXAxisSinusoid(
-    const float A,
-    const float period,
-    const float k,
-    const float offset
+  std::function<double(double)> createSinusoid(
+    const double A,
+    const double period,
+    const double k,
+    const double offset
   );
 }
 

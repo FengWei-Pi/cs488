@@ -15,14 +15,14 @@ double Util::mlerp(double a0, double a1, double t, double max) {
   return a0 + Util::mShortDist(a0, a1, max)*t;
 }
 
-std::function<glm::vec3(float)> Util::createXAxisSinusoid(
-  const float A,
-  const float period,
-  const float k,
-  const float offset
+std::function<double(double)> Util::createSinusoid(
+  const double A,
+  const double period,
+  const double k,
+  const double offset
 ) {
-  const float PI = glm::radians(180.0f);
-  return [PI, A, k, period, offset](float t) -> glm::vec3 {
-    return (A * std::sin(2 * PI / period * (t - k)) + offset) * glm::vec3(1, 0, 0);
+  const double PI = glm::radians(180.0f);
+  return [PI, A, k, period, offset](double t) -> double {
+    return (A * std::sin(2 * PI / period * (t - k)) + offset);
   };
 }

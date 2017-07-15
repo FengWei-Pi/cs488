@@ -38,12 +38,18 @@ Level Level::read(std::string filename) {
     };
 
     level.platforms.push_back(platform);
-    level.platformUpdateVFns[platform.id] = Util::createXAxisSinusoid(
-      $platform["updateVFn"][0].get<float>(),
-      $platform["updateVFn"][1].get<float>(),
-      $platform["updateVFn"][2].get<float>(),
-      $platform["updateVFn"][3].get<float>()
+
+    std::function<double(double)> sinusoid = Util::createSinusoid(
+      $platform["updateVFn"]["A"].get<double>(),
+      $platform["updateVFn"]["period"].get<double>(),
+      $platform["updateVFn"]["k"].get<double>(),
+      $platform["updateVFn"]["offset"].get<double>()
     );
+
+    level.platformUpdateVFns[platform.id] = [sinusoid](double t) -> glm::vec3 {
+      return float(sinusoid(t)) * glm::vec3(1, 0, 0);
+    };
+
     level.platformTimes[platform.id] = 0;
   };
 
