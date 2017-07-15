@@ -144,12 +144,12 @@ void A5::init()
   {
     // Skybox code
     std::vector<std::string> faces{
-      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_rt.png"),
-      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_lf.png"),
-      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_up.png"),
-      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_dn.png"),
-      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_bk.png"),
-      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_ft.png")
+      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_rt.png"),
+      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_lf.png"),
+      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_up.png"),
+      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_dn.png"),
+      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_bk.png"),
+      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_ft.png")
     };
 
     skyboxTexture = loadCubemap(faces);
@@ -683,6 +683,11 @@ void A5::appLogic() {
         ground->markVisited();
         ground->decreaseTTL(t);
 
+        if (playerStateManager.getCurrentState() == PREPARING_TO_JUMP) {
+          double t = playerStateManager.getTimeSinceLastTransition();
+          playerJumpVelocity = -2 * std::cos(2 * glm::radians(180.0f) / 6 * t) + 8;
+        }
+
         player.setInertialVelocity(ground->getVelocity());
         goto UpdateCursor;
       }
@@ -766,6 +771,8 @@ void A5::guiLogic()
       gameState.isPlaying = false;
     }
   }
+
+  ImGui::SliderFloat("Player Jump Velocity", &playerJumpVelocity, 0, 12, "%.3f m/s");
 
   if (ground != nullptr) {
     ImGui::Text("Platform Life: %.3f\n", ground->getTTL());
@@ -1448,9 +1455,13 @@ bool A5::keyInputEvent (
       switch (key) {
         case GLFW_KEY_SPACE: {
           if (playerStateManager.getCurrentState() == PREPARING_TO_JUMP) {
-            playerStateManager.transition(AIRBORN);
             player.setInputVelocity(calculatePlayerInputVelocity());
-            player.setVelocity(glm::vec3(player.getVelocity().x, 6, player.getVelocity().z));
+
+            glm::vec3 playerV = player.getVelocity();
+            player.setVelocity(glm::vec3(playerV.x, playerJumpVelocity, playerV.z));
+
+            playerStateManager.transition(AIRBORN);
+            playerJumpVelocity = 0;
           }
           break;
         }

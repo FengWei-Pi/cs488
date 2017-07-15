@@ -167,10 +167,12 @@ private:
   Level level;
 
   Platform* ground = nullptr;
+  float playerJumpVelocity = 0;
 
   struct GameState {
     bool isPlaying = true;
     int lives = 1;
+    int score = 0;
   } gameState;
 
   bool isMouseOnMinimap() const;
