@@ -1475,7 +1475,7 @@ bool A5::keyInputEvent (
         ) {
           refreshPlayerInputVelocity();
         }
-        return true;
+        break;
       }
     }
   }
