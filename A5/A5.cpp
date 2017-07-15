@@ -79,6 +79,10 @@ A5::A5()
   playerStateManager.addState(STANDING, [this](PlayerState oldState) -> void {
     animationStartTime = Clock::getTime();
     currentAnimation = &playerStandingAnimation;
+
+    if (oldState == AIRBORN) {
+      playSoundWithSource(playerSource, "footstep.wav");
+    }
   });
 
   playerStateManager.addState(PREPARING_TO_JUMP, [this](PlayerState oldState) -> void {

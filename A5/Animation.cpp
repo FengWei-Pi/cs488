@@ -512,7 +512,32 @@ Animation Animation::getPlayerPreparingToJumpAnimation() {
 Animation Animation::getPlayerJumpingAnimation() {
   Animation playerJumpingAnimation{0.15, SingleRun};
 
-  Keyframe one = getPlayerPreparingToJumpAnimation().back();
+  Keyframe one{"footstep.wav"};
+  {
+    const double theta = 20;
+    const double alpha = 80;
+    one.rotations["body"] = theta;
+    one.positions["body"] = glm::vec3(0, -1.7, -0.5);
+    one.rotations["head-joint"] = 0;
+    one.rotations["neck-joint"] = 0;
+
+    one.rotations["left-upper-arm-joint"] = 45;
+    one.rotations["left-lower-arm-joint"] = -120;
+    one.rotations["left-hand-joint"] = 0;
+
+    one.rotations["right-upper-arm-joint"] = 45;
+    one.rotations["right-lower-arm-joint"] = -120;
+    one.rotations["right-hand-joint"] = 0;
+
+    one.rotations["left-upper-leg-joint"] = -alpha;
+    one.rotations["left-lower-leg-joint"] = alpha;
+    one.rotations["left-foot-joint"] = -theta;
+
+    one.rotations["right-upper-leg-joint"] = -alpha;
+    one.rotations["right-lower-leg-joint"] = alpha;
+    one.rotations["right-foot-joint"] = -theta;
+  }
+
   playerJumpingAnimation.push(one);
 
   Keyframe two;
