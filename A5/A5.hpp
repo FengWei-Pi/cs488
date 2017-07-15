@@ -115,7 +115,7 @@ private:
    * Shadow Map
    */
 
-  GLuint FramebufferName;
+  GLuint depthFramebuffer;
   GLuint renderedTexture;
   GLuint depthTexture;
   unsigned int SHADOW_WIDTH, SHADOW_HEIGHT;
@@ -123,9 +123,9 @@ private:
   ShaderProgram m_shader_quad;
   ShaderProgram m_shader_skybox;
 
-  GLuint VertexArrayID;
+  GLuint quad_vertexArray;
   GLuint quad_vertexbuffer;
-  GLuint depthrenderbuffer;
+  GLuint depthRenderBuffer;
 
   struct World {
     glm::vec3 F_g = glm::vec3(0, -12, 0); // Gravitational force
@@ -152,7 +152,7 @@ private:
   GLuint skyboxVBO;
 
   void fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& LightView);
-  void renderRenderTexture(const glm::vec2& position, const glm::vec2& size);
+  void renderTextureToQuad(GLuint textureId, const glm::vec2& position, const glm::vec2& size);
   void renderSceneNormally(
     const glm::mat4& Projection,
     const glm::mat4& View,

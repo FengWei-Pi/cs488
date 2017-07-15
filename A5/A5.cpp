@@ -524,8 +524,8 @@ void A5::init()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Initialize depth buffer
-    glGenRenderbuffers(1, &depthrenderbuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+    glGenRenderbuffers(1, &depthRenderBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
@@ -547,10 +547,10 @@ void A5::init()
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Create a framebuffer
-    glGenFramebuffers(1, &FramebufferName);
+    glGenFramebuffers(1, &depthFramebuffer);
     CHECK_GL_ERRORS;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFramebuffer);
     CHECK_GL_ERRORS;
 
     // Set framebuffer attachements
@@ -558,7 +558,7 @@ void A5::init()
 
     if (false) {
       std::cerr << "Using depth render-buffer" << std::endl;
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
     } else {
       std::cerr << "Using depth texture" << std::endl;
       glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
@@ -568,13 +568,13 @@ void A5::init()
       glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
     );
 
-    printFramebufferInfo(FramebufferName);
+    printFramebufferInfo(depthFramebuffer);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
 
-  glGenVertexArrays(1, &VertexArrayID);
-  glBindVertexArray(VertexArrayID);
+  glGenVertexArrays(1, &quad_vertexArray);
+  glBindVertexArray(quad_vertexArray);
 
   // The fullscreen quad's FBO
   static const GLfloat g_quad_vertex_buffer_data[] = {
@@ -1178,8 +1178,8 @@ void A5::draw() {
   fillDepthTexture(LightProjection, LightView);
 
   // Bind offscreen framebuffer
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, depthFramebuffer);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
 
   // Cleanup from fillDepthTexture
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1190,7 +1190,7 @@ void A5::draw() {
   glBindTexture(GL_TEXTURE_2D, 0);
 
   // Resize depth renderbuffer to screen dimensions
-  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, m_framebufferWidth, m_framebufferHeight);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
@@ -1208,7 +1208,7 @@ void A5::draw() {
   renderSkybox(m_perpsective, m_view);
   renderSceneNormally(m_perpsective, m_view, LightProjection, LightView);
 
-  renderRenderTexture(minimapViewport.position, minimapViewport.size);
+  renderTextureToQuad(renderedTexture, minimapViewport.position, minimapViewport.size);
 
   // Reset the size of the render texture
   glBindTexture(GL_TEXTURE_2D, renderedTexture);
@@ -1216,7 +1216,7 @@ void A5::draw() {
   glBindTexture(GL_TEXTURE_2D, 0);
 
   // Reset the size of the render depth buffer
-  glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+  glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
@@ -1230,7 +1230,7 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
   const GLint SCR_WIDTH = m_viewport[2];
   const GLint SCR_HEIGHT = m_viewport[3];
 
-  glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
+  glBindFramebuffer(GL_FRAMEBUFFER, depthFramebuffer);
   glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 
   // Clear the screen
@@ -1279,7 +1279,7 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
   glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
-void A5::renderRenderTexture(const glm::vec2& position, const glm::vec2& size) {
+void A5::renderTextureToQuad(GLuint textureId, const glm::vec2& position, const glm::vec2& size) {
   GLint m_viewport[4];
   glGetIntegerv(GL_VIEWPORT, m_viewport);
 
@@ -1295,24 +1295,19 @@ void A5::renderRenderTexture(const glm::vec2& position, const glm::vec2& size) {
   m_shader_quad.enable();
 
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, renderedTexture);
-  glUniform1i(m_shader_quad.getUniformLocation("renderedTexture"), 0);
+  glBindTexture(GL_TEXTURE_2D, textureId);
+  glUniform1i(m_shader_quad.getUniformLocation("picture"), 0);
 
-  // glActiveTexture(GL_TEXTURE1);
-  // glBindTexture(GL_TEXTURE_2D, depthTexture);
-  // glUniform1i(m_shader_quad.getUniformLocation("depthTexture"), 1);
-
-  glBindVertexArray(VertexArrayID);
-  // glUniform1f(m_shader_quad.getUniformLocation("time"), (float)(glfwGetTime()*10.0f) );
+  glBindVertexArray(quad_vertexArray);
 
   // Enable vertex shader input slot
-  glEnableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
+  glEnableVertexAttribArray(m_shader_quad.getAttribLocation("position"));
   CHECK_GL_ERRORS;
 
   // Map vbo data to shader input
   glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
   glVertexAttribPointer(
-    m_shader_quad.getAttribLocation("vertexPosition_modelspace"),                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+    m_shader_quad.getAttribLocation("position"),                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
     3,                  // size
     GL_FLOAT,           // type
     GL_FALSE,           // normalized?
@@ -1324,15 +1319,11 @@ void A5::renderRenderTexture(const glm::vec2& position, const glm::vec2& size) {
   // Draw the triangles !
   glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
 
-  glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexPosition_modelspace"));
-  // glDisableVertexAttribArray(m_shader_quad.getAttribLocation("vertexUV"));
+  glDisableVertexAttribArray(m_shader_quad.getAttribLocation("position"));
   glBindVertexArray(0);
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, 0);
-
-  // glActiveTexture(GL_TEXTURE1);
-  // glBindTexture(GL_TEXTURE_2D, 0);
 
   m_shader_quad.disable();
 
