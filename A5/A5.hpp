@@ -79,7 +79,6 @@ protected:
 
   std::shared_ptr<SceneNode> blockSceneNode;
   std::shared_ptr<SceneNode> puppetSceneNode;
-
 private:
   struct Mouse {
     double x;
@@ -199,6 +198,8 @@ private:
   void playSoundWithSource(ALuint source, std::string filename);
 
   // Texture mapping
-  GLuint tileTexture;
   static GLuint createTexture2D(std::string filename);
+
+  GLuint tileTexture;
+  GLuint darkTileTexture;
 };

@@ -339,6 +339,7 @@ void A5::init()
 
    // Texture
    tileTexture = createTexture2D(getAssetFilePath("tiles.png"));
+   darkTileTexture = createTexture2D(getAssetFilePath("tiles-dark.png"));
 }
 
 
@@ -678,6 +679,7 @@ void A5::appLogic() {
 
       if (isGroundCollision) {
         ground = &block;
+        ground->markVisited();
         ground->decreaseTTL(t);
 
         player.setInertialVelocity(ground->getVelocity());
@@ -782,11 +784,13 @@ void A5::guiLogic()
 class Renderer : public SceneNodeFunctor<void, glm::mat4> {
   ShaderProgram& shader;
   BatchInfoMap& batchInfoMap;
+  std::function<GLuint(const GeometryNode&)> getTexture;
 public:
   Renderer(
     ShaderProgram& shader,
-    BatchInfoMap& batchInfoMap
-  ) : shader(shader), batchInfoMap(batchInfoMap) {}
+    BatchInfoMap& batchInfoMap,
+    std::function<GLuint(const GeometryNode&)> getTexture
+  ) : shader(shader), batchInfoMap(batchInfoMap), getTexture(getTexture) {}
 
   void operator()(glm::mat4& M, SceneNode& node) {}
   void operator()(glm::mat4& M, JointNode& node) {}
@@ -809,6 +813,12 @@ public:
       CHECK_GL_ERRORS;
       location = shader.getUniformLocation("material.shininess");
       glUniform1f(location, node.material.shininess);
+      CHECK_GL_ERRORS;
+
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D, getTexture(node));
+
+      glUniform1i(shader.getUniformLocation("picture"), 1);
       CHECK_GL_ERRORS;
     }
     shader.disable();
@@ -1081,14 +1091,6 @@ void A5::renderSceneNormally(
 
     glUniform1i(m_shader.getUniformLocation("depthTexture"), 0);
     CHECK_GL_ERRORS;
-
-    // Bind tile texture
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, tileTexture);
-
-    glUniform1i(m_shader.getUniformLocation("picture"), 1);
-    CHECK_GL_ERRORS;
-
   }
   m_shader.disable();
 
@@ -1116,9 +1118,11 @@ void A5::renderSceneNormally(
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
 
-  Renderer renderer{m_shader, m_batchInfoMap};
+  Renderer puppetRenderer{m_shader, m_batchInfoMap, [this](const GeometryNode& node) -> GLuint {
+    return tileTexture;
+  }};
 
-  renderPuppet(renderer);
+  renderPuppet(puppetRenderer);
 
   // Sort these from increasing
   for (auto it = level.platforms.rbegin(); it != level.platforms.rend(); it++) {
@@ -1131,7 +1135,15 @@ void A5::renderSceneNormally(
       glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
     m_shader.disable();
 
-    renderPlatform(block, renderer);
+    Renderer platformRenderer{m_shader, m_batchInfoMap, [this, block](const GeometryNode& node) -> GLuint {
+      if (block.hasBeenVisited()) {
+        return darkTileTexture;
+      }
+
+      return tileTexture;
+    }};
+
+    renderPlatform(block, platformRenderer);
   }
 
   glDisable(GL_CULL_FACE);

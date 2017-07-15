@@ -10,6 +10,7 @@ class Platform : public Collidable {
   static unsigned int counter;
   double TTL;
   const double initTTL;
+  bool visited;
 public:
   const glm::vec3 size;
   const unsigned int id;
@@ -28,4 +29,7 @@ public:
   void setVelocity(glm::vec3);
   void setInputVelocity(glm::vec3);
   void setInertialVelocity(glm::vec3);
+
+  void markVisited();
+  bool hasBeenVisited() const;
 };

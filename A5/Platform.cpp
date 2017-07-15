@@ -10,6 +10,7 @@ Platform::Platform(glm::vec3 position, glm::vec3 size, double mass, double TTL)
     size(size),
     mass(mass),
     TTL(TTL),
+    visited(false),
     initTTL(TTL) {
       assert(TTL > 0);
     }
@@ -49,4 +50,12 @@ double Platform::getInitTTL() const{
 
 void Platform::resetTTL() {
   TTL = initTTL;
+}
+
+void Platform::markVisited() {
+  visited = true;
+}
+
+bool Platform::hasBeenVisited() const {
+  return visited;
 }
