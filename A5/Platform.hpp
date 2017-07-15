@@ -9,12 +9,16 @@ class Platform : public Collidable {
   glm::vec3 inputVelocity;
   static unsigned int counter;
   double TTL;
-  const double initTTL;
+  double initTTL;
   bool visited;
+  glm::vec3 size;
+  unsigned int id;
+  double mass;
 public:
-  const glm::vec3 size;
-  const unsigned int id;
-  const double mass;
+  glm::vec3 getSize() const;
+  unsigned int getId() const;
+  double getMass() const;
+
   Platform(glm::vec3 position, glm::vec3 size, double mass, double ttl);
   glm::vec3 position;
   glm::vec3 acceleration;

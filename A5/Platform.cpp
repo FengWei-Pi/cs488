@@ -59,3 +59,15 @@ void Platform::markVisited() {
 bool Platform::hasBeenVisited() const {
   return visited;
 }
+
+glm::vec3 Platform::getSize() const {
+  return size;
+}
+
+unsigned int Platform::getId() const {
+  return id;
+}
+
+double Platform::getMass() const {
+  return mass;
+}

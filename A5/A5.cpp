@@ -29,6 +29,7 @@ using namespace std;
 #include <cstdlib>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 using namespace glm;
 
@@ -143,12 +144,12 @@ void A5::init()
   {
     // Skybox code
     std::vector<std::string> faces{
-      getAssetFilePath("skybox/DarkStormy/darkstormy_rt.png"),
-      getAssetFilePath("skybox/DarkStormy/darkstormy_lf.png"),
-      getAssetFilePath("skybox/DarkStormy/darkstormy_up.png"),
-      getAssetFilePath("skybox/DarkStormy/darkstormy_dn.png"),
-      getAssetFilePath("skybox/DarkStormy/darkstormy_bk.png"),
-      getAssetFilePath("skybox/DarkStormy/darkstormy_ft.png")
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_rt.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_lf.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_up.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_dn.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_bk.png"),
+      getAssetFilePath("skybox/TropicalSunnyDay/tropicalsunnyday_ft.png")
     };
 
     skyboxTexture = loadCubemap(faces);
@@ -635,15 +636,15 @@ void A5::appLogic() {
     if (ground->getTTL() > 0) {
       ground->acceleration = glm::vec3(0);
     } else {
-      ground->acceleration = (world.F_g + world.F_wind) / ground->mass;
+      ground->acceleration = (world.F_g + world.F_wind) / ground->getMass();
     }
   }
 
   for (Platform& block: level.platforms) {
     const double blink = (1 - block.getTTL()/block.getInitTTL());
-    level.platformTimes.at(block.id) += t * (1 + 9 * blink);
+    level.platformTimes.at(block.getId()) += t * (1 + 9 * blink);
 
-    block.setInputVelocity(level.platformUpdateVFns.at(block.id)(Clock::getTime()));
+    block.setInputVelocity(level.platformUpdateVFns.at(block.getId())(Clock::getTime()));
     block.position = 0.5 * t * t * block.acceleration + t * block.getVelocity() + block.position;
     block.setVelocity(block.getVelocity() + t * block.acceleration);
   }
@@ -1082,9 +1083,6 @@ void A5::renderSceneNormally(
       CHECK_GL_ERRORS;
     }
 
-    // Ensure transparency is 1
-    glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
-
     // Bind depth texture
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthTexture);
@@ -1124,16 +1122,29 @@ void A5::renderSceneNormally(
 
   renderPuppet(puppetRenderer);
 
+  std::vector<Platform> sortedPlatforms(level.platforms.begin(), level.platforms.end());
+
+  std::sort(
+    sortedPlatforms.begin(),
+    sortedPlatforms.end(),
+    [View](const Platform& left, const Platform& right) -> bool {
+      glm::mat3 view = glm::mat3{View};
+      return (view * left.position).z < (view * right.position).z;
+    }
+  );
+
   // Sort these from increasing
-  for (auto it = level.platforms.rbegin(); it != level.platforms.rend(); it++) {
-    Platform& block = *it;
-    m_shader.enable();
-      const double period = 4;
-      const double PI = glm::radians(180.0f);
-      const double t = level.platformTimes.at(block.id);
-      const float alpha = 0.25 * std::sin(2 * PI / period * t) + 0.5;
-      glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
-    m_shader.disable();
+  for (Platform& block : sortedPlatforms) {
+    if (block.hasBeenVisited()) {
+      m_shader.enable();
+        const double period = 4;
+        const double PI = glm::radians(180.0f);
+        const double t = level.platformTimes.at(block.getId());
+        const float alpha = 0.2 * std::sin(2 * PI / period * t) + 0.80;
+        glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
+        CHECK_GL_ERRORS;
+      m_shader.disable();
+    }
 
     Renderer platformRenderer{m_shader, m_batchInfoMap, [this, block](const GeometryNode& node) -> GLuint {
       if (block.hasBeenVisited()) {
@@ -1144,6 +1155,14 @@ void A5::renderSceneNormally(
     }};
 
     renderPlatform(block, platformRenderer);
+
+    if (block.hasBeenVisited()) {
+      m_shader.enable();
+      // reset transparency
+      glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
+      CHECK_GL_ERRORS;
+      m_shader.disable();
+    }
   }
 
   glDisable(GL_CULL_FACE);
@@ -1246,7 +1265,7 @@ void A5::playSoundWithSource(ALuint source, std::string filename) {
 void A5::renderPlatform(Platform& block, SceneNodeFunctor<void, glm::mat4>& renderer) {
   static StaticTransformationReducer transformReducer;
 
-  glm::mat4 scale = glm::scale(block.size);
+  glm::mat4 scale = glm::scale(block.getSize());
   glm::mat4 translate = glm::translate(block.position);
   glm::mat4 modelView = translate * scale;
 

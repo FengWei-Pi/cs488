@@ -46,11 +46,11 @@ Level Level::read(std::string filename) {
       $platform["updateVFn"]["offset"].get<double>()
     );
 
-    level.platformUpdateVFns[platform.id] = [sinusoid](double t) -> glm::vec3 {
+    level.platformUpdateVFns[platform.getId()] = [sinusoid](double t) -> glm::vec3 {
       return float(sinusoid(t)) * glm::vec3(1, 0, 0);
     };
 
-    level.platformTimes[platform.id] = 0;
+    level.platformTimes[platform.getId()] = 0;
   };
 
   return level;
