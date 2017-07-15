@@ -9,7 +9,6 @@
 *.slo
 *.lo
 *.o
-*.obj
 
 # Precompiled Headers
 *.gch
@@ -230,4 +229,3 @@ A5/A5
 imgui.ini
 notes.org
 .DS_Store
-
