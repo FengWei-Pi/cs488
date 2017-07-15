@@ -39,9 +39,13 @@ public:
 
 	const float * getVertexNormalDataPtr() const;
 
+  const float * getUVDataPtr() const;
+
 	size_t getNumVertexPositionBytes() const;
 
 	size_t getNumVertexNormalBytes() const;
+
+  size_t getNumUVBytes() const;
 
 	void getBatchInfoMap(BatchInfoMap & batchInfoMap) const;
 
@@ -49,8 +53,7 @@ public:
 private:
 	std::vector<glm::vec3> m_vertexPositionData;
 	std::vector<glm::vec3> m_vertexNormalData;
+  std::vector<glm::vec2> m_uvData;
 
 	BatchInfoMap m_batchInfoMap;
 };
-
-
