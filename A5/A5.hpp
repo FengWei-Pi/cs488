@@ -204,4 +204,6 @@ private:
 
   GLuint tileTexture;
   GLuint darkTileTexture;
+
+  void resetPlayer();
 };

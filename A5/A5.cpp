@@ -96,7 +96,14 @@ A5::A5()
 //----------------------------------------------------------------------------------------
 // Destructor
 A5::~A5() {
+}
 
+void A5::resetPlayer() {
+  Player guy;
+  player = guy;
+  player.mass = 1;
+  player.speed = 6;
+  player.g = world.F_g / player.mass;
 }
 
 //----------------------------------------------------------------------------------------
@@ -761,7 +768,9 @@ void A5::guiLogic()
   }
 
   ImGui::DragFloat("Speed", &player.speed, 0.1f, 0.1f, 10.0f, "%.3f m/s");
+  ImGui::SliderFloat("Jump Speed", &playerJumpVelocity, 0, 12, "%.3f m/s");
 
+  ImGui::Text("\nGame");
   if (!gameState.isPlaying) {
     if (ImGui::Button("Start")) {
       gameState.isPlaying = true;
@@ -772,7 +781,10 @@ void A5::guiLogic()
     }
   }
 
-  ImGui::SliderFloat("Player Jump Velocity", &playerJumpVelocity, 0, 12, "%.3f m/s");
+  if (ImGui::Button("Restart")) {
+    resetPlayer();
+    level = Level::read(getAssetFilePath("level1.json"));
+  }
 
   if (ground != nullptr) {
     ImGui::Text("Platform Life: %.3f\n", ground->getTTL());
