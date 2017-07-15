@@ -198,6 +198,7 @@ private:
   void checkOpenALErrors();
   void repositionPlayerSource();
   void repositionWindSource();
+  void updateWindSourceGain();
 
   int oldKeyframeId = -1;
 

@@ -27,6 +27,7 @@ using namespace std;
 #include <cassert>
 #include <cstdlib>
 #include <sstream>
+#include <cmath>
 
 using namespace glm;
 
@@ -637,7 +638,7 @@ void A5::init()
    checkOpenALErrors();
 
    alSourcef(windSource, AL_ROLLOFF_FACTOR, 1);
-   alSourcef(windSource, AL_REFERENCE_DISTANCE, 10);
+   alSourcef(windSource, AL_REFERENCE_DISTANCE, 15);
 
    // https://www.zapsplat.com/music/strong-howling-wind-internal-recording/
    playSoundWithSource(windSource, "wind.wav");
@@ -847,6 +848,7 @@ void A5::appLogic() {
     }
   }
 
+  updateWindSourceGain();
   repositionAndReorientListener();
   repositionPlayerSource();
   repositionWindSource();
@@ -949,6 +951,13 @@ void A5::appLogic() {
   UpdateCursor:
   mouse.prevX = mouse.x;
   mouse.prevY = mouse.y;
+}
+
+void A5::updateWindSourceGain() {
+  const double x = glm::length(world.F_wind);
+  const double gain = -0.9 * std::exp(-x / 5) + 1;
+  alSourcef(windSource, AL_GAIN, gain);
+  checkOpenALErrors();
 }
 
 //----------------------------------------------------------------------------------------
