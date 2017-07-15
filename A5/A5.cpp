@@ -905,13 +905,7 @@ void A5::appLogic() {
   for (Platform& block : blocks) {
     Hitbox collision = playerHitbox.getIntersection(block.getHitbox());
     if (!collision.isTrivial()) {
-      ground = &block;
-
-      block.decreaseTTL(t);
-
-      /**
-       * Reject the collision.
-       */
+      // Reject collision
       uint argmin = 0;
 
       for (uint i = 1; i < 3; i++) {
@@ -926,26 +920,26 @@ void A5::appLogic() {
         player.getVelocity().z >= 0 ? 1 : -1
       };
 
+      // Efficiently undo collision
       player.position = player.position - direction * createVec3(argmin, collision.size[argmin]);
-      player.setVelocity(player.getVelocity() - createVec3(argmin, player.getVelocity()[argmin]));
-
-      // Case 1: You just landed
-      //   Your state is airborn, so you refresh your input verlocity
-      // Case 2: You're preparing to jump
-      //   Don't refresh input velocity
 
       if (playerStateManager.getCurrentState() != PREPARING_TO_JUMP) {
         refreshPlayerInputVelocity();
       }
 
-      player.setInertialVelocity(block.getVelocity());
+      const bool isGroundCollision = argmin == 1;
 
-      goto UpdateCursor;
+      if (isGroundCollision) {
+        ground = &block;
+        ground->decreaseTTL(t);
+
+        player.setInertialVelocity(ground->getVelocity());
+        goto UpdateCursor;
+      }
     }
   }
 
   ground = nullptr;
-
   playerStateManager.transition(AIRBORN);
 
   UpdateCursor:
