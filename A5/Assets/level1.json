@@ -1,0 +1,21 @@
+{
+  "platforms": [{
+    "position": [-2, -1, -2],
+    "updateVFn": [0, 4, 0, 0],
+    "size": [6, 1, 6],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-2, -1, 6],
+    "updateVFn": [2, 4, 2, 0],
+    "size": [6, 1, 6],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-2, -1, 15],
+    "updateVFn": [2, 4, 1, 0],
+    "size": [6, 1, 6],
+    "mass": 1,
+    "ttl": 100
+  }]
+}

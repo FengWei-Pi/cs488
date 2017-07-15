@@ -16,6 +16,7 @@ using namespace std;
 #include "StaticTransformationReducer.hpp"
 #include "Util.hpp"
 #include "lodepng/lodepng.h"
+#include "Level.hpp"
 
 #include <imgui/imgui.h>
 
@@ -51,21 +52,10 @@ A5::A5()
     minimapCamera(glm::radians(135.0f), glm::radians(0.0f), 1),
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048),
-    playerStateManager(INIT)
+    playerStateManager(INIT),
+    level(Level::read(getAssetFilePath("./level1.json")))
 {
   const uint size = 6;
-
-  blocks.push_back(Platform(glm::vec3(-2, -1, -2), glm::vec3(size, 1, size), 1, 100));
-  platformUpdateVFns[blocks.back().id] = createSinusoid(0.0, 4, 0, 0);
-  platformTimes[blocks.back().id] = 0;
-
-  blocks.push_back(Platform(glm::vec3(-2, -1, -2 + (size + 3)), glm::vec3(size, 1, size), 1, 100));
-  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 2, 0);
-  platformTimes[blocks.back().id] = 0;
-
-  blocks.push_back(Platform(glm::vec3(-2, -1, + (size + 3) * 2), glm::vec3(size, 1, size), 1, 100));
-  platformUpdateVFns[blocks.back().id] = createSinusoid(2, 4, 1, 0);
-  platformTimes[blocks.back().id] = 0;
 
   player.mass = 1;
   player.speed = 6;
@@ -100,18 +90,6 @@ A5::A5()
   });
 
   playerStateManager.transition(AIRBORN);
-}
-
-std::function<glm::vec3(double)> A5::createSinusoid(
-  const double A,
-  const double period,
-  const double k,
-  const double offset
-) {
-  const double PI = glm::radians(180.0f);
-  return [PI, A, k, period, offset](double t) -> glm::vec3 {
-    return (A * std::sin(2 * PI / period * (t - k)) + offset) * glm::vec3(1, 0, 0);
-  };
 }
 
 //----------------------------------------------------------------------------------------
@@ -660,18 +638,18 @@ void A5::appLogic() {
     }
   }
 
-  for (Platform& block: blocks) {
+  for (Platform& block: level.platforms) {
     const double blink = (1 - block.getTTL()/block.getInitTTL());
-    platformTimes.at(block.id) += t * (1 + 9 * blink);
+    level.platformTimes.at(block.id) += t * (1 + 9 * blink);
 
-    block.setInputVelocity(platformUpdateVFns.at(block.id)(Clock::getTime()));
+    block.setInputVelocity(level.platformUpdateVFns.at(block.id)(Clock::getTime()));
     block.position = 0.5 * t * t * block.acceleration + t * block.getVelocity() + block.position;
     block.setVelocity(block.getVelocity() + t * block.acceleration);
   }
 
   const Hitbox playerHitbox = player.getHitbox();
 
-  for (Platform& block : blocks) {
+  for (Platform& block : level.platforms) {
     Hitbox collision = playerHitbox.getIntersection(block.getHitbox());
     if (!collision.isTrivial()) {
       // Reject collision
@@ -983,7 +961,7 @@ void A5::fillDepthTexture(const glm::mat4& LightProjection, const glm::mat4& Lig
   renderPuppet(renderer);
 
   // Sort these from increasing
-  for (auto it = blocks.rbegin(); it != blocks.rend(); it++) {
+  for (auto it = level.platforms.rbegin(); it != level.platforms.rend(); it++) {
     renderPlatform(*it, renderer);
   }
 
@@ -1143,12 +1121,12 @@ void A5::renderSceneNormally(
   renderPuppet(renderer);
 
   // Sort these from increasing
-  for (auto it = blocks.rbegin(); it != blocks.rend(); it++) {
+  for (auto it = level.platforms.rbegin(); it != level.platforms.rend(); it++) {
     Platform& block = *it;
     m_shader.enable();
       const double period = 4;
       const double PI = glm::radians(180.0f);
-      const double t = platformTimes.at(block.id);
+      const double t = level.platformTimes.at(block.id);
       const float alpha = 0.25 * std::sin(2 * PI / period * t) + 0.5;
       glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
     m_shader.disable();

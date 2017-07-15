@@ -15,6 +15,7 @@
 #include "Platform.hpp"
 #include "StateManager.hpp"
 #include "Camera.hpp"
+#include "Level.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -105,8 +106,6 @@ private:
 
   Player player;
 
-  std::vector<Platform> blocks;
-
   bool isKeyPressed(int key);
   glm::vec3 calculatePlayerInputVelocity();
   void refreshPlayerInputVelocity();
@@ -166,14 +165,7 @@ private:
   glm::mat4 createMinimapPerspectiveMatrix();
   glm::mat4 createMinimapViewMatrix();
 
-  std::map<unsigned int, double> platformTimes;
-  std::map<unsigned int, std::function<glm::vec3(double)>> platformUpdateVFns;
-  static std::function<glm::vec3(double)> createSinusoid(
-    const double A,
-    const double period,
-    const double k,
-    const double offset
-  );
+  Level level;
 
   Platform* ground = nullptr;
 
