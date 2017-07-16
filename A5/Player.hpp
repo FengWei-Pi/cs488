@@ -13,7 +13,6 @@ class Player : public Collidable {
 public:
   Player(glm::vec3 Fg);
   double getDirection();
-  bool canWalk;
   float mass;
   float runningSpeed;
   float jumpingSpeed;
@@ -25,6 +24,7 @@ public:
 
   glm::vec3 getVelocity();
   void setInputVelocity(glm::vec3);
+  void setDirection(glm::vec3);
   void setVelocity(glm::vec3);
   void setInertialVelocity(glm::vec3);
 };

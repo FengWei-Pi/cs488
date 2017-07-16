@@ -680,11 +680,15 @@ void A5::appLogic() {
           gameState.score[gameState.level] += 100;
         }
 
+        const glm::vec3 inputV = calculatePlayerInputVelocity();
+
         if (playerStateManager.getCurrentState() == PREPARING_TO_JUMP) {
+          player.setDirection(inputV);
+
+          // vary power
           double t = playerStateManager.getTimeSinceLastTransition();
           player.power = -0.1 * std::cos(2 * glm::radians(180.0f) / 6 * t) + 0.8;
         } else {
-          const glm::vec3 inputV = calculatePlayerInputVelocity();
           player.setInputVelocity(inputV);
 
           if (glm::length(inputV) >= 0.0001) {
@@ -791,7 +795,7 @@ void A5::guiLogic()
   ImGui::DragFloat("Running Speed", &player.runningSpeed, 0.1f, 0.1f, 20.0f, "%.3f m/s");
   ImGui::DragFloat("Jumping Speed", &player.jumpingSpeed, 0.1f, 0.1f, 20.0f, "%.3f m/s");
 
-  ImGui::SliderFloat("Power", &player.power, 0.5, 1, "%.3f");
+  ImGui::SliderFloat("Power", &player.power, 0, 1, "%.3f");
 
   ImGui::Text("\nGame");
   ImGui::Text("Level: %d", gameState.level);
@@ -1524,17 +1528,18 @@ bool A5::keyInputEvent (
       case GLFW_KEY_DOWN:
       case GLFW_KEY_LEFT:
       case GLFW_KEY_RIGHT: {
-        if (
-             playerStateManager.getCurrentState() != AIRBORN
-          && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
-        ) {
+        if (playerStateManager.getCurrentState() != AIRBORN) {
           const glm::vec3 inputV = calculatePlayerInputVelocity();
-          player.setInputVelocity(inputV);
 
-          if (glm::length(inputV) >= 0.0001) {
-            playerStateManager.transition(WALKING);
+          if (playerStateManager.getCurrentState() != PREPARING_TO_JUMP) {
+            player.setInputVelocity(inputV);
+            if (glm::length(inputV) >= 0.0001) {
+              playerStateManager.transition(WALKING);
+            } else {
+              playerStateManager.transition(STANDING);
+            }
           } else {
-            playerStateManager.transition(STANDING);
+            player.setDirection(inputV);
           }
         }
         break;

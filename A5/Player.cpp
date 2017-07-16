@@ -10,7 +10,13 @@ Player::Player(glm::vec3 Fg)
     runningSpeed(6),
     jumpingSpeed(10),
     g(Fg/mass),
-    position(0, 3, 0)
+    position(0, 3, 0),
+    power(0.0),
+    oldDirection(0),
+    direction(0),
+    t(Clock::getTime()),
+    inertialVelocity(0),
+    inputVelocity(0)
 {}
 
 void Player::setDirection(double dir) {
@@ -47,6 +53,10 @@ void Player::setVelocity(glm::vec3 v) {
 
 void Player::setInputVelocity(glm::vec3 inputV) {
   inputVelocity = inputV;
+  setDirection(inputV);
+}
+
+void Player::setDirection(glm::vec3 inputV) {
   const double epsilon = 0.0001;
 
   if (glm::length(glm::vec2(inputV.x, inputV.z)) >= epsilon) {
