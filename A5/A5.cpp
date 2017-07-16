@@ -344,6 +344,7 @@ void A5::init()
    // Texture
    tileTexture = createTexture2D(getAssetFilePath("tiles.png"));
    darkTileTexture = createTexture2D(getAssetFilePath("tiles-dark.png"));
+   finishTileTexture = createTexture2D(getAssetFilePath("tiles-finish.png"));
 }
 
 
@@ -1204,6 +1205,10 @@ void A5::renderSceneNormally(
     }
 
     Renderer platformRenderer{m_shader, m_batchInfoMap, [this, block](const GeometryNode& node) -> GLuint {
+      if (block.getId() == level.platforms.back().getId()) {
+        return finishTileTexture;
+      }
+
       if (block.hasBeenVisited()) {
         return darkTileTexture;
       }

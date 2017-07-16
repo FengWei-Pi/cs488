@@ -204,6 +204,7 @@ private:
 
   GLuint tileTexture;
   GLuint darkTileTexture;
+  GLuint finishTileTexture;
 
   void advanceLevel();
   void restartLevel();
