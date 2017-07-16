@@ -717,6 +717,15 @@ void A5::appLogic() {
   ground = nullptr;
   playerStateManager.transition(AIRBORN);
 
+  // If player's 5 meters below the lowest platform, restart the level
+  for (Platform& platform : level.platforms) {
+    if (player.position.y > platform.position.y + platform.getSize().y - 5) {
+      goto UpdateCursor;
+    }
+  }
+
+  restartLevel();
+
   UpdateCursor:
   mouse.prevX = mouse.x;
   mouse.prevY = mouse.y;
