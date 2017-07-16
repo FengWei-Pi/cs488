@@ -208,4 +208,10 @@ private:
 
   void advanceLevel();
   void restartLevel();
+
+  struct Toggles {
+    bool textures = true;
+    bool shadows = true;
+    bool transparency = true;
+  } show;
 };

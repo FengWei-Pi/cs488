@@ -816,6 +816,10 @@ void A5::guiLogic()
   }
 
   ImGui::Text("Score: %d", totalScore);
+  if (ground != nullptr) {
+    ImGui::Text("Platform Life: %.3f\n", ground->getTTL());
+  }
+
   if (!gameState.isPlaying) {
     if (ImGui::Button("Resume")) {
       gameState.isPlaying = true;
@@ -830,9 +834,10 @@ void A5::guiLogic()
     restartLevel();
   }
 
-  if (ground != nullptr) {
-    ImGui::Text("Platform Life: %.3f\n", ground->getTTL());
-  }
+  ImGui::Text("\nToggles");
+  ImGui::Checkbox("Textures", &show.textures);
+  ImGui::Checkbox("Shadows", &show.shadows);
+  ImGui::Checkbox("Transparency", &show.transparency);
 
   // Create Button, and check if it was clicked:
   if( ImGui::Button( "Quit Application" ) ) {
@@ -1156,6 +1161,12 @@ void A5::renderSceneNormally(
     // Ensure puppet is rendered with alpha = 1
     glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
     CHECK_GL_ERRORS;
+
+    glUniform1i(m_shader.getUniformLocation("showTextures"), show.textures);
+    CHECK_GL_ERRORS;
+
+    glUniform1i(m_shader.getUniformLocation("showShadows"), show.shadows);
+    CHECK_GL_ERRORS;
   }
   m_shader.disable();
 
@@ -1202,15 +1213,17 @@ void A5::renderSceneNormally(
 
   // Sort these from increasing
   for (Platform& block : sortedPlatforms) {
-    if (block.hasBeenVisited()) {
-      m_shader.enable();
-        const double period = 4;
-        const double PI = glm::radians(180.0f);
-        const double t = level.platformTimes.at(block.getId());
-        const float alpha = 0.2 * std::sin(2 * PI / period * t) + 0.80;
-        glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
-        CHECK_GL_ERRORS;
-      m_shader.disable();
+    if (show.transparency) {
+      if (block.hasBeenVisited()) {
+        m_shader.enable();
+          const double period = 4;
+          const double PI = glm::radians(180.0f);
+          const double t = level.platformTimes.at(block.getId());
+          const float alpha = 0.2 * std::sin(2 * PI / period * t) + 0.80;
+          glUniform1f(m_shader.getUniformLocation("alpha"), alpha);
+          CHECK_GL_ERRORS;
+        m_shader.disable();
+      }
     }
 
     Renderer platformRenderer{m_shader, m_batchInfoMap, [this, block](const GeometryNode& node) -> GLuint {
@@ -1227,11 +1240,13 @@ void A5::renderSceneNormally(
 
     renderPlatform(block, platformRenderer);
 
-    if (block.hasBeenVisited()) {
-      m_shader.enable();
-      glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
-      CHECK_GL_ERRORS;
-      m_shader.disable();
+    if (show.transparency) {
+      if (block.hasBeenVisited()) {
+        m_shader.enable();
+        glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
+        CHECK_GL_ERRORS;
+        m_shader.disable();
+      }
     }
   }
 

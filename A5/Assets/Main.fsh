@@ -38,7 +38,14 @@ vec2 poissonDisk[4] = vec2[](
    vec2( 0.34495938, 0.29387760 )
 );
 
+uniform int showTextures;
+uniform int showShadows;
+
 float ShadowCalculation(vec4 fragPosLightSpace) {
+  if (showShadows == 0) {
+    return 0;
+  }
+
   // perform perspective divide
   vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 
@@ -101,5 +108,10 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
 void main() {
   vec3 lighting = phongModel(fs_in.position_CameraSpace, fs_in.normal_CameraSpace);
   vec3 texCoord = texture(picture, fs_in.uv).rgb;
+
+  if (showTextures == 0) {
+    texCoord = vec3(1, 1, 1);
+  }
+
   fragColour = vec4(lighting * texCoord, alpha);
 }
