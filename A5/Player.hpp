@@ -15,7 +15,9 @@ public:
   double getDirection();
   bool canWalk;
   float mass;
-  float speed;
+  float runningSpeed;
+  float jumpingSpeed;
+  float power;
   glm::vec3 g;
   glm::vec3 position;
   glm::vec3 acceleration;

@@ -5,7 +5,13 @@
 #include <cmath>
 #include <iostream>
 
-Player::Player(glm::vec3 Fg) : mass(1), speed(6), g(Fg/mass), position(0, 3, 0) {}
+Player::Player(glm::vec3 Fg)
+  : mass(1),
+    runningSpeed(6),
+    jumpingSpeed(10),
+    g(Fg/mass),
+    position(0, 3, 0)
+{}
 
 void Player::setDirection(double dir) {
   oldDirection = getDirection();
@@ -43,7 +49,7 @@ void Player::setInputVelocity(glm::vec3 inputV) {
   inputVelocity = inputV;
   const double epsilon = 0.0001;
 
-  if (glm::length(inputV) >= epsilon) {
+  if (glm::length(glm::vec2(inputV.x, inputV.z)) >= epsilon) {
     double inputDir = std::atan2(inputV.x, inputV.z);
     setDirection(inputDir);
   }

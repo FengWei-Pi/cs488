@@ -102,10 +102,6 @@ A5::A5()
 A5::~A5() {
 }
 
-void A5::resetPlayer() {
-  player = Player(world.F_g);
-}
-
 //----------------------------------------------------------------------------------------
 /*
  * Called once, at program start.
@@ -681,12 +677,12 @@ void A5::appLogic() {
         ground->decreaseTTL(t);
 
         if (playerStateManager.getCurrentState() == AIRBORN) {
-          gameState.score += 100;
+          gameState.score[gameState.level] += 100;
         }
 
         if (playerStateManager.getCurrentState() == PREPARING_TO_JUMP) {
           double t = playerStateManager.getTimeSinceLastTransition();
-          playerJumpVelocity = -2 * std::cos(2 * glm::radians(180.0f) / 6 * t) + 8;
+          player.power = -0.1 * std::cos(2 * glm::radians(180.0f) / 6 * t) + 0.8;
         } else {
           const glm::vec3 inputV = calculatePlayerInputVelocity();
           player.setInputVelocity(inputV);
@@ -699,6 +695,15 @@ void A5::appLogic() {
         }
 
         player.setInertialVelocity(ground->getVelocity());
+
+        const bool isFinishedLevel = (
+          level.platforms.size() > 1 && ground->getId() == level.platforms.back().getId()
+        );
+
+        if (isFinishedLevel && gameState.level != 3) {
+          advanceLevel();
+        }
+
         goto UpdateCursor;
       }
     }
@@ -710,6 +715,20 @@ void A5::appLogic() {
   UpdateCursor:
   mouse.prevX = mouse.x;
   mouse.prevY = mouse.y;
+}
+
+void A5::restartLevel() {
+  std::string filename = std::string("level") + std::to_string(gameState.level) + ".json";
+  level = Level::read(getAssetFilePath(filename.c_str()));
+  player = Player(world.F_g);
+  gameState.score[gameState.level] = 0;
+}
+
+void A5::advanceLevel() {
+  gameState.level += 1;
+  std::string filename = std::string("level") + std::to_string(gameState.level) + ".json";
+  level = Level::read(getAssetFilePath(filename.c_str()));
+  player = Player(world.F_g);
 }
 
 void A5::updateWindSourceGain() {
@@ -769,11 +788,20 @@ void A5::guiLogic()
     player.g.y = world.F_g.y / player.mass;
   }
 
-  ImGui::DragFloat("Speed", &player.speed, 0.1f, 0.1f, 10.0f, "%.3f m/s");
-  ImGui::SliderFloat("Jump Speed", &playerJumpVelocity, 0, 12, "%.3f m/s");
+  ImGui::DragFloat("Running Speed", &player.runningSpeed, 0.1f, 0.1f, 20.0f, "%.3f m/s");
+  ImGui::DragFloat("Jumping Speed", &player.jumpingSpeed, 0.1f, 0.1f, 20.0f, "%.3f m/s");
+
+  ImGui::SliderFloat("Power", &player.power, 0.5, 1, "%.3f");
 
   ImGui::Text("\nGame");
-  ImGui::Text("Score: %d", gameState.score);
+  ImGui::Text("Level: %d", gameState.level);
+
+  int totalScore = 0;
+  for (auto& entry : gameState.score) {
+    totalScore += entry.second;
+  }
+
+  ImGui::Text("Score: %d", totalScore);
   if (!gameState.isPlaying) {
     if (ImGui::Button("Resume")) {
       gameState.isPlaying = true;
@@ -785,10 +813,7 @@ void A5::guiLogic()
   }
 
   if (ImGui::Button("Restart")) {
-    resetPlayer();
-    level = Level::read(getAssetFilePath("level1.json"));
-    GameState state;
-    gameState = state;
+    restartLevel();
   }
 
   if (ground != nullptr) {
@@ -1475,13 +1500,12 @@ bool A5::keyInputEvent (
       switch (key) {
         case GLFW_KEY_SPACE: {
           if (playerStateManager.getCurrentState() == PREPARING_TO_JUMP) {
-            player.setInputVelocity(calculatePlayerInputVelocity());
-
-            glm::vec3 playerV = player.getVelocity();
-            player.setVelocity(glm::vec3(playerV.x, playerJumpVelocity, playerV.z));
+            glm::vec3 inputV = calculatePlayerInputVelocity();
+            glm::vec3 jumpV = (inputV + glm::vec3(0, player.jumpingSpeed, 0)) * player.power;
+            player.setInputVelocity(jumpV);
 
             playerStateManager.transition(AIRBORN);
-            playerJumpVelocity = 0;
+            player.power = 0;
           }
           break;
         }
@@ -1555,6 +1579,6 @@ glm::vec3 A5::calculatePlayerInputVelocity() {
     vz -= 1;
   }
 
-  glm::vec3 velocity = Util::normalize(glm::vec3(vx, 0, vz)) * player.speed;
+  glm::vec3 velocity = Util::normalize(glm::vec3(vx, 0, vz)) * player.runningSpeed;
   return gameCamera.getYRotationMatrix() * velocity;
 }

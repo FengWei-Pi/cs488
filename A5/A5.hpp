@@ -167,12 +167,12 @@ private:
   Level level;
 
   Platform* ground = nullptr;
-  float playerJumpVelocity = 0;
 
   struct GameState {
     bool isPlaying = true;
     int lives = 1;
-    int score = 0;
+    std::map<int, int> score;
+    int level = 1;
   } gameState;
 
   bool isMouseOnMinimap() const;
@@ -205,5 +205,6 @@ private:
   GLuint tileTexture;
   GLuint darkTileTexture;
 
-  void resetPlayer();
+  void advanceLevel();
+  void restartLevel();
 };

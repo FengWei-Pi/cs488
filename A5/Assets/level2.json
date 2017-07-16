@@ -1,0 +1,51 @@
+{
+  "platforms": [{
+    "position": [-4, -1, -4],
+    "size": [8, 1, 8],
+    "updateVFn": { "A": 0, "period": 4, "k": 0, "offset": 0 },
+    "mass": 1,
+    "ttl": 1000
+  }, {
+    "position": [-2, -1, 6],
+    "updateVFn": { "A": 3, "period": 2, "k": 2, "offset": 0 },
+    "size": [4, 1, 4],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-3, -1, 14],
+    "updateVFn": { "A": 1.5, "period": 3, "k": 0, "offset": 0 },
+    "size": [6, 1, 6],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-2.5, -1, 22],
+    "updateVFn": { "A": 2, "period": 1, "k": 1, "offset": 0 },
+    "size": [5, 1, 5],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-2, -1, 30],
+    "updateVFn": { "A": 2, "period": 4, "k": 2, "offset": 0 },
+    "size": [4, 1, 4],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-4, -1, 38],
+    "updateVFn": { "A": 3, "period": 6, "k": 1, "offset": 0 },
+    "size": [6, 1, 6],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-3, -1, 46],
+    "updateVFn": { "A": 4, "period": 2, "k": 0, "offset": 0 },
+    "size": [6, 1, 4],
+    "mass": 1,
+    "ttl": 100
+  }, {
+    "position": [-2, -1, 52],
+    "updateVFn": { "A": 4, "period": 4, "k": 1, "offset": 0 },
+    "size": [6, 1, 6],
+    "mass": 1,
+    "ttl": 100
+  }]
+}
