@@ -24,6 +24,7 @@ using namespace std;
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext.hpp>
+#include <string>
 #include <stack>
 #include <cassert>
 #include <cstdlib>
@@ -145,17 +146,9 @@ void A5::init()
   initLightSources();
 
   {
-    // Skybox code
-    std::vector<std::string> faces{
-      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_rt.png"),
-      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_lf.png"),
-      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_up.png"),
-      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_dn.png"),
-      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_bk.png"),
-      getAssetFilePath("skybox/ThickCloudsWater/thickcloudswater_ft.png")
-    };
-
-    skyboxTexture = loadCubemap(faces);
+    gameState.skyboxTextures[1] = readTextureCubemap("TropicalSunnyDay");
+    gameState.skyboxTextures[2] = readTextureCubemap("SunSet");
+    gameState.skyboxTextures[3] = readTextureCubemap("DarkStormy");
 
     float skyboxVertices[] = {
       // positions
@@ -391,7 +384,21 @@ void A5::checkOpenALErrors() {
   }
 }
 
-GLuint A5::loadCubemap(std::vector<std::string> faces) {
+GLuint A5::readTextureCubemap(std::string name) {
+  std::string lowercaseName;
+  lowercaseName.resize(name.size());
+  std::transform(name.begin(), name.end(), lowercaseName.begin(), ::tolower);
+
+  // Skybox code
+  std::vector<std::string> faces{
+    getAssetFilePath(("skybox/" + name + "/" + lowercaseName + "_rt.png").c_str()),
+    getAssetFilePath(("skybox/" + name + "/" + lowercaseName + "_lf.png").c_str()),
+    getAssetFilePath(("skybox/" + name + "/" + lowercaseName + "_up.png").c_str()),
+    getAssetFilePath(("skybox/" + name + "/" + lowercaseName + "_dn.png").c_str()),
+    getAssetFilePath(("skybox/" + name + "/" + lowercaseName + "_bk.png").c_str()),
+    getAssetFilePath(("skybox/" + name + "/" + lowercaseName + "_ft.png").c_str())
+  };
+
   GLuint textureId;
   glGenTextures(1, &textureId);
   glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
@@ -577,7 +584,7 @@ glm::vec3 createVec3(int i, float v) {
 void A5::appLogic() {
 
   // Place per frame, application logic here ...
-  if (!gameState.isPlaying || gameState.lives <= 0) {
+  if (!gameState.isPlaying) {
     return;
   }
 
@@ -1292,7 +1299,7 @@ void A5::renderSkybox(const glm::mat4& Projection, const glm::mat4& View) {
 
   // Bind texture
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, gameState.skyboxTextures.at(gameState.level));
   CHECK_GL_ERRORS;
 
   m_shader_skybox.enable();

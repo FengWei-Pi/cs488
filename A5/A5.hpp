@@ -144,8 +144,7 @@ private:
 
   StateManager<PlayerState> playerStateManager;
 
-  static GLuint loadCubemap(std::vector<std::string> faces);
-  GLuint skyboxTexture;
+  static GLuint readTextureCubemap(std::string);
   GLuint skyboxVAO;
   GLuint skyboxVBO;
 
@@ -170,8 +169,8 @@ private:
 
   struct GameState {
     bool isPlaying = true;
-    int lives = 1;
     std::map<int, int> score;
+    std::map<int, GLuint> skyboxTextures;
     int level = 1;
   } gameState;
 
