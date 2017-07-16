@@ -125,10 +125,11 @@ private:
   GLuint depthRenderBuffer;
 
   struct World {
-    glm::vec3 F_g = glm::vec3(0, -12, 0); // Gravitational force
-    glm::vec3 F_wind = glm::vec3(1, 0, 1); // Wind force
-    float ufs = 0.1; // co-efficient of static friction
-    float ufk = 0.05; // co-efficient of kinetic friction
+    glm::vec3 F_g; // Gravitational force
+    glm::vec3 F_wind; // Wind force
+    float ufs; // co-efficient of static friction
+    float ufk; // co-efficient of kinetic friction
+    World(glm::vec3, glm::vec3, float, float);
   } world;
 
   static void initShaderProgram(ShaderProgram& program, const std::string& name);

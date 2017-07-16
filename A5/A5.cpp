@@ -37,6 +37,12 @@ static bool show_gui = true;
 
 const size_t CIRCLE_PTS = 48;
 
+A5::World::World(glm::vec3 F_g, glm::vec3 F_wind, float ufs, float ufk)
+  : F_g(F_g),
+    F_wind(F_wind),
+    ufs(ufs),
+    ufk(ufk) {}
+
 //----------------------------------------------------------------------------------------
 // Constructor
 A5::A5()
@@ -54,13 +60,11 @@ A5::A5()
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048),
     playerStateManager(INIT),
-    level(Level::read(getAssetFilePath("level1.json")))
+    level(Level::read(getAssetFilePath("level1.json"))),
+    world(glm::vec3(0, -12, 0), glm::vec3(1, 0, 1), 0.1, 0.05),
+    player(glm::vec3(0, -12, 0))
 {
   const uint size = 6;
-
-  player.mass = 1;
-  player.speed = 6;
-  player.g = world.F_g / player.mass;
 
   playerStateManager.addState(WALKING, [this](PlayerState oldState) -> void {
     animationStartTime = Clock::getTime();
@@ -99,11 +103,7 @@ A5::~A5() {
 }
 
 void A5::resetPlayer() {
-  Player guy;
-  player = guy;
-  player.mass = 1;
-  player.speed = 6;
-  player.g = world.F_g / player.mass;
+  player = Player(world.F_g);
 }
 
 //----------------------------------------------------------------------------------------
@@ -1113,6 +1113,10 @@ void A5::renderSceneNormally(
 
     glUniform1i(m_shader.getUniformLocation("depthTexture"), 0);
     CHECK_GL_ERRORS;
+
+    // Ensure puppet is rendered with alpha = 1
+    glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
+    CHECK_GL_ERRORS;
   }
   m_shader.disable();
 
@@ -1182,7 +1186,6 @@ void A5::renderSceneNormally(
 
     if (block.hasBeenVisited()) {
       m_shader.enable();
-      // reset transparency
       glUniform1f(m_shader.getUniformLocation("alpha"), 1.0f);
       CHECK_GL_ERRORS;
       m_shader.disable();

@@ -5,6 +5,8 @@
 #include <cmath>
 #include <iostream>
 
+Player::Player(glm::vec3 Fg) : mass(1), speed(6), g(Fg/mass), position(0, 3, 0) {}
+
 void Player::setDirection(double dir) {
   oldDirection = getDirection();
   direction = dir;

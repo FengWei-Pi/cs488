@@ -11,6 +11,7 @@ class Player : public Collidable {
   glm::vec3 inputVelocity;
   void setDirection(double direction);
 public:
+  Player(glm::vec3 Fg);
   double getDirection();
   bool canWalk;
   float mass;
