@@ -54,7 +54,7 @@ A5::A5()
     SHADOW_WIDTH(2048),
     SHADOW_HEIGHT(2048),
     playerStateManager(INIT),
-    level(Level::read(getAssetFilePath("./level1.json")))
+    level(Level::read(getAssetFilePath("level1.json")))
 {
   const uint size = 6;
 
@@ -595,12 +595,6 @@ void A5::appLogic() {
     } else {
       gameCamera.yAngle -= dispX / 200;
       gameCamera.xAngle = glm::clamp(gameCamera.xAngle - dispY / 200, -PI/9, PI/9);
-      if (
-           playerStateManager.getCurrentState() != AIRBORN
-        && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
-      ) {
-        refreshPlayerInputVelocity();
-      }
     }
   }
 
@@ -679,10 +673,6 @@ void A5::appLogic() {
       // Efficiently undo collision
       player.position = player.position - direction * createVec3(argmin, collision.size[argmin]);
 
-      if (playerStateManager.getCurrentState() != PREPARING_TO_JUMP) {
-        refreshPlayerInputVelocity();
-      }
-
       const bool isGroundCollision = argmin == 1;
 
       if (isGroundCollision) {
@@ -690,9 +680,22 @@ void A5::appLogic() {
         ground->markVisited();
         ground->decreaseTTL(t);
 
+        if (playerStateManager.getCurrentState() == AIRBORN) {
+          gameState.score += 100;
+        }
+
         if (playerStateManager.getCurrentState() == PREPARING_TO_JUMP) {
           double t = playerStateManager.getTimeSinceLastTransition();
           playerJumpVelocity = -2 * std::cos(2 * glm::radians(180.0f) / 6 * t) + 8;
+        } else {
+          const glm::vec3 inputV = calculatePlayerInputVelocity();
+          player.setInputVelocity(inputV);
+
+          if (glm::length(inputV) >= 0.0001) {
+            playerStateManager.transition(WALKING);
+          } else {
+            playerStateManager.transition(STANDING);
+          }
         }
 
         player.setInertialVelocity(ground->getVelocity());
@@ -737,7 +740,6 @@ void A5::guiLogic()
   float opacity(0.5f);
 
   ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity, windowFlags);
-  // Add more gui elements here here ...
 
   ImGui::Text("Environment");
 
@@ -771,8 +773,9 @@ void A5::guiLogic()
   ImGui::SliderFloat("Jump Speed", &playerJumpVelocity, 0, 12, "%.3f m/s");
 
   ImGui::Text("\nGame");
+  ImGui::Text("Score: %d", gameState.score);
   if (!gameState.isPlaying) {
-    if (ImGui::Button("Start")) {
+    if (ImGui::Button("Resume")) {
       gameState.isPlaying = true;
     }
   } else {
@@ -784,6 +787,8 @@ void A5::guiLogic()
   if (ImGui::Button("Restart")) {
     resetPlayer();
     level = Level::read(getAssetFilePath("level1.json"));
+    GameState state;
+    gameState = state;
   }
 
   if (ground != nullptr) {
@@ -1496,7 +1501,14 @@ bool A5::keyInputEvent (
              playerStateManager.getCurrentState() != AIRBORN
           && playerStateManager.getCurrentState() != PREPARING_TO_JUMP
         ) {
-          refreshPlayerInputVelocity();
+          const glm::vec3 inputV = calculatePlayerInputVelocity();
+          player.setInputVelocity(inputV);
+
+          if (glm::length(inputV) >= 0.0001) {
+            playerStateManager.transition(WALKING);
+          } else {
+            playerStateManager.transition(STANDING);
+          }
         }
         break;
       }
@@ -1508,19 +1520,6 @@ bool A5::keyInputEvent (
 
 bool A5::isKeyPressed(int key) {
   return keysPressed.find(key) != keysPressed.end();
-}
-
-// Reset player's XZ velocity (based on key inputs) and update animations
-void A5::refreshPlayerInputVelocity() {
-  const double epsilon = 0.0001;
-  glm::vec3 inputV = calculatePlayerInputVelocity();
-  player.setInputVelocity(inputV);
-
-  if (glm::length(glm::vec3(inputV.x, 0, inputV.z)) >= epsilon) {
-    playerStateManager.transition(WALKING);
-  } else {
-    playerStateManager.transition(STANDING);
-  }
 }
 
 glm::vec3 A5::calculatePlayerInputVelocity() {

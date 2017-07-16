@@ -107,7 +107,6 @@ private:
 
   bool isKeyPressed(int key);
   glm::vec3 calculatePlayerInputVelocity();
-  void refreshPlayerInputVelocity();
 
   /**
    * Shadow Map
