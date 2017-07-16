@@ -10,7 +10,7 @@ Player::Player(glm::vec3 Fg)
     runningSpeed(6),
     jumpingSpeed(10),
     g(Fg/mass),
-    position(0, 3, 0),
+    position(0, 4, 0),
     power(0.0),
     oldDirection(0),
     direction(0),

@@ -146,7 +146,7 @@ void A5::init()
   initLightSources();
 
   {
-    gameState.skyboxTextures[1] = readTextureCubemap("TropicalSunnyDay");
+    gameState.skyboxTextures[1] = readTextureCubemap("ThickCloudsWater");
     gameState.skyboxTextures[2] = readTextureCubemap("SunSet");
     gameState.skyboxTextures[3] = readTextureCubemap("DarkStormy");
 

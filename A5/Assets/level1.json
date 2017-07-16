@@ -12,13 +12,13 @@
     "mass": 1,
     "ttl": 100
   }, {
-    "position": [-2, -1, 14],
+    "position": [-3, -1, 14],
     "updateVFn": { "A": 2, "period": 4, "k": 0, "offset": 0 },
     "size": [6, 1, 6],
     "mass": 1,
     "ttl": 100
   }, {
-    "position": [-2, -1, 22],
+    "position": [-2.5, -1, 22],
     "updateVFn": { "A": 1.5, "period": 3, "k": 1, "offset": 0 },
     "size": [5, 1, 5],
     "mass": 1,
@@ -30,15 +30,15 @@
     "mass": 1,
     "ttl": 100
   }, {
-    "position": [-2, -1, 38],
+    "position": [-3, -1, 38],
     "updateVFn": { "A": 4, "period": 2, "k": 1, "offset": 0 },
-    "size": [6, 1, 6],
+    "size": [4, 1, 6],
     "mass": 1,
     "ttl": 100
   }, {
     "position": [-2, -1, 46],
     "updateVFn": { "A": 2, "period": 4, "k": 0, "offset": 0 },
-    "size": [4, 1, 6],
+    "size": [6, 1, 6],
     "mass": 1,
     "ttl": 100
   }, {
