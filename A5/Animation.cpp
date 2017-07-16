@@ -570,10 +570,10 @@ Animation Animation::getPlayerJumpingAnimation() {
 
   Keyframe three;
   {
-    const double theta = 15;
+    const double theta = 10;
     const double alpha = 40;
     three.rotations["body"] = theta;
-    three.positions["body"] = glm::vec3(0, 0.5, 0.4);
+    three.positions["body"] = glm::vec3(0, 0.5, 0);
     three.rotations["head-joint"] = 0;
     three.rotations["neck-joint"] = 0;
 
@@ -598,10 +598,10 @@ Animation Animation::getPlayerJumpingAnimation() {
 
   Keyframe five;
   {
-    const double theta = 15;
+    const double theta = 5;
     const double alpha = 30;
     five.rotations["body"] = theta;
-    five.positions["body"] = glm::vec3(0, 1, 1);
+    five.positions["body"] = glm::vec3(0, 1, 0);
     five.rotations["head-joint"] = 0;
     five.rotations["neck-joint"] = 0;
 
