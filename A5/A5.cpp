@@ -633,7 +633,14 @@ void A5::appLogic() {
   player.acceleration = (world.F_g + netAppliedForce) / player.mass;
 
   const float t = 1 / ImGui::GetIO().Framerate;
-  player.position = 0.5f * player.acceleration * t * t + player.getVelocity() * t + player.position;
+  glm::vec3 updatedPosition = 0.5f * player.acceleration * t * t + player.getVelocity() * t + player.position;
+
+  if (isInAnimationViewingMode) {
+    player.position = glm::vec3(player.position.x, updatedPosition.y, player.position.z);
+  } else {
+    player.position = updatedPosition;
+  }
+
   player.setVelocity(player.acceleration * t + player.getVelocity());
 
   if (playerStateManager.getCurrentState() != AIRBORN) {
@@ -725,10 +732,8 @@ void A5::appLogic() {
   playerStateManager.transition(AIRBORN);
 
   // If player's 5 meters below the lowest platform, restart the level
-  for (Platform& platform : level.platforms) {
-    if (player.position.y > platform.position.y + platform.getSize().y - 5) {
-      goto UpdateCursor;
-    }
+  if (player.position.y > -5) {
+    goto UpdateCursor;
   }
 
   restartLevel();
@@ -741,7 +746,12 @@ void A5::appLogic() {
 void A5::restartLevel() {
   std::string filename = std::string("level") + std::to_string(gameState.level) + ".json";
   level = Level::read(getAssetFilePath(filename.c_str()));
-  player = Player(world.F_g);
+  Player temp{world.F_g};
+
+  player.position = temp.position;
+  player.setVelocity(temp.getVelocity());
+  player.acceleration = temp.acceleration;
+
   gameState.score[gameState.level] = 0;
 }
 
@@ -749,7 +759,11 @@ void A5::advanceLevel() {
   gameState.level += 1;
   std::string filename = std::string("level") + std::to_string(gameState.level) + ".json";
   level = Level::read(getAssetFilePath(filename.c_str()));
-  player = Player(world.F_g);
+  Player temp{world.F_g};
+
+  player.position = temp.position;
+  player.setVelocity(temp.getVelocity());
+  player.acceleration = temp.acceleration;
 }
 
 void A5::updateWindSourceGain() {
@@ -798,11 +812,11 @@ void A5::guiLogic()
 
   ImGui::DragFloat("Static friction", &world.ufs, 0.01f, 0.005f, 1.0f);
   ImGui::DragFloat("Kinetic friction", &world.ufk, 0.01f, 0.0005f, 1.0f);
-  ImGui::DragFloat3("Wind force", glm::value_ptr(world.F_wind), 0.1, -100.0, 100.0, "%.3f N");
+  ImGui::DragFloat3("Wind force", glm::value_ptr(world.F_wind), 0.05, -100.0, 100.0, "%.3f N");
 
   ImGui::Text("\nPlayer");
   if (ImGui::DragFloat("g", &player.g.y, 0.1f, minG, maxG, "%.3f m/s^2")) {
-    player.mass = world.F_g.y / player.g.y;
+    world.F_g.y = player.mass * player.g.y;
   }
 
   if (ImGui::DragFloat("Mass", &player.mass, 0.1f, minMass, maxMass, "%.3f kg")) {
@@ -837,14 +851,25 @@ void A5::guiLogic()
     }
   }
 
-  if (ImGui::Button("Restart")) {
+  if (ImGui::Button("Restart Level")) {
     restartLevel();
+  }
+
+  if (ImGui::Button("Reset Environment")) {
+    world = World(glm::vec3(0, -12, 0), glm::vec3(1, 0, 1), 0.1, 0.05);
+  }
+
+  if (ImGui::Button("Reset Player")) {
+    player = Player(world.F_g);
   }
 
   ImGui::Text("\nToggles");
   ImGui::Checkbox("Textures", &show.textures);
   ImGui::Checkbox("Shadows", &show.shadows);
   ImGui::Checkbox("Transparency", &show.transparency);
+
+  ImGui::Text("\nGame Modes");
+  ImGui::Checkbox("Animation Viewing Mode", &isInAnimationViewingMode);
 
   // Create Button, and check if it was clicked:
   if( ImGui::Button( "Quit Application" ) ) {

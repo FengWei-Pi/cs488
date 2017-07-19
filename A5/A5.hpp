@@ -208,6 +208,8 @@ private:
   void advanceLevel();
   void restartLevel();
 
+  bool isInAnimationViewingMode = false;
+
   struct Toggles {
     bool textures = true;
     bool shadows = true;
