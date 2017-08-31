@@ -7,12 +7,11 @@
 // of indices to be rendered.
 struct BatchInfo {
 
-	// Starting index within an associated vertex buffer denoting the start
-	// of this batch's vertex data.
-	unsigned int startIndex;
+  // Starting index within an associated vertex buffer denoting the start
+  // of this batch's vertex data.
+  unsigned int startIndex;
 
-	// Number of indices to be rendered for this batch.
-	unsigned int numIndices;
+  // Number of indices to be rendered for this batch.
+  unsigned int numIndices;
 
 };
-
